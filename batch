@@ -94,7 +94,7 @@ shift
 JobName=`basename $1`
 JobSpec=$@
 
-BaseCommand="qsub -V -cwd -o ${HOME} -e ${HOME} -shell n -b y -r y -m $EmailOpts -M $EmailAddress"
+BaseCommand="qsub -V -cwd -shell n -b y -r y -m $EmailOpts -M $EmailAddress"
 Command="$BaseCommand -q $QueueName -N $JobName $Arch $Priority $JobSpec"
 
 if [ "${Verbose}" != "" ] ; then
