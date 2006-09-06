@@ -1,0 +1,175 @@
+#!/bin/sh
+
+# SHCOPYRIGHT
+
+#RCFILE=${FSLDIR}/etc/fslconf/fsl_sub.cfg
+RCFILE=/usr/local/share/fsl_sub/cfg
+. $RCFILE
+
+usage ()
+{
+if [ x$1 = xShowVersion ] ; then
+  echo "V1.0beta - wrapper for job control system such as SGE!"
+fi
+
+  cat <<EOF
+Usage: fsl_sub [-q <queuename>] [-N <jobname>] <command>
+
+fsl_sub gzip *.img *.hdr
+fsl_sub -q short.q gzip *.img *.hdr
+fsl_sub -a darwin regscript rawdata outputdir ...
+
+  -q <queuename>        Possible values for <queuename> are "verylong.q", "long.q" 
+                        and "short.q". See below for details
+                        Default is "long.q".
+  -h			Display this help text.
+  -a <arch-name>        Architecture [darwin only at present]
+  -p <job-priority>     Lower priority [0:-1024] default = 0                 
+  -M <email-address>    Who to email. default = `whoami`@fmrib.ox.ac.uk 
+  -v                    Verbose mode.
+  -j <jid>              Place a hold on this task until job jid has completed
+  -t <filename>         Specify a task file instead of command line to enqueue
+Queues:
+
+There are three batch queues configured on the cluster, each with defined CPU
+time limits.
+
+short.q:    This queue is for jobs which last less then 2h. There are two slots 
+            per node.
+long.q:     This queue is for jobs which last less than 24h. There are two slots
+            per node.
+verylong.q: This queue is for jobs which will take longer than 24h CPU time.
+            There is one slot per node, and jobs on this queue have a nice value
+            of 5. If jobs enter the short.q queue then items running on this
+            queue are suspended and resumed on completion of the short.q task.
+
+EOF
+}
+
+nargs=$#
+if [ $nargs -eq 0 ] ; then
+  echo "What? No arguments? Pretty unlikely!"
+  exit 1
+fi
+
+set -- `getopt q:t:j:l:p:M:vh $*`
+result=$?
+if [ $result != 0 ] ; then
+  echo "What? Your arguments make no sense!"
+fi
+
+if [ $nargs -eq 0 ] || [ $result != 0 ] ; then
+  usage
+  exit 1
+fi
+
+queue=long.q
+mailto=`whoami`@fmrib.ox.ac.uk
+
+while [ $1 != -- ] ; do
+  case $1 in
+    -q)
+      queue=$2
+      shift;;
+    -j)
+      jid=$2
+      sge_hold="-hold_jid $jid"
+      shift;;
+    -l)
+      sge_arch="-l arch=$2"
+      shift;;
+    -p)
+      sge_priority="-p $2"
+      shift;;
+    -M)
+      echo Mailing $2
+      mailto=$2
+      shift;;
+    -t)
+      taskfile=$2
+      tasks=`wc -l $taskfile | awk '{print $1}'`
+      sge_tasks="-t 1-$tasks"
+      shift;;
+    -v)
+      verbose=1
+      ;;
+    -h)
+      usage ShowVersion
+      exit 1
+  esac
+  shift  # next flag
+done
+
+shift
+
+if [ "x$tasks" != "x" && ! -f "$taskfile" ] ; then
+    echo $taskfile: invalid input!
+    echo Should be a text file listing all the commands to run!
+    exit -1
+fi
+if [ "x$tasks" != "x" && "x$@" != "x" ] ; then
+    echo $@
+    echo Spurious input after parsing command line!
+    exit -1
+fi
+
+case $METHOD in
+
+    SGE)
+	if [ "x$tasks" == "x" ] ; then
+	    sge_command="qsub -V -cwd -shell n -b y -r y -q $queue -M $mailto -m ase $sge_arch $sge_hold $sge_tasks"
+	    if [ x$verbose != x ] ; then 
+		echo sge_command: $sge_command
+		echo executing: $@
+	    fi
+	    exec $sge_command $@ | awk '{print $3}'
+	else
+	    sge_command="qsub -V -cwd -q $queue -M $mailto -m ase $sge_arch $sge_hold $sge_tasks"
+	    if [ x$verbose != x ] ; then 
+		echo sge_command: $sge_command
+		echo control file: $taskfile
+	    fi
+	    exec $sge_command <<EOF | awk '{print $3}' | awk -F. '{print $1}'
+#!/bin/sh
+
+#$ -cwd -q $queue
+#$ -S /bin/sh
+#$ -V
+#$ -m as
+
+command=\`sed -n -e "\${SGE_TASK_ID}p" $taskfile\`
+
+exec /bin/sh -c "\$command"
+EOF
+	fi
+	;;
+
+    HOSTLIST)
+	if [ "x$tasks" == "x" ] ; then
+	    if [ x$verbose != x ] ; then 
+		echo executing: $@
+	    fi
+	    # wait for any job holds to complete
+	    if [ x$jid == x ] ; then
+	    fi
+	    # pick a host to execute the command and
+	    # start job on it
+	    host=next_host
+	    myjid="${host}:$$:$RANDOM"
+	    ssh $host nohup fsl_sub_shepherd ${myjid} $@ &
+	    echo $myjid
+	else
+	    if [ x$verbose != x ] ; then 
+		echo control file: $taskfile
+	    fi
+	    # wait for any job holds to complete
+	    # for each line of the control file
+	    #    pick a host
+	    #    start job on host
+	fi	
+	;;
+
+    NONE)
+esac
+
+

@@ -1,0 +1,18 @@
+#!/bin/sh
+
+
+# SHCOPYRIGHT
+
+#RCFILE=${FSLDIR}/etc/fslconf/fsl_sub.cfg
+RCFILE=/usr/local/share/fsl_sub/cfg
+. $RCFILE
+
+jid=$1;
+
+shift;
+
+touch $SPOOLDIR/$jid
+
+$@
+
+rm $SPOOLDIR/$jid

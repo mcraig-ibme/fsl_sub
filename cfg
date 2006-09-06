@@ -1,0 +1,66 @@
+# SHCOPYRIGHT
+
+SUBROOT=/usr/local/share/fsl_sub
+#
+# METHOD: Specify a batch mechanism. One of: NONE; SGE; HOSTLIST
+#
+METHOD=HOSTLIST
+#
+# LOCKFILE: Specify the location that the batch script can use for generating
+# and testing mutex style locking.
+#
+LOCKFILE=${SUBROOT}/lock
+#
+#
+#
+SPOOLDIR=${SUBROOT}/spool
+#
+# METHOD Specific options
+#
+# HOSTLIST
+#
+# HOSTLIST: should have an entry for every machine you want to
+# use. If a machine has multiple CPUs then add duplicates up to the
+# number of jobs you want to service on that machine.
+#
+HOSTLIST="jalapeno2 jalapeno2 jalapeno3 jalapeno3 jalapeno4 jalapeno4 jalapeno5 jalapeno5\
+    jalapeno6 jalapeno6 jalapeno7 jalapeno7 jalapeno8 jalapeno8"
+#
+#
+# ---------- End of configuration options ---------
+#
+# Global host selection variable. Do NOT edit this.
+#
+NEXTHOST=1
+
+acquire_lock ()
+{
+    mkdir $LOCKFILE > /dev/null 2>&1
+    if [ $? == 1 ] ; then
+	return 0;
+    else
+	return 1;
+    fi
+}
+ 
+release_lock ()
+{
+    rmdir $LOCKFILE
+}
+
+next_host ()
+{
+    acquire_lock
+    while [ $? == 0 ] ; do
+	sleep 2;
+	acquire_lock
+    done
+    index=`cat $RCFILE | grep "NEXTHOST=" | awk -F '=' '{print $2}'`
+    nhosts=`echo $HOSTLIST | awk '{print NF}'`
+    next_index=`expr ( $index % $nhosts ) + 1`
+    cp $RCFILE /tmp/$RCFILE
+    cat /tmp/$RCFILE | sed s/^NEXTHOST=.*/NEXTHOST=${next_index}/ > $RCFILE
+    rm /tmp/$RCFILE
+    release_lock
+    return `echo $HOSTIST | awk '{print $index}'`
+}
