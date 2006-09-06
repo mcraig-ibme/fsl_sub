@@ -1,6 +1,7 @@
-SCRIPTS=batch pbatch
+SCRIPTS=batch pbatch fsl_sub fsl_sub_shepherd
 
 DESTDIR=/usr/local/bin
+CFGDIR=/usr/local/share/fsl_sub
 
 INSTALL=install -p -c
 
@@ -11,5 +12,6 @@ install:
 			echo ${INSTALL} -m 0775 $$file ${DESTDIR} ; \
 		fi \
 	done
+	${INSTALL} -m 0444 cfg ${CFGDIR}
 
 all:
