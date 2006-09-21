@@ -1,18 +1,21 @@
 #!/bin/sh
 
-
 # SHCOPYRIGHT
 
 #RCFILE=${FSLDIR}/etc/fslconf/fsl_sub.cfg
 RCFILE=/usr/local/share/fsl_sub/cfg
 . $RCFILE
 
-jid=$1;
+wd=$1
+jid=$2
+name=$3
+shift 2
 
-shift;
+echo $$ >> ${SPOOLDIR}/${jid}
+echo $wd >> ${SPOOLDIR}/${jid}
+echo $@ >> ${SPOOLDIR}/${jid}
 
-touch $SPOOLDIR/$jid
+cd $wd
+$@ > $name.o${jid} 2>&1
 
-$@
-
-rm $SPOOLDIR/$jid
+mv $SPOOLDIR/$jid $SPOOLDIR/completed/$jid

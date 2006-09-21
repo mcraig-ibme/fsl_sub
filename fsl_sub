@@ -75,7 +75,7 @@ while [ $1 != -- ] ; do
       jid=$2
       sge_hold="-hold_jid $jid"
       shift;;
-    -l)
+    -a)
       sge_arch="-l arch=$2"
       shift;;
     -p)
@@ -102,12 +102,13 @@ done
 
 shift
 
-if [ "x$tasks" != "x" && ! -f "$taskfile" ] ; then
+if [ "x$tasks" != "x" ] && [ ! -f "$taskfile" ] ; then
     echo $taskfile: invalid input!
     echo Should be a text file listing all the commands to run!
     exit -1
 fi
-if [ "x$tasks" != "x" && "x$@" != "x" ] ; then
+
+if [ "x$tasks" != "x" ] && [ "x$@" != "x" ] ; then
     echo $@
     echo Spurious input after parsing command line!
     exit -1
@@ -150,22 +151,43 @@ EOF
 		echo executing: $@
 	    fi
 	    # wait for any job holds to complete
-	    if [ x$jid == x ] ; then
+	    if [ "x$jid" != x ] ; then
+		echo Waiting for $jid
+	        while [ -f ${SPOOLDIR}/$jid ] ; do
+		    sleep 2
+		done
 	    fi
 	    # pick a host to execute the command and
 	    # start job on it
-	    host=next_host
-	    myjid="${host}:$$:$RANDOM"
-	    ssh $host nohup fsl_sub_shepherd ${myjid} $@ &
-	    echo $myjid
+	    next_job
+	    echo $host >> ${SPOOLDIR}/${njid}
+	    ssh $host nohup /usr/local/bin/fsl_sub_shepherd `pwd` $njid $@ &
+	    echo $njid
 	else
 	    if [ x$verbose != x ] ; then 
-		echo control file: $taskfile
+		echo Running commands in: $taskfile
 	    fi
 	    # wait for any job holds to complete
+	    if [ "x$jid" != x ] ; then
+		echo Waiting for $jid
+	        while [ -f ${SPOOLDIR}/$jid ] ; do
+		    sleep 2
+		done
+	    fi
 	    # for each line of the control file
-	    #    pick a host
-	    #    start job on host
+	    
+	    nlines=`wc -l $taskfile| awk '{print $1}'`
+	    n=1
+	    while [ $n -le $nlines ] ; do
+		line=`sed -n -e ''${n}'p' $taskfile`
+		n=`expr $n + 1`
+		# pick a host
+		# start job on host
+		next_job
+		echo $host >> ${SPOOLDIR}/${njid}
+		ssh $host nohup /usr/local/bin/fsl_sub_shepherd `pwd` $njid $line &
+		echo $njid
+	    done
 	fi	
 	;;
 

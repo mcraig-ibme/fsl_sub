@@ -5,6 +5,8 @@ CFGDIR=/usr/local/share/fsl_sub
 
 INSTALL=install -p -c
 
+all:
+
 install:
 	@for file in ${SCRIPTS} ; do \
 		if [ -f $$file ] ; then \
@@ -12,6 +14,4 @@ install:
 			echo ${INSTALL} -m 0775 $$file ${DESTDIR} ; \
 		fi \
 	done
-	${INSTALL} -m 0444 cfg ${CFGDIR}
-
-all:
+	${INSTALL} -m 0666 cfg ${CFGDIR}
