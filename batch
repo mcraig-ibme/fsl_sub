@@ -24,6 +24,7 @@ batch -a darwin regscript rawdata outputdir ...
                         Default is "long.q".
   -N <jobname>          The string <jobname> will be used for the output files
                         and the job name in qstat output.
+  -j <jid>		Job hold. Run this job after <jid> has completed.
   -h			Display this help text.
   -a <arch-name>        Architecture [darwin only at present]
   -p <job-priority>     Lower priority [0:-1024] default = 0                 
@@ -52,7 +53,7 @@ if [ $nargs -eq 0 ] ; then
   echo "What? No arguments!"
 fi
 
-set -- `getopt q:N:a:p:M:hv $*`
+set -- `getopt q:N:a:p:M:j:hv $*`
 result=$?
 if [ $result != 0 ] ; then
   echo "What? Your arguments make no sense!"
@@ -72,6 +73,9 @@ while [ $1 != -- ] ; do
       shift;;
     -a)
       Arch="-l arch=$2"
+      shift;;
+    -j)
+      JobHold="-hold_jid $2"
       shift;;
     -p)
       Priority="-p $2"
@@ -95,7 +99,7 @@ JobName=`basename $1`
 JobSpec=$@
 
 BaseCommand="qsub -V -cwd -shell n -b y -r y -m $EmailOpts -M $EmailAddress"
-Command="$BaseCommand -q $QueueName -N $JobName $Arch $Priority $JobSpec"
+Command="$BaseCommand -q $QueueName -N $JobName $Arch $JobHold $Priority $JobSpec"
 
 if [ "${Verbose}" != "" ] ; then
   echo Running command: $Command
