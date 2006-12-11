@@ -1,4 +1,8 @@
 #!/bin/sh
+#
+# FSL Job shepherd. Used to execute and track the progress of a sub-job 
+# When submitted via the FSL noddy clustering scripts.
+#
 
 # SHCOPYRIGHT
 
@@ -6,16 +10,41 @@
 RCFILE=/usr/local/share/fsl_sub/cfg
 . $RCFILE
 
+
+usage ()
+{
+  cat <<EOF
+V1.0beta - Wrapper for the executing process on the remote host
+
+Usage: fsl_sub_shepherd <working-directory> <job-identifier> <displayed-job-name>
+EOF
+}
+
 wd=$1
 jid=$2
 name=$3
 shift 2
 
+#
+# Write some housekeeping info to the shared spool file. This file is
+# used by the main submission script to determine resource availability
+# and individual job progress.
+#
+# TODO: qstat-like script could use this file to determine process progress. 
+#
 echo $$ >> ${SPOOLDIR}/${jid}
 echo $wd >> ${SPOOLDIR}/${jid}
 echo $@ >> ${SPOOLDIR}/${jid}
 
+#
+# Change into the working directory and invoke the required command line
+# with output redirection into a job specific output file.
+#
 cd $wd
 $@ > $name.o${jid} 2>&1
 
+#
+# Job done so move the spool file into the completed subdir. This file could be
+# used for accounting purposes.
+#
 mv $SPOOLDIR/$jid $SPOOLDIR/completed/$jid
