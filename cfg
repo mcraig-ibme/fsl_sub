@@ -1,40 +1,30 @@
 # SHCOPYRIGHT
 
 SUBROOT=/usr/local/share/fsl_sub
+
 #
 # METHOD: Specify a batch mechanism. One of: NONE; SGE; HOSTLIST
 #
 METHOD=HOSTLIST
-#
-# LOCKFILE: Specify the location that the batch script can use for generating
-# and testing mutex style locking.
-#
-LOCKFILE=${SUBROOT}/lock
-#
-#
-#
-SPOOLDIR=${SUBROOT}/spool
-#
-# METHOD Specific options
-#
-# HOSTLIST
+
+# METHOD-Specific options
 #
 # HOSTLIST: should have an entry for every machine you want to
 # use. If a machine has multiple CPUs then add duplicates up to the
 # number of jobs you want to service on that machine.
 #
-HOSTLIST="jalapeno2 jalapeno2 jalapeno3 jalapeno3 jalapeno4 jalapeno4 jalapeno5 jalapeno5\
-    jalapeno6 jalapeno6 jalapeno7 jalapeno7 jalapeno8 jalapeno8"
-#
-#
+HOSTLIST="LOCAL"
+
 # ---------- End of configuration options ---------
 #
-# Global host selection variable. Do NOT edit below this line
+# Do NOT edit below this line
 # unless you know exactly what you're doing.
 #
 NEXTHOST=1
 NEXTJID=1
 MAXJID=32767
+LOCKFILE=${SUBROOT}/lock
+SPOOLDIR=${SUBROOT}/spool
 
 acquire_lock ()
 {
