@@ -1,0 +1,85 @@
+#!/usr/bin/perl -w
+use strict;
+use vars qw($opt_q $opt_k);
+use Getopt::Std;
+
+# Script to create a X11 Virtual frame buffer for the user
+my $quiet = 0;
+getopts('qk:');
+$quiet = 1 if (defined $opt_q);
+
+my $HOSTTYPE = `uname -s`;
+chomp $HOSTTYPE;
+
+my ($XVFB, $PS);
+if ( $HOSTTYPE eq "Linux" ) {
+    $XVFB='/usr/bin/Xvfb';
+    $PS='/bin/ps';
+} elsif ( $HOSTTYPE eq "Darwin" ) {
+    $XVFB='/usr/X11R6/bin/Xvfb';
+    $PS='/bin/ps';
+} else {
+    print "Unsupported platform ($HOSTTYPE)\n";
+    exit 1;
+}
+
+my $ME=$<;
+
+# Find out if the user has a Xvfb server running
+my @XVFBs_running=`$PS -Ao uid,pid,command | grep Xvfb | grep -v grep`;
+
+my (%displays, %users, %pids);
+
+foreach my $displ_number (@XVFBs_running) {
+    chomp $displ_number;
+    $displ_number =~ s/^\s+//;
+    $displ_number =~ s/\s+$//;
+    $displ_number =~ s/\s{2,}/ /;
+
+    my ($uid, $pid, $null, $display) = split / /, $displ_number;
+    $display =~ s/:(\d+)/$1/;
+
+    $displays{$display} = $uid;
+    $users{$uid} += $display;
+    $pids{$display} = $pid;
+}
+
+if ( $opt_k ) {
+    # Kill a running server - $opt_k contains the display number
+    if ( ! defined $displays{$opt_k} ) {
+	print "No display found on port $opt_k\n";
+	exit 1;
+    } elsif ( $displays{$opt_k} == $ME ) {
+	# We own the display
+	kill 'TERM', $pids{$opt_k};
+    } else {
+	print "Display $opt_k not owned by you!\n";
+	exit 1;
+    }
+} else {
+    if ( defined $users{$ME} ) {
+	# We have a server running, tell the user which one
+	print "You already have the following displays open:\n" unless $quiet;
+    
+	foreach my $display (keys %displays) {
+	    print "$display\n" if ( $displays{$display} == $ME );
+	}
+    } else {
+	# No server running, so start one
+	# Find a display number
+	my $display = 1;
+	while ( $displays{$display} ) {
+	    $display ++;
+	}
+	my $failure=system "$XVFB :$display 2>&1 > /dev/null &";
+	if ( ! $failure ) {
+	    if ( $quiet ) {
+		print "$display\n";
+	    } else {
+		print "Xvfb display started on :$display\n";
+	    }
+	} else {
+	    die $!;
+	}
+    }
+}
