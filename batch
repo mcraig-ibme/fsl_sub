@@ -5,7 +5,8 @@ UserName=`whoami`
 EmailAddress=$UserName\@fmrib.ox.ac.uk
 Arch=
 EmailOpts=a
-
+POSIXLY_CORRECT=1
+export POSIXLY_CORRECT
 usage  ()
 {
 if [ x$1 = xShowVersion ] ; then
