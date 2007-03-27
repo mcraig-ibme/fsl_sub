@@ -11,13 +11,17 @@ $quiet = 1 if (defined $opt_q);
 my $HOSTTYPE = `uname -s`;
 chomp $HOSTTYPE;
 
-my ($XVFB, $PS);
+my ($XVFB, $PS, $X11, $XVNC);
 if ( $HOSTTYPE eq "Linux" ) {
     $XVFB='/usr/bin/Xvfb';
     $PS='/bin/ps';
+    $X11='/usr/bin/Xorg';
+    $XVNC='Xvnc';
 } elsif ( $HOSTTYPE eq "Darwin" ) {
     $XVFB='/usr/X11R6/bin/Xvfb';
     $PS='/bin/ps';
+    $X11='/Applications/Utilities/X11.app/Contents/MacOS/X11';
+    $XVNC='Xvnc';
 } else {
     print "Unsupported platform ($HOSTTYPE)\n";
     exit 1;
@@ -26,7 +30,7 @@ if ( $HOSTTYPE eq "Linux" ) {
 my $ME=$<;
 
 # Find out if the user has a Xvfb server running
-my @XVFBs_running=`$PS -Ao uid,pid,command | grep Xvfb | grep -v grep`;
+my @XVFBs_running=`$PS -Awwo uid,pid,command | grep Xvfb | grep -v grep`;
 
 my (%displays, %users, %pids);
 
@@ -43,13 +47,45 @@ foreach my $displ_number (@XVFBs_running) {
     $users{$uid} += $display;
     $pids{$display} = $pid;
 }
+# Locate any running X11 displays
+my @X11s_running=`$PS -Awwo uid,pid,command | grep $X11 | grep -v grep`;
+
+foreach my $displ_number (@X11s_running) {
+    chomp $displ_number;
+    $displ_number =~ s/^\s+//;
+    $displ_number =~ s/\s+$//;
+    $displ_number =~ s/\s{2,}/ /;
+    my ($uid, $pid, $null, $display, $null_auth, $null_psn);
+    if ( $HOSTTYPE eq "Linux" ) {
+	($uid, $pid, $null, $display) = split / /, $displ_number;
+	
+    } elsif ($HOSTTYPE eq "Darwin" ) {
+	($uid, $pid, $null, $null_auth, $null_psn, $display) = split / /, $displ_number;
+    }
+    $display =~ s/:(\d+)/$1/;
+    $displays{$display} = $uid;
+    print "Cannot start - X11 display running on $display\n";
+    exit 1;
+}
+# Locate any running VNC displays
+my @XVNCs_running=`$PS -Awwo uid,pid,command | grep $XVNC | grep -v grep`;
+
+foreach my $displ_number (@XVNCs_running) {
+    chomp $displ_number;
+    $displ_number =~ s/^\s+//;
+    $displ_number =~ s/\s+$//;
+    $displ_number =~ s/\s{2,}/ /;
+    my ($uid, $pid, $null, $display) = split / /, $displ_number;
+    $display =~ s/:(\d+)/$1/;
+    $displays{$display} = $uid;
+}
 
 if ( $opt_k ) {
     # Kill a running server - $opt_k contains the display number
-    if ( ! defined $displays{$opt_k} ) {
+    if ( ! defined $displays{$opt_k} || ! defined $pids{$opt_k} ) {
 	print "No display found on port $opt_k\n";
 	exit 1;
-    } elsif ( $displays{$opt_k} == $ME ) {
+    } elsif ( $displays{$opt_k} == $ME && defined $pids{$opt_k} ) {
 	# We own the display
 	kill 'TERM', $pids{$opt_k};
     } else {
@@ -79,7 +115,8 @@ if ( $opt_k ) {
 		print "Xvfb display started on :$display\n";
 	    }
 	} else {
-	    die $!;
+	    print "$!\n ($failure)";
+	    exit $failure;
 	}
     }
 }
