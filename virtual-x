@@ -122,4 +122,5 @@ if ( $opt_k ) {
 	    exit $failure;
 	}
     }
+    exit 0;
 }
