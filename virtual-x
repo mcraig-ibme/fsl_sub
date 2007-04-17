@@ -1,12 +1,14 @@
 #!/usr/bin/perl -w
 use strict;
-use vars qw($opt_q $opt_k);
+use vars qw($opt_q $opt_k $opt_f);
 use Getopt::Std;
 
 # Script to create a X11 Virtual frame buffer for the user
 my $quiet = 0;
-getopts('qk:');
+my $force_new = 0;
+getopts('qk:f');
 $quiet = 1 if (defined $opt_q);
+$force_new = 1 if (defined $opt_f);
 
 my $HOSTTYPE = `uname -s`;
 chomp $HOSTTYPE;
@@ -87,13 +89,14 @@ if ( $opt_k ) {
 	exit 1;
     } elsif ( $displays{$opt_k} == $ME && defined $pids{$opt_k} ) {
 	# We own the display
+	print "Killing $opt_k...\n";
 	kill 'TERM', $pids{$opt_k};
     } else {
 	print "Display $opt_k not owned by you!\n";
 	exit 1;
     }
 } else {
-    if ( defined $users{$ME} ) {
+    if ( defined $users{$ME} && ! $force_new) {
 	# We have a server running, tell the user which one
 	print "You already have the following displays open:\n" unless $quiet;
     
