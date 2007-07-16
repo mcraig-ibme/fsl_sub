@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Copyright (C) 2007 University of Oxford
+# Authors: Dave Flitney, Stephen Smith
+
 # SHCOPYRIGHT
 
 METHOD=SGE
@@ -119,9 +122,6 @@ while [ $1 != -- ] ; do
   shift  # next flag
 done
 
-# REMOVE THIS!!!
-sge_arch="-l arch=lx24-amd64"
-
 shift
 
 if [ "x$JobName" == x ] ; then 
@@ -191,59 +191,6 @@ EOF
 	    while [ $n -le $tasks ] ; do
 		line=`sed -n -e ''${n}'p' $taskfile`
 		nohup $line
-		n=`expr $n + 1`
-	    done
-	fi	
-	;;
-
-    HOSTLIST)
-	if [ "x$tasks" == "x" ] ; then
-	    if [ x$verbose != x ] ; then 
-		echo executing: $@
-	    fi
-	    # wait for any job holds to complete
-	    if [ "x$jid" != x ] ; then
-		echo Waiting for $jid
-	        while [ -f ${SPOOLDIR}/$jid ] ; do
-		    sleep 2
-		done
-	    fi
-	    # pick a host to execute the command and
-	    # start job on it
-	    next_job
-	    echo $host >> ${SPOOLDIR}/${njid}
-	    if [ $host == LOCAL ] ; then
-		nohup /usr/local/bin/fsl_sub_shepherd `pwd` $njid $@ &
-	    else
-		ssh $host nohup /usr/local/bin/fsl_sub_shepherd `pwd` $njid $@ &
-	    fi
-	    echo $njid
-	else
-	    if [ x$verbose != x ] ; then 
-		echo Running commands in: $taskfile
-	    fi
-	    # wait for any job holds to complete
-	    if [ "x$jid" != x ] ; then
-		echo Waiting for $jid
-	        while [ -f ${SPOOLDIR}/$jid ] ; do
-		    sleep 2
-		done
-	    fi
-
-	    # for each line of the control file
-	    n=1
-	    while [ $n -le $tasks ] ; do
-		line=`sed -n -e ''${n}'p' $taskfile`
-		# pick host
-		# start job on host
-		next_job
-		echo $host >> ${SPOOLDIR}/${njid}
-		if [ $host == LOCAL ] ; then
-		    nohup /usr/local/bin/fsl_sub_shepherd `pwd` $njid $line &
-		else
-		    ssh $host nohup /usr/local/bin/fsl_sub_shepherd `pwd` $njid $line &
-		fi
-		echo $njid
 		n=`expr $n + 1`
 	    done
 	fi	
