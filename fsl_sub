@@ -6,17 +6,19 @@
 RCFILE=/usr/local/share/fsl_sub/cfg
 . $RCFILE
 
+command=`basename $0`
+
 usage ()
 {
   cat <<EOF
 
-fsl_sub V1.0beta - wrapper for job control system such as SGE
+$command V1.0beta - wrapper for job control system such as SGE
 
 Usage: fsl_sub [options] <command>
 
-fsl_sub gzip *.img *.hdr
-fsl_sub -q short.q gzip *.img *.hdr
-fsl_sub -a darwin regscript rawdata outputdir ...
+$command gzip *.img *.hdr
+$command -q short.q gzip *.img *.hdr
+$command -a darwin regscript rawdata outputdir ...
 
   -q <queuename>        Possible values for <queuename> are "verylong.q", "long.q" 
                         and "short.q". See below for details
@@ -34,10 +36,9 @@ Queues:
 There are three batch queues configured on the cluster, each with defined CPU
 time limits.
 
-short.q:    This queue is for jobs which last less then 2h. There are two slots 
-            per node.
-long.q:     This queue is for jobs which last less than 24h. There are two slots
-            per node.
+veryshort.q:This queue is for jobs which last under 30mins.
+short.q:    This queue is for jobs which last up to 2h. 
+long.q:     This queue is for jobs which last less than 24h.
 verylong.q: This queue is for jobs which will take longer than 24h CPU time.
             There is one slot per node, and jobs on this queue have a nice value
             of 5. If jobs enter the short.q queue then items running on this
@@ -146,6 +147,27 @@ command=\`sed -n -e "\${SGE_TASK_ID}p" $taskfile\`
 exec /bin/sh -c "\$command"
 EOF
 	fi
+	;;
+
+    NONE)
+	if [ "x$tasks" == "x" ] ; then
+	    if [ x$verbose != x ] ; then 
+		echo executing: $@
+	    fi
+
+	    $@
+	else
+	    if [ x$verbose != x ] ; then 
+		echo Running commands in: $taskfile
+	    fi
+
+	    n=1
+	    while [ $n -le $tasks ] ; do
+		line=`sed -n -e ''${n}'p' $taskfile`
+		nohup $line
+		n=`expr $n + 1`
+	    done
+	fi	
 	;;
 
     HOSTLIST)
