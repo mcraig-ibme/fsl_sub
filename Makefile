@@ -1,7 +1,11 @@
-SCRIPTS=batch pbatch fsl_sub fsl_sub_shepherd
+include ${FSLCONFDIR}/default.mk
 
-DESTDIR=/usr/local/bin
-CFGDIR=/usr/local/share/fsl_sub
+PROJNAME=sgeutils
+
+SCRIPTS=fsl_sub
+
+DESTDIR=${FSLDEVDIR}/bin
+CFGFILE=${FSLDEVDIR}/etc/fslconf/fsl_sub.cfg
 
 INSTALL=install -p -c
 
@@ -14,4 +18,4 @@ install:
 			echo ${INSTALL} -m 0775 $$file ${DESTDIR} ; \
 		fi \
 	done
-	${INSTALL} -m 0666 cfg ${CFGDIR}
+	${INSTALL} -m 0666 cfg ${CFGFILE}

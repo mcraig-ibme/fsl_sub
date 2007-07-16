@@ -2,8 +2,7 @@
 
 # SHCOPYRIGHT
 
-#RCFILE=${FSLDIR}/etc/fslconf/fsl_sub.cfg
-RCFILE=/usr/local/share/fsl_sub/cfg
+RCFILE=${FSLDIR}/etc/fslconf/fsl_sub.cfg
 . $RCFILE
 
 command=`basename $0`
