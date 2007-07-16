@@ -2,8 +2,24 @@
 
 # SHCOPYRIGHT
 
-RCFILE=${FSLDIR}/etc/fslconf/fsl_sub.cfg
-. $RCFILE
+METHOD=SGE
+
+POSIXLY_CORRECT=1
+export POSIXLY_CORRECT
+
+map_qname ()
+{
+    if [ $1 -le 20 ] ; then
+	queue=veryshort.q
+    elif [ $1 -le 120 ] ; then
+	queue=short.q
+    elif [ $1 -le 1440 ] ; then
+	queue=long.q
+    else
+	queue=verylong.q
+    fi
+    #echo "Estimated time was $1 mins: queue name is $queue"
+}
 
 command=`basename $0`
 
@@ -19,6 +35,7 @@ $command gzip *.img *.hdr
 $command -q short.q gzip *.img *.hdr
 $command -a darwin regscript rawdata outputdir ...
 
+  -T <minutes>          Estimated job length in minutes, used to auto-set queue name
   -q <queuename>        Possible values for <queuename> are "verylong.q", "long.q" 
                         and "short.q". See below for details
                         Default is "long.q".
@@ -53,7 +70,7 @@ if [ $nargs -eq 0 ] ; then
   usage
 fi
 
-set -- `getopt q:a:p:M:j:t:N:v $*`
+set -- `getopt T:q:a:p:M:j:t:N:v $*`
 result=$?
 if [ $result != 0 ] ; then
   echo "What? Your arguments make no sense!"
@@ -68,6 +85,9 @@ mailto=`whoami`@fmrib.ox.ac.uk
 
 while [ $1 != -- ] ; do
   case $1 in
+    -T)
+      map_qname $2
+      shift;;
     -q)
       queue=$2
       shift;;
@@ -99,10 +119,17 @@ while [ $1 != -- ] ; do
   shift  # next flag
 done
 
+# REMOVE THIS!!!
+sge_arch="-l arch=lx24-amd64"
+
 shift
 
 if [ "x$JobName" == x ] ; then 
-    JobName=`basename $1`
+    if [ "x$taskfile" != x ] ; then
+	JobName=`basename $taskfile`
+    else
+	JobName=`basename $1`
+    fi
 fi
 
 if [ "x$tasks" != x ] && [ ! -f "$taskfile" ] ; then
