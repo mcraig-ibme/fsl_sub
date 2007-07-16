@@ -122,6 +122,9 @@ while [ $1 != -- ] ; do
   shift  # next flag
 done
 
+# REMOVE THIS!!!
+sge_arch="-l arch=lx24-amd64"
+
 shift
 
 if [ "x$JobName" == x ] ; then 
@@ -148,14 +151,14 @@ case $METHOD in
 
     SGE)
 	if [ "x$tasks" == "x" ] ; then
-	    sge_command="qsub -V -cwd -shell n -b y -r y -q $queue -M $mailto -N $JobName -m ase $sge_arch $sge_hold $sge_tasks"
+	    sge_command="qsub -V -cwd -shell n -b y -r y -q $queue -M $mailto -N $JobName -m as $sge_arch $sge_hold $sge_tasks"
 	    if [ x$verbose != x ] ; then 
 		echo sge_command: $sge_command
 		echo executing: $@
 	    fi
 	    exec $sge_command $@ | awk '{print $3}'
 	else
-	    sge_command="qsub -V -cwd -q $queue -M $mailto -N $JobName -m ase $sge_arch $sge_hold $sge_tasks"
+	    sge_command="qsub -V -cwd -q $queue -M $mailto -N $JobName -m as $sge_arch $sge_hold $sge_tasks"
 	    if [ x$verbose != x ] ; then 
 		echo sge_command: $sge_command
 		echo control file: $taskfile

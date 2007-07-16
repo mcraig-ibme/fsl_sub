@@ -3,19 +3,19 @@ include ${FSLCONFDIR}/default.mk
 PROJNAME=sgeutils
 
 SCRIPTS=fsl_sub
+SYNONYMS=batch pbatch
 
-DESTDIR=${FSLDEVDIR}/bin
-CFGFILE=${FSLDEVDIR}/etc/fslconf/fsl_sub.cfg
+DESTDIR=/usr/local/bin
 
 INSTALL=install -p -c
 
 all:
 
 install:
-	@for file in ${SCRIPTS} ; do \
+	${INSTALL} -m 0775 fsl_sub ${FSLDEVDIR}/bin
+	@for file in ${SYNONYMS} ; do \
 		if [ -f $$file ] ; then \
-			${INSTALL} -m 0775 $$file ${DESTDIR} ; \
-			echo ${INSTALL} -m 0775 $$file ${DESTDIR} ; \
+			${LN} -m 0775 $$file ${DESTDIR} ; \
+			echo ${LN} -m 0775 $$file ${DESTDIR} ; \
 		fi \
 	done
-	${INSTALL} -m 0666 cfg ${CFGFILE}
