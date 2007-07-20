@@ -99,7 +99,13 @@ queue=long.q
 mailto=`whoami`@fmrib.ox.ac.uk
 MailOpts="as"
 
-verbose=0
+if [ -z $FSLSUBVERBOSE ] ; then
+    verbose=0
+else
+    verbose=$FSLSUBVERBOSE;
+    echo "METHOD=$METHOD : args=$@" >&2
+fi
+
 scriptmode=0
 
 while [ $1 != -- ] ; do
@@ -181,15 +187,15 @@ case $METHOD in
 		sge_command="qsub $LogOpts $sge_arch $sge_hold"
 	    fi
 	    if [ $verbose -eq 1 ] ; then 
-		echo sge_command: $sge_command
-		echo executing: $@
+		echo sge_command: $sge_command >&2
+		echo executing: $@ >&2
 	    fi
 	    exec $sge_command $@ | awk '{print $3}'
 	else
 	    sge_command="qsub -V -cwd -q $queue -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $sge_hold $sge_tasks"
 	    if [ $verbose -eq 1 ] ; then 
-		echo sge_command: $sge_command
-		echo control file: $taskfile
+		echo sge_command: $sge_command >&2
+		echo control file: $taskfile >&2
 	    fi
 	    exec $sge_command <<EOF | awk '{print $3}' | awk -F. '{print $1}'
 #!/bin/sh
@@ -206,21 +212,26 @@ EOF
     NONE)
 	if [ "x$tasks" == "x" ] ; then
 	    if [ $verbose -eq 1 ] ; then 
-		echo executing: $@
+		echo executing: $@ >&2
 	    fi
 
-	    $@
+	    $@ > /dev/null 2>&1
+	    echo 9999
 	else
 	    if [ $verbose -eq 1 ] ; then 
-		echo Running commands in: $taskfile
+		echo "Running commands in: $taskfile" >&2
 	    fi
 
 	    n=1
 	    while [ $n -le $tasks ] ; do
 		line=`sed -n -e ''${n}'p' $taskfile`
-		nohup $line
+		if [ $verbose -eq 1 ] ; then 
+		    echo executing: $line >&2
+		fi
+		nohup $line > /dev/null 2>&1
 		n=`expr $n + 1`
 	    done
+	    echo 9999
 	fi	
 	;;
 
