@@ -6,6 +6,15 @@
 # SHCOPYRIGHT
 
 METHOD=SGE
+if [ "x$SGE_ROOT" = "x" ] ; then
+    if [ -f /usr/local/share/sge/default/common/settings.sh ] ; then
+	. /usr/local/share/sge/default/common/settings.sh
+    elif [ -f /usr/local/sge/default/common/settings.sh ] ; then
+	. /usr/local/sge/default/common/settings.sh
+    else
+	METHOD=NONE
+    fi
+fi
 
 POSIXLY_CORRECT=1
 export POSIXLY_CORRECT
@@ -48,6 +57,9 @@ $command -a darwin regscript rawdata outputdir ...
   -j <jid>              Place a hold on this task until job jid has completed
   -t <filename>         Specify a task file of commands to execute in parallel
   -N <jobname>          Specify jobname as it will appear on queue
+  -l <logdirname>       Where to output logfiles
+  -m <mailoptions>      Change the SGE mail options, see qsub for details
+  -F                    Use flags embedded in scripts to set SGE queuing options
   -v                    Verbose mode.
 
 Queues:
@@ -73,7 +85,7 @@ if [ $nargs -eq 0 ] ; then
   usage
 fi
 
-set -- `getopt T:q:a:p:M:j:t:N:v $*`
+set -- `getopt T:q:a:p:M:j:t:N:Fvm:l: $*`
 result=$?
 if [ $result != 0 ] ; then
   echo "What? Your arguments make no sense!"
@@ -85,6 +97,10 @@ fi
 
 queue=long.q
 mailto=`whoami`@fmrib.ox.ac.uk
+MailOpts="as"
+
+verbose=0
+scriptmode=0
 
 while [ $1 != -- ] ; do
   case $1 in
@@ -115,6 +131,15 @@ while [ $1 != -- ] ; do
     -N)
       JobName=$2;
       shift;;
+    -m)
+      MailOpts=$2;
+      shift;;
+    -l)
+      LogOpts="-o $2 -e $2";
+      shift;;
+    -F)
+      scriptmode=1;
+      ;;
     -v)
       verbose=1
       ;;
@@ -123,6 +148,8 @@ while [ $1 != -- ] ; do
 done
 
 shift
+
+sge_arch="-l arch=lx24-amd64"
 
 if [ "x$JobName" == x ] ; then 
     if [ "x$taskfile" != x ] ; then
@@ -148,25 +175,26 @@ case $METHOD in
 
     SGE)
 	if [ "x$tasks" == "x" ] ; then
-	    sge_command="qsub -V -cwd -shell n -b y -r y -q $queue -M $mailto -N $JobName -m as $sge_arch $sge_hold $sge_tasks"
-	    if [ x$verbose != x ] ; then 
+	    if [ $scriptmode -ne 1 ] ; then
+		sge_command="qsub -V -cwd -shell n -b y -r y -q $queue -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $sge_hold"
+	    else
+		sge_command="qsub $LogOpts $sge_arch $sge_hold"
+	    fi
+	    if [ $verbose -eq 1 ] ; then 
 		echo sge_command: $sge_command
 		echo executing: $@
 	    fi
 	    exec $sge_command $@ | awk '{print $3}'
 	else
-	    sge_command="qsub -V -cwd -q $queue -M $mailto -N $JobName -m as $sge_arch $sge_hold $sge_tasks"
-	    if [ x$verbose != x ] ; then 
+	    sge_command="qsub -V -cwd -q $queue -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $sge_hold $sge_tasks"
+	    if [ $verbose -eq 1 ] ; then 
 		echo sge_command: $sge_command
 		echo control file: $taskfile
 	    fi
 	    exec $sge_command <<EOF | awk '{print $3}' | awk -F. '{print $1}'
 #!/bin/sh
 
-#$ -cwd -q $queue
 #$ -S /bin/sh
-#$ -V
-#$ -m as
 
 command=\`sed -n -e "\${SGE_TASK_ID}p" $taskfile\`
 
@@ -177,13 +205,13 @@ EOF
 
     NONE)
 	if [ "x$tasks" == "x" ] ; then
-	    if [ x$verbose != x ] ; then 
+	    if [ $verbose -eq 1 ] ; then 
 		echo executing: $@
 	    fi
 
 	    $@
 	else
-	    if [ x$verbose != x ] ; then 
+	    if [ $verbose -eq 1 ] ; then 
 		echo Running commands in: $taskfile
 	    fi
 
