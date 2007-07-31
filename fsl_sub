@@ -155,7 +155,7 @@ done
 
 shift
 
-sge_arch="-l arch=lx24-amd64"
+#sge_arch="-l arch=lx24-amd64"
 
 if [ "x$JobName" == x ] ; then 
     if [ "x$taskfile" != x ] ; then
