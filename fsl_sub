@@ -142,6 +142,7 @@ while [ $1 != -- ] ; do
       shift;;
     -l)
       LogOpts="-o $2 -e $2";
+      LogDir="${2}/";
       shift;;
     -F)
       scriptmode=1;
@@ -215,8 +216,9 @@ EOF
 		echo executing: $@ >&2
 	    fi
 
-	    /bin/sh -c "$@" >> ${JobName}.log 2>&1
-	    echo 9999
+	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
+$@
+EOF1
 	else
 	    if [ $verbose -eq 1 ] ; then 
 		echo "Running commands in: $taskfile" >&2
@@ -228,11 +230,13 @@ EOF
 		if [ $verbose -eq 1 ] ; then 
 		    echo executing: $line >&2
 		fi
-		/bin/sh -c "$line" >> ${JobName}.log 2>&1
+		/bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
+$line
+EOF2
 		n=`expr $n + 1`
 	    done
-	    echo 9999
 	fi	
+	echo $$
 	;;
 
 esac
