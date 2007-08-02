@@ -215,7 +215,7 @@ EOF
 		echo executing: $@ >&2
 	    fi
 
-	    $@ > /dev/null 2>&1
+	    exec /bin/sh -c "$@" > ${JobName}.log 2>&1
 	    echo 9999
 	else
 	    if [ $verbose -eq 1 ] ; then 
@@ -228,7 +228,7 @@ EOF
 		if [ $verbose -eq 1 ] ; then 
 		    echo executing: $line >&2
 		fi
-		nohup $line > /dev/null 2>&1
+		exec /bin/sh -c "$line" > ${JobName}.log 2>&1
 		n=`expr $n + 1`
 	    done
 	    echo 9999
