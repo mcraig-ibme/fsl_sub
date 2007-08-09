@@ -1,9 +1,33 @@
 #!/bin/sh
 
 # Copyright (C) 2007 University of Oxford
-# Authors: Dave Flitney, Stephen Smith
+# Authors: Dave Flitney & Stephen Smith
 
 # SHCOPYRIGHT
+
+
+
+
+
+
+###########################################################################
+# Edit this file in order to setup FSL to use your local compute
+# cluster.
+###########################################################################
+
+
+###########################################################################
+# The following section determines what to do when fsl_sub is called
+# by an FSL program. If it finds a local cluster if will pass the
+# commands onto the cluster. Otherwise it will run the commands
+# itself. There are two values for the METHOD variable, "SGE" and
+# "NONE". You should setup the tests to look for whether the calling
+# computer can see your cluster setup scripts, and run them (if that's
+# what you want, i.e. if you haven't already run them in the user's
+# login scripts). Note that these tests look for the environment
+# variable SGE_ROOT, which a user can unset if they don't want the
+# cluster to be used.
+###########################################################################
 
 METHOD=SGE
 if [ "x$SGE_ROOT" = "x" ] ; then
@@ -16,8 +40,16 @@ if [ "x$SGE_ROOT" = "x" ] ; then
     fi
 fi
 
-POSIXLY_CORRECT=1
-export POSIXLY_CORRECT
+
+###########################################################################
+# The following auto-decides what cluster queue to use. The calling
+# FSL program will probably use the -T option when calling fsl_sub,
+# which tells fsl_sub how long (in minutes) the process is expected to
+# take (in the case of the -t option, how long each line in the
+# supplied file is expected to take). You need to setup the following
+# list to map ranges of timings into your cluster queues - it doesn't
+# matter how many you setup, that's up to you.
+###########################################################################
 
 map_qname ()
 {
@@ -33,6 +65,13 @@ map_qname ()
     #echo "Estimated time was $1 mins: queue name is $queue"
 }
 
+
+###########################################################################
+# Don't change the following (but keep scrolling down!)
+###########################################################################
+
+POSIXLY_CORRECT=1
+export POSIXLY_CORRECT
 command=`basename $0`
 
 usage ()
@@ -51,7 +90,7 @@ $command -a darwin regscript rawdata outputdir ...
   -q <queuename>        Possible values for <queuename> are "verylong.q", "long.q" 
                         and "short.q". See below for details
                         Default is "long.q".
-  -a <arch-name>        Architecture [darwin or lx24-amd64]
+  -a <arch-name>        Architecture [e.g., darwin or lx24-amd64]
   -p <job-priority>     Lower priority [0:-1024] default = 0                 
   -M <email-address>    Who to email, default = `whoami`@fmrib.ox.ac.uk 
   -j <jid>              Place a hold on this task until job jid has completed
@@ -95,9 +134,41 @@ if [ $nargs -eq 0 ] || [ $result != 0 ] ; then
   usage
 fi
 
+
+###########################################################################
+# The following sets up the default queue name, which you may want to
+# change. It also sets up the basic emailing control.
+###########################################################################
+
 queue=long.q
 mailto=`whoami`@fmrib.ox.ac.uk
 MailOpts="as"
+
+
+###########################################################################
+# In the following, you might want to change the behaviour of some
+# flags so that they prepare the right arguments for the actual
+# cluster queue submission program, in our case "qsub".
+#
+# -a sets is the cluster submission flag for controlling the required
+# hardware architecture (normally not set by the calling program)
+#
+# -p set the priority of the job - ignore this if your cluster
+# environment doesn't have priority control in this way.
+#
+# -j tells the cluster not to start this job until cluster job ID $jid
+# has completed. You will need this feature.
+#
+# -t will pass on to the cluster software the name of a text file
+# containing a set of commands to run in parallel; one command per
+# line.
+#
+# -N option determines what the command will be called when you list
+# running processes.
+#
+# -l tells the cluster what to call the standard output and standard
+# -error logfiles for the submitted program.
+###########################################################################
 
 if [ -z $FSLSUBVERBOSE ] ; then
     verbose=0
@@ -153,10 +224,11 @@ while [ $1 != -- ] ; do
   esac
   shift  # next flag
 done
-
 shift
 
-#sge_arch="-l arch=lx24-amd64"
+###########################################################################
+# Don't change the following (but keep scrolling down!)
+###########################################################################
 
 if [ "x$JobName" == x ] ; then 
     if [ "x$taskfile" != x ] ; then
@@ -179,6 +251,13 @@ if [ "x$tasks" != "x" ] && [ "x$@" != "x" ] ; then
 fi
 
 case $METHOD in
+
+###########################################################################
+# The following is the main call to the cluster, using the "qsub" SGE
+# program. If $tasks has not been set then qsub is running a single
+# command, otherwise qsub is processing a text file of parallel
+# commands.
+###########################################################################
 
     SGE)
 	if [ "x$tasks" == "x" ] ; then
@@ -210,6 +289,11 @@ EOF
 	fi
 	;;
 
+###########################################################################
+# Don't change the following - this runs the commands directly if a
+# cluster is not being used.
+###########################################################################
+
     NONE)
 	if [ "x$tasks" == "x" ] ; then
 	    if [ $verbose -eq 1 ] ; then 
@@ -240,4 +324,8 @@ EOF2
 	;;
 
 esac
+
+###########################################################################
+# Done.
+###########################################################################
 
