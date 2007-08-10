@@ -214,6 +214,7 @@ while [ $1 != -- ] ; do
     -l)
       LogOpts="-o $2 -e $2";
       LogDir="${2}/";
+      mkdir -p $2;
       shift;;
     -F)
       scriptmode=1;
