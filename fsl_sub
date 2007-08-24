@@ -142,7 +142,7 @@ fi
 
 queue=long.q
 mailto=`whoami`@fmrib.ox.ac.uk
-MailOpts="as"
+MailOpts="n"
 
 
 ###########################################################################
