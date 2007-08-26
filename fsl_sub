@@ -231,7 +231,7 @@ shift
 # Don't change the following (but keep scrolling down!)
 ###########################################################################
 
-if [ "x$JobName" == x ] ; then 
+if [ "x$JobName" = x ] ; then 
     if [ "x$taskfile" != x ] ; then
 	JobName=`basename $taskfile`
     else
@@ -261,7 +261,7 @@ case $METHOD in
 ###########################################################################
 
     SGE)
-	if [ "x$tasks" == "x" ] ; then
+	if [ "x$tasks" = "x" ] ; then
 	    if [ $scriptmode -ne 1 ] ; then
 		sge_command="qsub -V -cwd -shell n -b y -r y -q $queue -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $sge_hold"
 	    else
@@ -296,7 +296,7 @@ EOF
 ###########################################################################
 
     NONE)
-	if [ "x$tasks" == "x" ] ; then
+	if [ "x$tasks" = "x" ] ; then
 	    if [ $verbose -eq 1 ] ; then 
 		echo executing: $@ >&2
 	    fi
