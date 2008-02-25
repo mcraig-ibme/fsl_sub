@@ -80,7 +80,7 @@ usage ()
 
 $command V1.0beta - wrapper for job control system such as SGE
 
-Usage: fsl_sub [options] <command>
+Usage: $command [options] <command>
 
 $command gzip *.img *.hdr
 $command -q short.q gzip *.img *.hdr
