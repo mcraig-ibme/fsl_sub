@@ -103,16 +103,17 @@ $command -a darwin regscript rawdata outputdir ...
 
 Queues:
 
-There are three batch queues configured on the cluster, each with defined CPU
-time limits.
+There are several batch queues configured on the cluster, each with defined CPU
+time limits. All queues, except bigmem.q, have a 8GB memory limit.
 
 veryshort.q:This queue is for jobs which last under 30mins.
 short.q:    This queue is for jobs which last up to 2h. 
-long.q:     This queue is for jobs which last less than 24h.
+long.q:     This queue is for jobs which last less than 24h. Jobs run with a
+            nice value of 10.
 verylong.q: This queue is for jobs which will take longer than 24h CPU time.
             There is one slot per node, and jobs on this queue have a nice value
-            of 5. If jobs enter the short.q queue then items running on this
-            queue are suspended and resumed on completion of the short.q task.
+            of 15.
+bigmem.q:   This queue is like the verylong.q but has no memory limits.
 
 EOF
 
