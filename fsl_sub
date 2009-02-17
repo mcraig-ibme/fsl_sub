@@ -192,11 +192,11 @@ while [ $1 != -- ] ; do
       acceptable_arch=no
       available_archs=`qhost | tail -n +4 | awk '{print $2}' | sort | uniq`
       for a in $available_archs; do
-	if [ $2 == $a ] ; then
+	if [ $2 = $a ] ; then
 	  acceptable_arch=yes
 	fi
       done
-      if [ $acceptable_arch == yes ]; then
+      if [ $acceptable_arch = yes ]; then
 	  sge_arch="-l arch=$2"
       else
 	  echo "Sorry arch of $2 is not supported on this SGE configuration!"
