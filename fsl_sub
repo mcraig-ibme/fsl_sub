@@ -1,14 +1,9 @@
 #!/bin/sh
 
-# Copyright (C) 2007 University of Oxford
-# Authors: Dave Flitney & Stephen Smith
+# Copyright (C) 2007-2010 University of Oxford
+# Authors: Dave Flitney, Stephen Smith and Matthew Webster
 
 # SHCOPYRIGHT
-
-
-
-
-
 
 ###########################################################################
 # Edit this file in order to setup FSL to use your local compute
@@ -318,6 +313,11 @@ EOF
 	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
 $@
 EOF1
+	    ERR=$?
+	    if [ $ERR -ne 0 ] ; then
+		cat ${LogDir}${JobName}.e$$ >&2
+		exit $ERR
+	    fi
 	else
 	    if [ $verbose -eq 1 ] ; then 
 		echo "Running commands in: $taskfile" >&2
