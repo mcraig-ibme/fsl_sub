@@ -93,6 +93,7 @@ $command -a darwin regscript rawdata outputdir ...
   -N <jobname>          Specify jobname as it will appear on queue
   -l <logdirname>       Where to output logfiles
   -m <mailoptions>      Change the SGE mail options, see qsub for details
+  -z <output-image>     If <output-image> already exists, do nothing and exit
   -F                    Use flags embedded in scripts to set SGE queuing options
   -v                    Verbose mode.
 
@@ -120,7 +121,7 @@ if [ $nargs -eq 0 ] ; then
   usage
 fi
 
-set -- `getopt T:q:a:p:M:j:t:N:Fvm:l: $*`
+set -- `getopt T:q:a:p:M:j:t:z:N:Fvm:l: $*`
 result=$?
 if [ $result != 0 ] ; then
   echo "What? Your arguments make no sense!"
@@ -177,6 +178,11 @@ scriptmode=0
 
 while [ $1 != -- ] ; do
   case $1 in
+    -z)
+      if [ `${FSLDIR}/bin/imtest $2` = 1 ] ; then
+        exit 0
+      fi
+      shift;;
     -T)
       map_qname $2
       shift;;
