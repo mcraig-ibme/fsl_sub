@@ -1,2 +1,2 @@
-echo "This program is deprecated, please use fsl_sub instead - calling fsl_sub for you"
+echo "This program is deprecated, please use fsl_sub instead - calling fsl_sub for you" >&2
 fsl_sub $@
