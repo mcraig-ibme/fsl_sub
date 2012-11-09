@@ -198,7 +198,7 @@ while [ $1 != -- ] ; do
       shift;;
     -q)
       queue=$2
-      qconf -sql | grep ^$queue 2>&1 >/dev/null
+      qconf -sq $queue 2>&1 >/dev/null
       if [ $? -eq 1 ]; then
 	  echo "Invalid queue specified!"
 	  exit 127
@@ -312,7 +312,7 @@ case $METHOD in
 	if [ "x$peName" != x ]; then
             # Is this a configured PE?
 
-	    qconf -spl | grep ^$peName 2>&1 >/dev/null
+	    qconf -sp $peName 2>&1 >/dev/null
 
 	    if [ $? -eq 1 ]; then
 		echo $@
