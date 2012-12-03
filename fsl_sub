@@ -35,6 +35,14 @@ if [ "x$SGE_ROOT" = "x" ] ; then
     fi
 fi
 
+# stop submitted scripts from submitting jobs themselves
+if [ X$FSLSUBALREADYRUN = Xtrue ] ; then
+    METHOD=NONE
+    echo "Warning: job on queue attempted to submit parallel jobs - running jobs serially instead"
+fi
+
+FSLSUBALREADYRUN=true
+export FSLSUBALREADYRUN
 
 ###########################################################################
 # The following auto-decides what cluster queue to use. The calling
@@ -64,6 +72,7 @@ map_qname ()
 # Don't change the following (but keep scrolling down!)
 ###########################################################################
 
+OLD_POSIXLY_CORRECT=${POSIXLY_CORRECT}
 POSIXLY_CORRECT=1
 export POSIXLY_CORRECT
 command=`basename $0`
@@ -132,6 +141,10 @@ fi
 if [ $nargs -eq 0 ] || [ $result != 0 ] ; then
   usage
 fi
+
+POSIXLY_CORRECT=${OLD_POSIXLY_CORRECT}
+export POSIXLY_CORRECT
+
 
 ###########################################################################
 # If you have a Parallel Environment configured for OpenMP tasks then
