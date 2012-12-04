@@ -36,9 +36,9 @@ if [ "x$SGE_ROOT" = "x" ] ; then
 fi
 
 # stop submitted scripts from submitting jobs themselves
-if [ X$FSLSUBALREADYRUN = Xtrue ] ; then
+if [ "X$FSLSUBALREADYRUN" = "Xtrue" ] ; then
     METHOD=NONE
-    echo "Warning: job on queue attempted to submit parallel jobs - running jobs serially instead"
+    echo "Warning: job on queue attempted to submit parallel jobs - running jobs serially instead" >&2
 fi
 
 FSLSUBALREADYRUN=true
