@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2007-2010 University of Oxford
+# Copyright (C) 2007-2013 University of Oxford
 # Authors: Dave Flitney, Stephen Smith and Matthew Webster
 
 # SHCOPYRIGHT
@@ -13,26 +13,16 @@
 
 ###########################################################################
 # The following section determines what to do when fsl_sub is called
-# by an FSL program. If it finds a local cluster if will pass the
-# commands onto the cluster. Otherwise it will run the commands
+# by an FSL program. If SGE_ROOT is set it will attempt to pass the
+# commands onto the cluster, otherwise it will run the commands
 # itself. There are two values for the METHOD variable, "SGE" and
-# "NONE". You should setup the tests to look for whether the calling
-# computer can see your cluster setup scripts, and run them (if that's
-# what you want, i.e. if you haven't already run them in the user's
-# login scripts). Note that these tests look for the environment
-# variable SGE_ROOT, which a user can unset if they don't want the
+# "NONE". Note that a user can unset SGE_ROOT if they don't want the
 # cluster to be used.
 ###########################################################################
 
 METHOD=SGE
 if [ "x$SGE_ROOT" = "x" ] ; then
-    if [ -f /usr/local/share/sge/default/common/settings.sh ] ; then
-	. /usr/local/share/sge/default/common/settings.sh
-    elif [ -f /usr/local/sge/default/common/settings.sh ] ; then
-	. /usr/local/sge/default/common/settings.sh
-    else
 	METHOD=NONE
-    fi
 fi
 
 # stop submitted scripts from submitting jobs themselves
@@ -65,6 +55,8 @@ map_qname ()
     else
 	queue=verylong.q
     fi
+    queueCmd=" -q $queue " 
+
     #echo "Estimated time was $1 mins: queue name is $queue"
 }
 
@@ -211,6 +203,7 @@ while [ $1 != -- ] ; do
       shift;;
     -q)
       queue=$2
+      queueCmd=" -q $queue " 
       qconf -sq $queue 2>&1 >/dev/null
       if [ $? -eq 1 ]; then
 	  echo "Invalid queue specified!"
@@ -357,7 +350,7 @@ case $METHOD in
 
 	if [ "x$tasks" = "x" ] ; then
 	    if [ $scriptmode -ne 1 ] ; then
-		sge_command="qsub -V -cwd -shell n -b y -r y -q $queue $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $sge_hold"
+		sge_command="qsub -V -cwd -shell n -b y -r y $queueCmd $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $sge_hold"
 	    else
 		sge_command="qsub $LogOpts $sge_arch $sge_hold"
 	    fi
@@ -367,7 +360,7 @@ case $METHOD in
 	    fi
 	    exec $sge_command $@ | awk '{print $3}'
 	else
-	    sge_command="qsub -V -cwd -q $queue $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $sge_hold $sge_tasks"
+	    sge_command="qsub -V -cwd $queueCmd $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $sge_hold $sge_tasks"
 	    if [ $verbose -eq 1 ] ; then 
 		echo sge_command: $sge_command >&2
 		echo control file: $taskfile >&2
