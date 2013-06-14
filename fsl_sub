@@ -19,10 +19,11 @@
 # "NONE". Note that a user can unset SGE_ROOT if they don't want the
 # cluster to be used.
 ###########################################################################
-
 METHOD=SGE
 if [ "x$SGE_ROOT" = "x" ] ; then
 	METHOD=NONE
+else
+        unset module
 fi
 
 # stop submitted scripts from submitting jobs themselves
