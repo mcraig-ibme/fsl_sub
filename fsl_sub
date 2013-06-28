@@ -20,10 +20,9 @@
 # cluster to be used.
 ###########################################################################
 METHOD=SGE
+unset module
 if [ "x$SGE_ROOT" = "x" ] ; then
 	METHOD=NONE
-else
-        unset module
 fi
 
 # stop submitted scripts from submitting jobs themselves
