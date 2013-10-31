@@ -25,6 +25,12 @@ if [ "x$SGE_ROOT" = "x" ] ; then
 	METHOD=NONE
 fi
 
+qconf -se `hostname` >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+   METHOD=NONE
+   echo ÒWarning: job submission on a cluster node attempted, running without submissionÓ >&2
+fi
+
 # stop submitted scripts from submitting jobs themselves
 if [ "X$FSLSUBALREADYRUN" = "Xtrue" ] ; then
     METHOD=NONE
@@ -205,7 +211,7 @@ while [ $1 != -- ] ; do
     -q)
       queue=$2
       queueCmd=" -q $queue " 
-      qconf -sq $queue 2>&1 >/dev/null
+      qconf -sq $queue >/dev/null 2>&1
       if [ $? -eq 1 ]; then
 	  echo "Invalid queue specified!"
 	  exit 127
@@ -319,7 +325,7 @@ case $METHOD in
 	if [ "x$peName" != x ]; then
             # Is this a configured PE?
 
-	    qconf -sp $peName 2>&1 >/dev/null
+	    qconf -sp $peName >/dev/null 2>&1
 
 	    if [ $? -eq 1 ]; then
 		echo $@
@@ -329,13 +335,13 @@ case $METHOD in
 
             # Get a list of queues configured for this PE and confirm that the queue
             # we have submitted to has that PE set up.
-	    qstat -g c -pe $peName 2>&1 >/dev/null
+	    qstat -g c -pe $peName >/dev/null 2>&1
 	    if [ $? -eq 1 ]; then
 		echo "No parallel environments configured!"
 		exit -1
 	    fi
 
-	    qstat -g c -pe $peName | sed '1,2d' | awk '{ print $1 }' | grep ^$queue 2>&1 >/dev/null
+	    qstat -g c -pe $peName | sed '1,2d' | awk '{ print $1 }' | grep ^$queue >/dev/null 2>&1
 
 	    if [ $? -eq 1 ]; then
 		echo $@
