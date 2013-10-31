@@ -23,15 +23,18 @@ METHOD=SGE
 unset module
 if [ "x$SGE_ROOT" = "x" ] ; then
 	METHOD=NONE
-elif [ -x `which qconf` ]; then
-	qconf -se `hostname` >/dev/null 2>&1
-	if [ $? -eq 0 ]; then
-	   METHOD=NONE
-	   echo "Warning: job submission on a cluster node attempted, running without submission" >&2
-	fi
 else
-	METHOD=NONE
-	echo "Warning: SGE_ROOT environment variable is set but Grid Engine software not found" > &2
+	QCONF=`which qconf`
+	if [ "x$QCONF" = "x" ]; then
+		METHOD=NONE
+		echo "Warning: SGE_ROOT environment variable is set but Grid Engine software not found, will run locally" >&2
+	else
+		qconf -se `hostname` >/dev/null 2>&1
+		if [ $? -eq 0 ]; then
+		   METHOD=NONE
+		   echo "Warning: job submission on a cluster node attempted, running locally without submission" >&2
+		fi
+	fi
 fi
 
 # stop submitted scripts from submitting jobs themselves
