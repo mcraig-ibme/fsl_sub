@@ -23,18 +23,15 @@ METHOD=SGE
 unset module
 if [ "x$SGE_ROOT" = "x" ] ; then
 	METHOD=NONE
-	QCONF=echo
 else
 	QCONF=`which qconf`
 	if [ "x$QCONF" = "x" ]; then
 		METHOD=NONE
-		QCONF=echo
 		echo "Warning: SGE_ROOT environment variable is set but Grid Engine software not found, will run locally" >&2
 	else
 		$QCONF -se `hostname` >/dev/null 2>&1
 		if [ $? -eq 0 ]; then
 		   METHOD=NONE
-		   QCONF=echo
 		   echo "Warning: job submission on a cluster node attempted, running locally without submission" >&2
 		fi
 	fi
@@ -43,10 +40,12 @@ fi
 # stop submitted scripts from submitting jobs themselves
 if [ "X$FSLSUBALREADYRUN" = "Xtrue" ] ; then
     METHOD=NONE
-    QCONF=echo
     echo "Warning: job on queue attempted to submit parallel jobs - running jobs serially instead" >&2
 fi
 
+if [ "X$METHOD" = "XNONE" ]; then
+	QCONF=echo
+fi
 FSLSUBALREADYRUN=true
 export FSLSUBALREADYRUN
 
