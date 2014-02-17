@@ -254,8 +254,19 @@ while [ $1 != -- ] ; do
       shift;;
     -t)
       taskfile=$2
-      tasks=`wc -l $taskfile | awk '{print $1}'`
-      sge_tasks="-t 1-$tasks"
+      if [ -f "$taskfile" ] ; then
+	      tasks=`wc -l $taskfile | awk '{print $1}'`
+	      if [ $tasks -ne 0 ]; then
+    	  	sge_tasks="-t 1-$tasks"
+    	  else
+    	    echo "Task file ${taskfile} is empty"
+    	    echo "Should be a text file listing all the commands to run!"
+    	    exit -1
+    	  fi
+      else
+          echo "Task file (${taskfile}) does not exist"
+          exit -1
+      fi
       shift;;
     -N)
       JobName=$2;
@@ -301,15 +312,9 @@ if [ "x$JobName" = x ] ; then
     fi
 fi
 
-if [ "x$tasks" != x ] && [ ! -f "$taskfile" ] ; then
-    echo $taskfile: invalid input!
-    echo Should be a text file listing all the commands to run!
-    exit -1
-fi
-
 if [ "x$tasks" != "x" ] && [ "x$@" != "x" ] ; then
-    echo $@
-    echo Spurious input after parsing command line!
+    echo "Spurious input after parsing command line: \"$@\"!"
+    echo "You appear to have specified both a task file and a command to run"
     exit -1
 fi
 
