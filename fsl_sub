@@ -288,6 +288,11 @@ shift
 # Don't change the following (but keep scrolling down!)
 ###########################################################################
 
+if [ -z "$taskfile" ] && [ -z "$1" ]; then
+	echo "Either supply a command to run or a parallel task file"
+	exit -1
+fi
+
 if [ "x$JobName" = x ] ; then 
     if [ "x$taskfile" != x ] ; then
 	JobName=`basename $taskfile`
