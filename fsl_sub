@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# Copyright (C) 2007-2013 University of Oxford
-# Authors: Dave Flitney, Stephen Smith and Matthew Webster
+# Copyright (C) 2007-2014 University of Oxford
+# Authors: Dave Flitney, Stephen Smith, Matthew Webster and Duncan Mortimer
 
 # SHCOPYRIGHT
 
@@ -271,7 +271,15 @@ while [ $1 != -- ] ; do
     -l)
       LogOpts="-o $2 -e $2";
       LogDir="${2}/";
-      mkdir -p $2;
+      if [ ! -e ${2} ]; then 
+	  mkdir -p $2
+      else
+	  echo ${2} | grep '/dev/null' >/dev/null 2>&1
+	  if [ $? -eq 1 ] && [ -f ${2} ]; then
+	      echo "Log destination is a file (should be a folder)"
+	      exit -1
+	  fi
+      fi
       shift;;
     -F)
       scriptmode=1;
