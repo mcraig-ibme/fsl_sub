@@ -306,6 +306,14 @@ if [ -z "$taskfile" ] && [ -z "$1" ]; then
 	exit -1
 fi
 
+if [ -z "$taskfile" ] && [ ! -x "$1" ]; then
+	which $1 >/dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		echo "The command you have requested cannot be found or is not executable"
+		exit -1
+	fi
+fi
+
 if [ "x$JobName" = x ] ; then 
     if [ "x$taskfile" != x ] ; then
 	JobName=`basename $taskfile`
