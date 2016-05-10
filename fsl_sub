@@ -267,7 +267,7 @@ while [ $1 != -- ] ; do
       JobName=$2;
       shift;;
     -R)
-      RAM="-l mem=${2}MB"
+      RAM="-l mem_free=${2}M"
       shift;;
     -m)
       MailOpts=$2;
