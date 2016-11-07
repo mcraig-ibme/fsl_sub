@@ -164,7 +164,7 @@ omp_pe='openmp'
 
 queue=long.q
 queueCmd=" -q long.q "
-mailto=`whoami`@fmrib.ox.ac.uk
+mailto=`whoami`@`hostname -f | cut -d . -f 2-§`
 MailOpts="a"
 
 
