@@ -1,9 +1,0 @@
-#!/usr/bin/perl
-
-print STDERR "DEPRECATED - Please use 'fsl_sub -t'\n";
-
-@args = @ARGV;
-$commandfile = pop @args;
-
-exec "/bin/sh", "fsl_sub", "-t", "$commandfile", @args;
-
