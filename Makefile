@@ -2,7 +2,7 @@ include ${FSLCONFDIR}/default.mk
 
 PROJNAME=sgeutils
 
-SCRIPTS=fsl_sub batch pbatch
+SCRIPTS=fsl_sub
 
 DESTDIR=/usr/local/bin
 
