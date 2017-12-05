@@ -20,7 +20,69 @@
 # cluster to be used.
 ###########################################################################
 METHOD=SGE
-unset module
+
+POSIXLY_CORRECT=${OLD_POSIXLY_CORRECT}
+export POSIXLY_CORRECT
+
+
+###########################################################################
+# If you have a Parallel Environment configured for OpenMP tasks then
+# the variable omp_pe should be set to the name you have defined for that
+# PE. The script will work out which queues have that PE setup on them.
+# Note, we support openmp tasks even when Grid Engine is not in use.
+###########################################################################
+
+omp_pe='shmem'
+
+
+###########################################################################
+# If you wish to disable processor affinities under Grid Engine then
+# comment the following line.
+# This instructs Grid Engine to bind the task to the number of job slots
+# allocated to the job (or PE)
+###########################################################################
+proc_affinities="-binding linear:slots"
+
+
+###########################################################################
+# The following sets up the default queue name, which you may want to
+# change. It also sets up the basic emailing control.
+###########################################################################
+
+default_queue=long.qc
+mailto=`whoami`@`hostname -f | cut -d . -f 2-`
+MailOpts="a"
+
+
+###########################################################################
+# The following sets up the CUDA queue, which you will need to change to
+# match your environment.
+###########################################################################
+
+# Change this to 0 if you do not have CUDA hardware.
+cuda_available=1
+# Name the CUDA queue here.
+cuda_queue="cuda.q"
+# Define the CUDA hardware classes available here (e.g. what -ct options
+# are acceptable on your system) and the default type. Do not remove the
+# square brackets. The classes can only be single characters
+cuda_types="[GKPV]"
+# Provide some helpful info to your user about the available classes
+cuda_type_docs="Available CUDA hardware classes are
+  G - GeForce. No ECC, single-precision workloads
+  K - Kepler. ECC, double- or single-precision workloads
+  P - Pascal. ECC, double-, single- and half-precision workloads
+  V - Volta. ECC, double-, single-, half- and quarter-precision workloads"
+# Default CUDA type
+cuda_type="K"
+# Define the Shell Module prefix for the CUDA Libraries - module name
+# should match the SDK version
+cuda_modules="cuda"
+cuda_available_modules=`module avail $cuda_modules 2>&1 | \
+    sed -e 's/---.*---//' | tr -d '\n'`
+cuda_available_modules=
+      
+#unset module
 if [ "x$SGE_ROOT" = "x" ] ; then
 	METHOD=NONE
 else
@@ -51,21 +113,67 @@ export FSLSUBALREADYRUN
 # supplied file is expected to take). You need to setup the following
 # list to map ranges of timings into your cluster queues - it doesn't
 # matter how many you setup, that's up to you.
+# The function takes two arguments, duration (in seconds) and optionally
+# size (in MB).
 ###########################################################################
 
 map_qname ()
 {
-    if [ $1 -le 20 ] ; then
-	queue=veryshort.q
-    elif [ $1 -le 120 ] ; then
-	queue=short.q
-    elif [ $1 -le 1440 ] ; then
-	queue=long.q
-    else
-	queue=verylong.q
-    fi
-    queueCmd=" -q $queue " 
+    # Takes two inputs, duration (in )
+    duration=$1
+    size=$2
 
+    if [ -z "$size" ]; then
+        qtype='c'
+    else
+        size=`printf %0.f $size`
+        elif [ $size -le 16384 ];
+            qtype='c'
+        elif [ $size -le 43694 ];
+            qtype='h'
+        else
+            return -1
+
+    fi
+
+    if [ $duration -gt 20160 ]; then
+        return -3
+    fi
+
+    if [ "X$qtype" == "Xh" ]; then
+        qduration='himem'
+    elif [ $duration -gt 1440 ] && [ $duration -le 10080 ] ; then
+        qduration='long'
+    elif [ $duration -le 1440 ]; then
+        qduration='short'
+    else
+        return -2
+    fi
+
+    queue="${qduration}.q${qtype}"
+    #echo "Estimated time was $1 mins: queue name is $queue"
+}
+
+###########################################################################
+# The following auto-decides what CUDA queue to use. The calling
+# FSL program will probably use the -T option when calling fsl_sub,
+# which tells fsl_sub how long (in minutes) the process is expected to
+# take (in the case of the -t option, how long each line in the
+# supplied file is expected to take). You need to setup the following
+# list to map ranges of timings into your cluster queues - it doesn't
+# matter how many you setup, that's up to you.
+# The function takes two arguments, duration (in seconds) and optionally
+# size (in MB).
+###########################################################################
+
+map_cuda_qname ()
+{
+    # Takes two inputs, duration (in minutes), memory size in MB (optional)
+    duration=$1
+    size=$2
+
+    # No resource specific queues...
+    queue="${cuda_queue}"
     #echo "Estimated time was $1 mins: queue name is $queue"
 }
 
@@ -80,6 +188,7 @@ command=`basename $0`
 
 usage ()
 {
+  width=`tput cols`
   cat <<EOF
 
 $command V1.1 - wrapper for job control system such as SGE
@@ -99,6 +208,8 @@ $command -a darwin regscript rawdata outputdir ...
   -M <email-address>    Who to email, default = `whoami`@fmrib.ox.ac.uk 
   -j <jid>              Place a hold on this task until job jid has completed
   -t <filename>         Specify a task file of commands to execute in parallel
+  -tc <number>          Specify the maximum number of parallel job sub-tasks to run
+                        concurrently.
   -N <jobname>          Specify jobname as it will appear on queue
   -R <RAM>              Max total RAM to use for job (integer in MB)
   -l <logdirname>       Where to output logfiles
@@ -108,23 +219,23 @@ $command -a darwin regscript rawdata outputdir ...
   -s <pename>,<threads> Submit a multi-threaded task - requires a PE (<pename>) to be
                         configured for the requested queues.
                         <threads> specifies the number of threads to run
+  -c                    Request a CUDA capable device
+  -ct                   Request a specific CUDA device type
+                        $cuda_type_docs
+  -cv <version>         Request a specific CUDA version, e.g.
+                        $cuda_
   -v                    Verbose mode.
 
 Queues:
 
 There are several batch queues configured on the cluster, each with defined CPU
-time limits. All queues, except bigmem.q, have a 8GB memory limit.
+time limits. All queues, except bigmem.q, have a 16GB memory limit.
 
-veryshort.q:This queue is for jobs which last under 30mins.
-short.q:    This queue is for jobs which last up to 4h. 
-long.q:     This queue is for jobs which last less than 24h. Jobs run with a
-            nice value of 10.
-verylong.q: This queue is for jobs which will take longer than 24h CPU time.
-            There is one slot per node, and jobs on this queue have a nice value
-            of 15.
-bigmem.q:   This queue is like the verylong.q but has no memory limits.
+short.qc:   This queue is for jobs which last under 24h.
+long.qc:    This queue is for jobs which last less than 7 days
+himem.qh:   This queue is for jobs which require up to 43GB of memory and last less than 14 days
 
-EOF
+EOF | fold -w $width >&2
 
   exit 1
 }
@@ -137,45 +248,12 @@ fi
 set -- `getopt T:q:a:p:M:j:t:z:N:R:Fvm:l:s: $*`
 result=$?
 if [ $result != 0 ] ; then
-  echo "What? Your arguments make no sense!"
+  echo "What? Your arguments make no sense!" >&2
 fi
 
 if [ $nargs -eq 0 ] || [ $result != 0 ] ; then
   usage
 fi
-
-POSIXLY_CORRECT=${OLD_POSIXLY_CORRECT}
-export POSIXLY_CORRECT
-
-
-###########################################################################
-# If you have a Parallel Environment configured for OpenMP tasks then
-# the variable omp_pe should be set to the name you have defined for that
-# PE. The script will work out which queues have that PE setup on them.
-# Note, we support openmp tasks even when Grid Engine is not in use.
-###########################################################################
-
-omp_pe='openmp'
-
-
-###########################################################################
-# If you wish to disable processor affinities under Grid Engine then
-# comment the following line.
-# This instructs Grid Engine to bind the task to the number of job slots
-# allocated to the job (or PE)
-###########################################################################
-proc_affinities="-binding linear:slots"
-
-
-###########################################################################
-# The following sets up the default queue name, which you may want to
-# change. It also sets up the basic emailing control.
-###########################################################################
-
-queue=long.q
-queueCmd=" -q long.q "
-mailto=`whoami`@`hostname -f | cut -d . -f 2-`
-MailOpts="a"
 
 
 ###########################################################################
@@ -196,12 +274,29 @@ MailOpts="a"
 # containing a set of commands to run in parallel; one command per
 # line.
 #
+# -tc will limit the number of concurrently running sub-tasks to the
+# provided number of jobs
+#
 # -N option determines what the command will be called when you list
 # running processes.
 #
 # -l tells the cluster what to call the standard output and standard
 # -error logfiles for the submitted program.
+#
+# -c will request a CUDA capable resource
+#   (-q can be used to override the default cuda queue)
+#
+# -ct will request a specific CUDA hardware generation and takes the
+# values:
+#   G - GeForce hardware (single-precision optimised, no-ECC)
+#   K - Kepler class (double-precision optimised, ECC)
+#   P - Pascal class (as per K but with half-precision)
+#   V - Volta class (as per P but with quarter-precision)
+#
+# -cv will request a specific CUDA SDK version number, e.g. 6, 6.5, 7 etc
+#
 ###########################################################################
+
 
 if [ -z $FSLSUBVERBOSE ] ; then
     verbose=0
@@ -211,6 +306,10 @@ else
 fi
 
 scriptmode=0
+cuda_job=0
+queue=''
+job_time=''
+job_ram=''
 
 while [ $1 != -- ] ; do
   case $1 in
@@ -220,31 +319,60 @@ while [ $1 != -- ] ; do
       fi
       shift;;
     -T)
-      map_qname $2
+      job_time $2
+      shift;;
+    -R)
+      job_ram $2
+      #RAM="-l mem_free=${2}M"
       shift;;
     -q)
       queue=$2
       queueCmd=" -q $queue " 
       $QCONF -sq $queue >/dev/null 2>&1
       if [ $? -eq 1 ]; then
-	  echo "Invalid queue specified!"
-	  exit 127
+        echo "Invalid queue specified!" >&2
+        exit -1
       fi
       shift;;
+    -c)
+      if [ $cuda_available ]; then
+        cuda_job=1
+      else
+        echo "CUDA devices not available" >&2
+      ;;
+    -ct)
+      cuda_type=$2
+      if [ ! $cuda_type =~ $cuda_types ]; then
+        echo "CUDA hardware type $cuda_type not recognised" > &2
+        echo $cuda_type_docs > &2
+        exit -1
+      fi
+      shift;;
+    -cv)
+      cuda_version=$2
+      cuda_module="$cuda_modules/$cuda_version"
+      cuda_module_available=`module avail $cuda_module 2>&1`
+      if [ -z "$cuda_module_available" ]; then
+        echo "CUDA SDK $cuda_version not found!" > &2
+        width=`tput cols`
+        echo "Available modules: $cuda_available_modules" | fold -w $width > &2
+        exit -1
+      fi
+      ;;
     -a)
       acceptable_arch=no
       available_archs=`qhost | tail -n +4 | awk '{print $2}' | sort | uniq`
       for a in $available_archs; do
-	if [ $2 = $a ] ; then
-	  acceptable_arch=yes
-	fi
+        if [ $2 = $a ] ; then
+            acceptable_arch=yes
+        fi
       done
       if [ $acceptable_arch = yes ]; then
-	  sge_arch="-l arch=$2"
+        sge_arch="-l arch=$2"
       else
-	  echo "Sorry arch of $2 is not supported on this SGE configuration!"
-	  echo "Should be one of:" $available_archs
-	  exit 127
+        echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
+        echo "Should be one of:" $available_archs >&2
+        exit -1
       fi
       shift;;
     -p)
@@ -260,24 +388,27 @@ while [ $1 != -- ] ; do
     -t)
       taskfile=$2
       if [ -f "$taskfile" ] ; then
-	      tasks=`wc -l $taskfile | awk '{print $1}'`
-	      if [ $tasks -ne 0 ]; then
-    	  	sge_tasks="-t 1-$tasks"
-    	  else
-    	    echo "Task file ${taskfile} is empty"
-    	    echo "Should be a text file listing all the commands to run!"
-    	    exit -1
-    	  fi
+        tasks=`wc -l $taskfile | awk '{print $1}'`
+        if [ $tasks -ne 0 ]; then
+            sge_tasks="-t 1-$tasks"
+        else
+            echo "Task file ${taskfile} is empty" >&2
+            echo "Should be a text file listing all the commands to run!" >&2
+            exit -1
+        fi
       else
-          echo "Task file (${taskfile}) does not exist"
-          exit -1
+        echo "Task file (${taskfile}) does not exist" >&2
+        exit -1
       fi
+      shift;;
+    -tc)
+      max_parallel_jobs=$2
+      if [ ! $max_parallel_jobs =~ [[:digit:]]+ ]; then
+        echo "Maximum concurrent parallel jobs should be an integer." >&2
+        exit -1
       shift;;
     -N)
       JobName=$2;
-      shift;;
-    -R)
-      RAM="-l mem_free=${2}M"
       shift;;
     -m)
       MailOpts=$2;
@@ -290,7 +421,7 @@ while [ $1 != -- ] ; do
       else
 	  echo ${2} | grep '/dev/null' >/dev/null 2>&1
 	  if [ $? -eq 1 ] && [ -f ${2} ]; then
-	      echo "Log destination is a file (should be a folder)"
+	      echo "Log destination is a file (should be a folder)" >&2
 	      exit -1
 	  fi
       fi
@@ -315,17 +446,61 @@ shift
 # Don't change the following (but keep scrolling down!)
 ###########################################################################
 
+# If job resources are specified, choose the queue automatically
+if [ -z "$queue" ]; then
+    if [ -n "$job_time" ] || [ -n "$job_ram" ]; then
+        if [ $cuda_job ]; then
+            map_cuda_qname \"$job_time\" \"$job_ram\"
+        else
+            map_qname \"$job_time\" \"$job_ram\"
+        fi
+    else
+        if [ $cuda_job ]; then
+            queue=$cuda_queue
+        else
+            queue=$default_queue
+        fi
+    fi
+fi
+
+$QCONF -sq $queue >/dev/null 2>&1
+if [ $? -eq 1 ]; then
+    echo "Invalid queue specified!" >&2
+    exit 127
+fi
+queueCmd=" -q $queue "
+
 if [ -z "$taskfile" ] && [ -z "$1" ]; then
-	echo "Either supply a command to run or a parallel task file"
+	echo "Either supply a command to run or a parallel task file" >&2
 	exit -1
 fi
 
 if [ -z "$taskfile" ] && [ ! -x "$1" ]; then
 	which $1 >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
-		echo "The command you have requested cannot be found or is not executable"
+		echo "The command you have requested cannot be found or is not executable" >&2
 		exit -1
 	fi
+fi
+
+if [ -n "$taskfile" ]; then
+    if [ -n "$max_parallel_tasks" ]; then
+        max_parallel_tasks="-tc ${max_parallel_tasks}"
+    fi
+    # Validate commands in task file
+    lno=1
+    for line in `cat $taskfile`; do
+        tf_cmd=`echo $line | cut -d ' ' -f1`
+        which ${tf_cmd} >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo "The command $tf_cmd in the task file $taskfile, line $lno cannot be found or is not executable" >&2
+            exit -1
+        fi
+        lno=`expr $lno + 1`
+    done
+elif [ -n "$max_parallel_tasks" ]; then
+    echo "-tc option ignored as not a parallel task job" >&2
+    max_parallel_tasks=""
 fi
 
 if [ "x$JobName" = x ] ; then 
@@ -337,8 +512,8 @@ if [ "x$JobName" = x ] ; then
 fi
 
 if [ "x$tasks" != "x" ] && [ "x$@" != "x" ] ; then
-    echo "Spurious input after parsing command line: \"$@\"!"
-    echo "You appear to have specified both a task file and a command to run"
+    echo "Spurious input after parsing command line: \"$@\"!" >&2
+    echo "You appear to have specified both a task file and a command to run" >&2
     exit -1
 fi
 
@@ -351,6 +526,11 @@ if [ "x$peName" != "x" ]; then
     fi
 
 fi
+
+if [ "$cuda_job" ] && [ "x$cuda_queue" != "x$queue" ] ; then
+    # User specified both a cuda_queue and a normal queue - override the normal queue
+    queue=$cuda_queue
+
 
 case $METHOD in
 
@@ -371,8 +551,8 @@ case $METHOD in
 	    $QCONF -sp $peName >/dev/null 2>&1
 
 	    if [ $? -eq 1 ]; then
-		echo $@
-		echo "$peName is not a valid PE"
+		echo $@ >&2
+		echo "$peName is not a valid PE" >&2
 		exit -1
 	    fi
 
@@ -380,7 +560,7 @@ case $METHOD in
             # we have submitted to has that PE set up.
 	    qstat -g c -pe $peName >/dev/null 2>&1
 	    if [ $? -eq 1 ]; then
-		echo "No parallel environments configured!"
+		echo "No parallel environments configured!" >&2
 		exit -1
 	    fi
 
@@ -388,7 +568,7 @@ case $METHOD in
 
 	    if [ $? -eq 1 ]; then
 		echo $@
-		echo "PE $peName is not configured on $queue"
+		echo "PE $peName is not configured on $queue" >&2
 		exit -1
 	    fi
 
@@ -400,7 +580,7 @@ case $METHOD in
 
 	if [ "x$tasks" = "x" ] ; then
 	    if [ $scriptmode -ne 1 ] ; then
-		sge_command="qsub -V -cwd -shell n -b y -r y $queueCmd $proc_affinities $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold"
+		sge_command="qsub -cwd -shell n -b y -r y $queueCmd $proc_affinities $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold"
 	    else
 		sge_command="qsub $proc_affinities $LogOpts $sge_arch $sge_hold"
 	    fi
@@ -410,7 +590,7 @@ case $METHOD in
 	    fi
 	    exec $sge_command $@ | awk '{print $3}'
 	else
-	    sge_command="qsub -V -cwd $queueCmd $proc_affinities $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold $sge_tasks"
+	    sge_command="qsub -cwd $queueCmd $proc_affinities $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold $sge_tasks"
 	    if [ $verbose -eq 1 ] ; then 
 		echo sge_command: $sge_command >&2
 		echo control file: $taskfile >&2
