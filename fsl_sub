@@ -309,6 +309,7 @@ fi
 
 scriptmode=0
 cuda_job=0
+cuda_version=$cuda_modules_default
 queue=''
 job_time=''
 job_ram=''
