@@ -531,7 +531,7 @@ if [ -z "$JobName" ] ; then
     if [ -n "$taskfile" ] ; then
         JobName=$(basename "$taskfile")
     else
-	JobName=`basename $1`
+	    JobName=$(basename "$1")
     fi
 fi
 
