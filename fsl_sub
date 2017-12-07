@@ -216,7 +216,7 @@ $command -a darwin regscript rawdata outputdir ...
                         Default is "long.q".
   -a <arch-name>        Architecture [e.g., darwin or lx24-amd64]
   -p <job-priority>     Lower priority [0:-1024] default = 0                 
-  -M <email-address>    Who to email, default = `whoami`@fmrib.ox.ac.uk 
+  -M <email-address>    Who to email, default = $(whoami)@$(hostname) 
   -j <jid>              Place a hold on this task until job jid has completed
   -t <filename>         Specify a task file of commands to execute in parallel
   -x <number>           Specify the maximum number of parallel job sub-tasks to run
@@ -520,16 +520,16 @@ if [ -n "$taskfile" ]; then
             echo "The command $tf_cmd in the task file $taskfile, line $lno cannot be found or is not executable" >&2
             exit -1
         fi
-        lno=`expr $lno + 1`
+        lno=$(expr $lno + 1)
     done
 elif [ -n "$max_parallel_tasks" ]; then
     echo "-tc option ignored as not a parallel task job" >&2
     max_parallel_tasks=""
 fi
 
-if [ "x$JobName" = x ] ; then 
-    if [ "x$taskfile" != x ] ; then
-	JobName=`basename $taskfile`
+if [ -z "$JobName" ] ; then 
+    if [ -n "$taskfile" ] ; then
+        JobName=$(basename "$taskfile")
     else
 	JobName=`basename $1`
     fi
