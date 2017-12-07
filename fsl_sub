@@ -351,6 +351,7 @@ while [ $1 != -- ] ; do
         echo "$cuda_type_docs" >&2
         exit -1
       fi
+      echo "CUDA Type not implemented" >&2
       shift;;
     -C)
       cuda_version=$2
