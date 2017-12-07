@@ -595,18 +595,18 @@ case $METHOD in
 	    if [ "$scriptmode" -ne 1 ] ; then
 		    sge_command="qsub -cwd -shell n -b y -r y $queueCmd $proc_affinities $sge_priority $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold"
 	    else
-		sge_command="qsub $proc_affinities $LogOpts $sge_arch $sge_hold"
+		    sge_command="qsub $proc_affinities $sge_priority $LogOpts $sge_arch $sge_hold"
 	    fi
 	    if [ "$verbose" -eq 1 ] ; then 
 	    	echo "sge_command: $sge_command" >&2
 		    echo "executing: " "$@" >&2
 	    fi
-	    exec $sge_command $@ | awk '{print $3}'
+	    exec "$sge_command" "$@" | awk '{print $3}'
 	else
-	    sge_command="qsub -cwd $queueCmd $proc_affinities $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold $sge_tasks"
-	    if [ $verbose -eq 1 ] ; then 
-		echo sge_command: $sge_command >&2
-		echo control file: $taskfile >&2
+	    sge_command="qsub -cwd $queueCmd $proc_affinities $sge_priority $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold $sge_tasks"
+	    if [ "$verbose" -eq 1 ] ; then 
+    		echo "sge_command: $sge_command" >&2
+    		echo "control file: $taskfile" >&2
 	    fi
 	    exec "$sge_command" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
 #!/bin/sh
