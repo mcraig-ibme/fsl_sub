@@ -128,18 +128,18 @@ map_qname ()
     if [ -z "$size" ]; then
         qtype='c'
     else
-        size=`printf %0.f $size`
-        elif [ $size -le 16384 ];
+        size=$(printf %0.f $size)
+        if [ "$size" -le 16384 ]; then
             qtype='c'
-        elif [ $size -le 43694 ];
+        elif [ "$size" -le 43694 ]; then
             qtype='h'
         else
             return -1
 
     fi
 
-    if [ $duration -gt 20160 ]; then
-        return -3
+    if [ "$duration" -gt 20160 ]; then
+        return 3
     fi
 
     if [ "X$qtype" == "Xh" ]; then
@@ -243,17 +243,17 @@ EOF | fold -w $width >&2
 }
 
 nargs=$#
-if [ $nargs -eq 0 ] ; then
+if [ "$nargs" -eq 0 ] ; then
   usage
 fi
 
 set -- $(getopt T:q:a:p:M:j:t:z:N:R:Fvm:l:s:cy:C:x: $*)
 result=$?
-if [ $result != 0 ] ; then
+if [ "$result" != 0 ] ; then
   echo "What? Your arguments make no sense!" >&2
 fi
 
-if [ $nargs -eq 0 ] || [ $result != 0 ] ; then
+if [ "$nargs" -eq 0 ] || [ "$result" != 0 ] ; then
   usage
 fi
 
@@ -300,11 +300,11 @@ fi
 ###########################################################################
 
 
-if [ -z $FSLSUBVERBOSE ] ; then
+if [ -z "$FSLSUBVERBOSE" ] ; then
     verbose=0
 else
-    verbose=$FSLSUBVERBOSE;
-    echo "METHOD=$METHOD : args=$@" >&2
+    verbose="$FSLSUBVERBOSE";
+    echo "METHOD=$METHOD : args=" "$@" >&2
 fi
 
 scriptmode=0
@@ -331,7 +331,7 @@ while [ $1 != -- ] ; do
     -q)
       queue=$2
       queueCmd=" -q $queue " 
-      $QCONF -sq $queue >/dev/null 2>&1
+      $QCONF -sq "$queue" >/dev/null 2>&1
       if [ $? -eq 1 ]; then
         echo "Invalid queue specified!" >&2
         exit -1
@@ -363,10 +363,10 @@ while [ $1 != -- ] ; do
       available_archs=$(qhost | tail -n +4 | awk '{print $2}' | sort | uniq)
       for a in $available_archs; do
         if [ $2 = $a ] ; then
-            acceptable_arch=yes
+            acceptable_arch="yes"
         fi
       done
-      if [ $acceptable_arch = yes ]; then
+      if [ "$acceptable_arch" = "yes" ]; then
         sge_arch="-l arch=$2"
       else
         echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
@@ -416,7 +416,7 @@ while [ $1 != -- ] ; do
       LogOpts="-o $2 -e $2";
       LogDir="${2}/";
       if [ ! -e ${2} ]; then 
-	  mkdir -p $2
+	    mkdir -p "$2"
       else
 	  echo ${2} | grep '/dev/null' >/dev/null 2>&1
 	  if [ $? -eq 1 ] && [ -f ${2} ]; then
@@ -490,7 +490,7 @@ if [ -z "$taskfile" ] && [ -z "$1" ]; then
 fi
 
 if [ -z "$taskfile" ] && [ ! -x "$1" ]; then
-	which $1 >/dev/null 2>&1
+	which "$1" >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
 		echo "The command you have requested cannot be found or is not executable" >&2
 		exit -1
@@ -525,16 +525,15 @@ if [ "x$JobName" = x ] ; then
     fi
 fi
 
-if [ "x$tasks" != "x" ] && [ "x$@" != "x" ] ; then
-    echo "Spurious input after parsing command line: \"$@\"!" >&2
+if [ -n "$tasks" ] && [ -n "$@" ] ; then
+    echo "Spurious input after parsing command line:" "$@" >&2
     echo "You appear to have specified both a task file and a command to run" >&2
     exit -1
 fi
 
-if [ "x$peName" != "x" ]; then
+if [ -n "$peName" ]; then
     # If the PE name is 'openmp' then limit the number of threads to those specified
-    
-    if [ "X$peName" = "X$omp_pe" ]; then
+    if [ "$peName" = "$omp_pe" ]; then
         OMP_NUM_THREADS=$peThreads
 	export OMP_NUM_THREADS
     fi
@@ -565,23 +564,23 @@ case $METHOD in
 	    $QCONF -sp $peName >/dev/null 2>&1
 
 	    if [ $? -eq 1 ]; then
-		echo $@ >&2
+		    echo "$@" >&2
 		echo "$peName is not a valid PE" >&2
 		exit -1
 	    fi
 
             # Get a list of queues configured for this PE and confirm that the queue
             # we have submitted to has that PE set up.
-	    qstat -g c -pe $peName >/dev/null 2>&1
+	    qstat -g c -pe "$peName" >/dev/null 2>&1
 	    if [ $? -eq 1 ]; then
 		echo "No parallel environments configured!" >&2
 		exit -1
 	    fi
 
-	    qstat -g c -pe $peName | sed '1,2d' | awk '{ print $1 }' | grep ^$queue >/dev/null 2>&1
+	    qstat -g c -pe "$peName" | sed '1,2d' | awk '{ print $1 }' | grep "^$queue" >/dev/null 2>&1
 
 	    if [ $? -eq 1 ]; then
-		echo $@
+	    	echo "$@"
 		echo "PE $peName is not configured on $queue" >&2
 		exit -1
 	    fi
@@ -593,14 +592,14 @@ case $METHOD in
 	fi
 
 	if [ "x$tasks" = "x" ] ; then
-	    if [ $scriptmode -ne 1 ] ; then
-		sge_command="qsub -cwd -shell n -b y -r y $queueCmd $proc_affinities $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold"
+	    if [ "$scriptmode" -ne 1 ] ; then
+		    sge_command="qsub -cwd -shell n -b y -r y $queueCmd $proc_affinities $sge_priority $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold"
 	    else
 		sge_command="qsub $proc_affinities $LogOpts $sge_arch $sge_hold"
 	    fi
-	    if [ $verbose -eq 1 ] ; then 
-		echo sge_command: $sge_command >&2
-		echo executing: $@ >&2
+	    if [ "$verbose" -eq 1 ] ; then 
+	    	echo "sge_command: $sge_command" >&2
+		    echo "executing: " "$@" >&2
 	    fi
 	    exec $sge_command $@ | awk '{print $3}'
 	else
@@ -609,7 +608,7 @@ case $METHOD in
 		echo sge_command: $sge_command >&2
 		echo control file: $taskfile >&2
 	    fi
-	    exec $sge_command <<EOF | awk '{print $3}' | awk -F. '{print $1}'
+	    exec "$sge_command" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
 #!/bin/sh
 
 #$ -S /bin/sh
@@ -628,20 +627,20 @@ EOF
 
     NONE)
 	if [ "x$tasks" = "x" ] ; then
-	    if [ $verbose -eq 1 ] ; then 
-		echo executing: $@ >&2
+	    if [ "$verbose" -eq 1 ] ; then 
+		    echo "executing: " "$@" >&2
 	    fi
 
 	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
 $@
 EOF1
 	    ERR=$?
-	    if [ $ERR -ne 0 ] ; then
-		cat ${LogDir}${JobName}.e$$ >&2
+	    if [ "$ERR" -ne 0 ] ; then
+		    cat "${LogDir}${JobName}.e$$" >&2
 		exit $ERR
 	    fi
 	else
-	    if [ $verbose -eq 1 ] ; then 
+	    if [ "$verbose" -eq 1 ] ; then 
 		echo "Running commands in: $taskfile" >&2
 	    fi
 
