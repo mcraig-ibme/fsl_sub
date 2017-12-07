@@ -547,13 +547,7 @@ if [ -n "$peName" ]; then
         OMP_NUM_THREADS=$peThreads
 	export OMP_NUM_THREADS
     fi
-
 fi
-
-if [ "$cuda_job" ] && [ "x$cuda_queue" != "x$queue" ] ; then
-    # User specified both a cuda_queue and a normal queue - override the normal queue
-    queue=$cuda_queue
-
 
 case $METHOD in
 
