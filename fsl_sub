@@ -538,7 +538,7 @@ fi
 if [ -n "$tasks" ] && [ -n "$@" ] ; then
     echo "Spurious input after parsing command line:" "$@" >&2
     echo "You appear to have specified both a task file and a command to run" >&2
-    exit -1
+    exit 127
 fi
 
 if [ -n "$peName" ]; then
