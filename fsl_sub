@@ -496,14 +496,14 @@ fi
 
 if [ -z "$taskfile" ] && [ -z "$1" ]; then
 	echo "Either supply a command to run or a parallel task file" >&2
-	exit -1
+	exit 126
 fi
 
 if [ -z "$taskfile" ] && [ ! -x "$1" ]; then
 	which "$1" >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
 		echo "The command you have requested cannot be found or is not executable" >&2
-		exit -1
+		exit 126
 	fi
 fi
 
@@ -518,7 +518,7 @@ if [ -n "$taskfile" ]; then
         which "${tf_cmd}" >/dev/null 2>&1
         if [ $? -ne 0 ]; then
             echo "The command $tf_cmd in the task file $taskfile, line $lno cannot be found or is not executable" >&2
-            exit -1
+            exit 126
         fi
         lno=$(expr $lno + 1)
     done
