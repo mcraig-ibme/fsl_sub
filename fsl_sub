@@ -143,8 +143,7 @@ map_qname ()
         elif [ "$size" -le 43694 ]; then
             qtype='h'
         else
-            return -1
-
+            return 1
     fi
 
     if [ "$duration" -gt 20160 ]; then
@@ -158,7 +157,7 @@ map_qname ()
     elif [ $duration -le 1440 ]; then
         qduration='short'
     else
-        return -2
+        return 2
     fi
 
     queue="${qduration}.q${qtype}"
