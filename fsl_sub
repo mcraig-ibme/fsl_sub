@@ -145,6 +145,7 @@ map_qname ()
         else
             return 1
     fi
+    fi
 
     if [ "$duration" -gt 20160 ]; then
         return 3
@@ -152,9 +153,9 @@ map_qname ()
 
     if [ "X$qtype" == "Xh" ]; then
         qduration='himem'
-    elif [ $duration -gt 1440 ] && [ $duration -le 10080 ] ; then
+    elif [ "$duration" -gt 1440 ] && [ "$duration" -le 10080 ] ; then
         qduration='long'
-    elif [ $duration -le 1440 ]; then
+    elif [ "$duration" -le 1440 ]; then
         qduration='short'
     else
         return 2
