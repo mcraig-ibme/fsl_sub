@@ -147,13 +147,13 @@ map_qname ()
         fi
     fi
 
-    if [ $duration -gt 20160 ]; then
+    if [ "$duration" -gt 20160 ]; then
         return 3
     fi
 
     if [ "X$qtype" == "Xh" ]; then
         qduration='himem'
-    elif [ "$duration" -gt 1440 ] && [ $duration -le 10080 ] ; then
+    elif [ "$duration" -gt 1440 ] && [ "$duration" -le 10080 ] ; then
         qduration='long'
     elif [ "$duration" -le 1440 ]; then
         qduration='short'
@@ -473,7 +473,7 @@ if [ -z "$queue" ]; then
 fi
 
 $QCONF -sq $queue >/dev/null 2>&1
-if [ "$?" -eq 1 ]; then
+if [ $? -eq 1 ]; then
     echo "Invalid queue specified!" >&2
     exit 127
 fi
@@ -501,7 +501,7 @@ fi
 
 if [ -z "$taskfile" ] && [ ! -x "$1" ]; then
 	which "$1" >/dev/null 2>&1
-	if [ "$?" -ne 0 ]; then
+	if [ $? -ne 0 ]; then
 		echo "The command you have requested cannot be found or is not executable" >&2
 		exit 126
 	fi
