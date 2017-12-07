@@ -62,10 +62,10 @@ MailOpts="a"
 cuda_available=1
 # Name the CUDA queue here.
 cuda_queue="cuda.q"
-# Define the CUDA hardware classes available here (e.g. what -ct options
-# are acceptable on your system) and the default type. Do not remove the
-# square brackets. The classes can only be single characters
-cuda_types="[GKPV]"
+# Define the CUDA hardware classes available here (e.g. what -y options
+# are acceptable on your system) and the default type. The classes can only
+# be single characters
+cuda_types=array("G" "K" "P" "V")
 # Provide some helpful info to your user about the available classes
 cuda_type_docs="Available CUDA hardware classes are
   G - GeForce. No ECC, single-precision workloads
@@ -75,11 +75,14 @@ cuda_type_docs="Available CUDA hardware classes are
 # Default CUDA type
 cuda_type="K"
 # Define the Shell Module prefix for the CUDA Libraries - module name
-# should match the SDK version
+    # should match the toolkit version
 cuda_modules="cuda"
-cuda_available_modules=`module avail $cuda_modules 2>&1 | \
-    sed -e 's/---.*---//' | tr -d '\n'`
-cuda_available_modules=
+    cuda_modules_available=$(module avail $cuda_modules 2>&1 | \
+        sed -e 's/---.*---//' | tr -s ' ' | tr -d '\n' | \
+        awk 'NF>1{print $NF}' | sed "s/$cuda_modules\///")
+    cuda_modules_default=$(echo "$cuda_available_modules" | awk 'NF>1{print $NF}')     
+fi
+# If you don't use Shell Modules make sure the libraries are available
       
 #unset module
 if [ "x$SGE_ROOT" = "x" ] ; then
@@ -187,8 +190,8 @@ command=$(basename $0)
 
 usage ()
 {
-  width=`tput cols`
-  cat <<EOF
+  width=$(tput cols)
+  fold -w "$width" >&2 <<USAGE_EOF
 
 $command V1.1 - wrapper for job control system such as SGE
 
@@ -222,7 +225,7 @@ $command -a darwin regscript rawdata outputdir ...
   -y                    Request a specific CUDA device type
                         $cuda_type_docs
   -C <version>          Request a specific CUDA version, e.g.
-                        $cuda_
+                        $cuda_available_modules
   -v                    Verbose mode.
 
 Queues:
@@ -334,30 +337,24 @@ while [ $1 != -- ] ; do
       fi
       shift;;
     -c)
-      if [ $cuda_available ]; then
+      if [ "$cuda_available" ]; then
         cuda_job=1
       else
         echo "CUDA devices not available" >&2
-      shift;;
+      fi
+      ;;
     -y)
       cuda_type=$2
-      shift
-      if [ ! $cuda_type =~ $cuda_types ]; then
-        echo "CUDA hardware type $cuda_type not recognised" > &2
-        echo $cuda_type_docs > &2
+      if [[ ! "$cuda_type" =~ "[$(printf "%s" "${array[@]}")]" ]]; then
+        echo "CUDA hardware type $cuda_type not recognised" >&2
+        echo "$cuda_type_docs" >&2
         exit -1
       fi
       shift;;
     -C)
       cuda_version=$2
-      shift
-      cuda_module="$cuda_modules/$cuda_version"
-      cuda_module_available=`module avail $cuda_module 2>&1`
-      if [ -z "$cuda_module_available" ]; then
-        echo "CUDA SDK $cuda_version not found!" > &2
-        width=`tput cols`
-        echo "Available modules: $cuda_available_modules" | fold -w $width > &2
-        exit -1
+      if [ ! $cuda_uses_modules ]; then
+        echo "CUDA Shell Modules not configured, ignoring requested CUDA version" >&2
       fi
       shift;;
     -a)
@@ -470,6 +467,21 @@ if [ $? -eq 1 ]; then
     exit 127
 fi
 queueCmd=" -q $queue "
+
+# Configure CUDA Toolkit version
+if [ $cuda_job ]; then
+    if [ $cuda_uses_modules ]; then
+        cuda_module="$cuda_modules/$cuda_version"
+        cuda_module_available=$(module avail $cuda_module 2>&1)
+        if [ -z "$cuda_module_available" ]; then
+            echo "CUDA SDK $cuda_version not found!" >&2
+            width=$(tput cols)
+            echo "Available modules: $cuda_available_modules" | fold -w $width >&2
+            exit -1
+        fi
+        module add "$cuda_module"
+    fi
+fi
 
 if [ -z "$taskfile" ] && [ -z "$1" ]; then
 	echo "Either supply a command to run or a parallel task file" >&2
