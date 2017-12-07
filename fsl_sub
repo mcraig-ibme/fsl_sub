@@ -632,7 +632,7 @@ EOF
     NONE)
 	if [ "x$tasks" = "x" ] ; then
 	    if [ "$verbose" -eq 1 ] ; then 
-		echo "executing: " "$@" >&2
+		    echo "executing: " "$@" >&2
 	    fi
 
 	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
@@ -640,8 +640,8 @@ $@
 EOF1
 	    ERR=$?
 	    if [ "$ERR" -ne 0 ] ; then
-		cat "${LogDir}${JobName}.e$$" >&2
-		exit $ERR
+		    cat "${LogDir}${JobName}.e$$" >&2
+		    exit $ERR
 	    fi
 	else
 	    if [ "$verbose" -eq 1 ] ; then 
