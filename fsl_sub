@@ -411,9 +411,10 @@ while [ $1 != -- ] ; do
       shift;;
     -x)
       max_parallel_jobs=$2
-      if [ ! $max_parallel_jobs =~ [[:digit:]]+ ]; then
+      if [[ ! $max_parallel_jobs =~ [[:digit:]]+ ]]; then
         echo "Maximum concurrent parallel jobs should be an integer." >&2
         exit -1
+      fi
       shift;;
     -N)
       JobName=$2;
@@ -522,7 +523,7 @@ if [ -n "$taskfile" ]; then
         lno=$(expr $lno + 1)
     done
 elif [ -n "$max_parallel_tasks" ]; then
-    echo "-tc option ignored as not a parallel task job" >&2
+    echo "-x option ignored as not a parallel task job" >&2
     max_parallel_tasks=""
 fi
 
