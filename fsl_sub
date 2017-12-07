@@ -74,6 +74,15 @@ cuda_type_docs="Available CUDA hardware classes are
   V - Volta. ECC, double-, single-, half- and quarter-precision workloads"
 # Default CUDA type
 cuda_type="K"
+# If your system is configured to use Shell Modules for environment setup
+# and you have appropriate versioned CUDA modules define this variable as '1'
+cuda_uses_modules=1
+# The next setting defines the parent to your versioned CUDA modules, e.g.
+# 'cuda' would mean you would load CUDA 9 with 'module load cuda/9'
+cuda_modules="cuda"
+
+# This works out which modules you have available
+if [ $cuda_uses_modules ]; then
 # Define the Shell Module prefix for the CUDA Libraries - module name
     # should match the toolkit version
 cuda_modules="cuda"
