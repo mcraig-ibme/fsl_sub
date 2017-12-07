@@ -1,0 +1,3 @@
+./test_script.sh 1
+test_script.sh 2
+./test_script.sh 3
