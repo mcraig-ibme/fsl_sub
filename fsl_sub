@@ -49,7 +49,7 @@ proc_affinities="-binding linear:slots"
 ###########################################################################
 
 default_queue=long.qc
-mailto=`whoami`@`hostname -f | cut -d . -f 2-`
+mailto=$(whoami)@$(hostname -f | cut -d . -f 2-)
 MailOpts="a"
 
 
@@ -85,7 +85,7 @@ cuda_available_modules=
 if [ "x$SGE_ROOT" = "x" ] ; then
 	METHOD=NONE
 else
-	QCONF=`which qconf`
+	QCONF=$(which qconf)
 	if [ "x$QCONF" = "x" ]; then
 		METHOD=NONE
 		echo "Warning: SGE_ROOT environment variable is set but Grid Engine software not found, will run locally" >&2
@@ -183,7 +183,7 @@ map_cuda_qname ()
 OLD_POSIXLY_CORRECT=${POSIXLY_CORRECT}
 POSIXLY_CORRECT=1
 export POSIXLY_CORRECT
-command=`basename $0`
+command=$(basename $0)
 
 usage ()
 {
@@ -244,7 +244,7 @@ if [ $nargs -eq 0 ] ; then
   usage
 fi
 
-set -- `getopt T:q:a:p:M:j:t:z:N:R:Fvm:l:s:cy:C:x: $*`
+set -- $(getopt T:q:a:p:M:j:t:z:N:R:Fvm:l:s:cy:C:x: $*)
 result=$?
 if [ $result != 0 ] ; then
   echo "What? Your arguments make no sense!" >&2
@@ -313,7 +313,7 @@ job_ram=''
 while [ $1 != -- ] ; do
   case $1 in
     -z)
-      if [ -e $2 -o `${FSLDIR}/bin/imtest $2` = 1 ] ; then
+      if [ -e $2 -o $(${FSLDIR}/bin/imtest $2) = 1 ] ; then
         exit 0
       fi
       shift;;
@@ -361,8 +361,8 @@ while [ $1 != -- ] ; do
       fi
       shift;;
     -a)
-      acceptable_arch=no
-      available_archs=`qhost | tail -n +4 | awk '{print $2}' | sort | uniq`
+      acceptable_arch="no"
+      available_archs=$(qhost | tail -n +4 | awk '{print $2}' | sort | uniq)
       for a in $available_archs; do
         if [ $2 = $a ] ; then
             acceptable_arch=yes
@@ -389,8 +389,8 @@ while [ $1 != -- ] ; do
     -t)
       taskfile=$2
       if [ -f "$taskfile" ] ; then
-        tasks=`wc -l $taskfile | awk '{print $1}'`
-        if [ $tasks -ne 0 ]; then
+        tasks=$(wc -l $taskfile | awk '{print $1}')
+        if [ "$tasks" -ne 0 ]; then
             sge_tasks="-t 1-$tasks"
         else
             echo "Task file ${taskfile} is empty" >&2
@@ -435,8 +435,8 @@ while [ $1 != -- ] ; do
       ;;
     -s)
       pe_string=$2;
-      peName=`echo $pe_string | cut -d',' -f 1`
-      peThreads=`echo $pe_string | cut -d',' -f 2`
+      peName=$(echo $pe_string | cut -d',' -f 1)
+      peThreads=$(echo $pe_string | cut -d',' -f 2)
       shift;;
   esac
   shift  # next flag
@@ -490,9 +490,9 @@ if [ -n "$taskfile" ]; then
     fi
     # Validate commands in task file
     lno=1
-    for line in `cat $taskfile`; do
-        tf_cmd=`echo $line | cut -d ' ' -f1`
-        which ${tf_cmd} >/dev/null 2>&1
+    for line in $(cat $taskfile); do
+        tf_cmd=$(echo "$line" | cut -d ' ' -f1)
+        which "${tf_cmd}" >/dev/null 2>&1
         if [ $? -ne 0 ]; then
             echo "The command $tf_cmd in the task file $taskfile, line $lno cannot be found or is not executable" >&2
             exit -1
@@ -601,7 +601,7 @@ case $METHOD in
 
 #$ -S /bin/sh
 
-command=\`sed -n -e "\${SGE_TASK_ID}p" $taskfile\`
+command=\$\(sed -n -e "\${SGE_TASK_ID}p" $taskfile\$\)
 
 exec /bin/sh -c "\$command"
 EOF
@@ -633,15 +633,15 @@ EOF1
 	    fi
 
 	    n=1
-	    while [ $n -le $tasks ] ; do
-		line=`sed -n -e ''${n}'p' $taskfile`
-		if [ $verbose -eq 1 ] ; then 
-		    echo executing: $line >&2
+	    while [ "$n" -le "$tasks" ] ; do
+		line=$(sed -n -e ''${n}'p' "$taskfile")
+		if [ "$verbose" -eq 1 ] ; then 
+		    echo executing: "$line" >&2
 		fi
 		/bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
 $line
 EOF2
-		n=`expr $n + 1`
+		n=$(expr $n + 1)
 	    done
 	fi	
 	echo $$
