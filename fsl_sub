@@ -83,16 +83,16 @@ cuda_modules="cuda"
 
 # This works out which modules you have available
 if [ $cuda_uses_modules ]; then
-# Define the Shell Module prefix for the CUDA Libraries - module name
+    # Define the Shell Module prefix for the CUDA Libraries - module name
     # should match the toolkit version
-cuda_modules="cuda"
+    cuda_modules="cuda"
     cuda_modules_available=$(module avail $cuda_modules 2>&1 | \
         sed -e 's/---.*---//' | tr -s ' ' | tr -d '\n' | \
         awk 'NF>1{print $NF}' | sed "s/$cuda_modules\///")
     cuda_modules_default=$(echo "$cuda_available_modules" | awk 'NF>1{print $NF}')     
 fi
 # If you don't use Shell Modules make sure the libraries are available
-      
+
 #unset module
 if [ "x$SGE_ROOT" = "x" ] ; then
 	METHOD=NONE
@@ -144,16 +144,16 @@ map_qname ()
             qtype='h'
         else
             return 1
-    fi
+        fi
     fi
 
-    if [ "$duration" -gt 20160 ]; then
+    if [ $duration -gt 20160 ]; then
         return 3
     fi
 
     if [ "X$qtype" == "Xh" ]; then
         qduration='himem'
-    elif [ "$duration" -gt 1440 ] && [ "$duration" -le 10080 ] ; then
+    elif [ "$duration" -gt 1440 ] && [ $duration -le 10080 ] ; then
         qduration='long'
     elif [ "$duration" -le 1440 ]; then
         qduration='short'
@@ -216,7 +216,7 @@ $command -a darwin regscript rawdata outputdir ...
                         Default is "long.q".
   -a <arch-name>        Architecture [e.g., darwin or lx24-amd64]
   -p <job-priority>     Lower priority [0:-1024] default = 0                 
-  -M <email-address>    Who to email, default = $(whoami)@$(hostname) 
+  -M <email-address>    Who to email, default = $(whoami)@fmrib.ox.ac.uk 
   -j <jid>              Place a hold on this task until job jid has completed
   -t <filename>         Specify a task file of commands to execute in parallel
   -x <number>           Specify the maximum number of parallel job sub-tasks to run
@@ -428,11 +428,11 @@ while [ $1 != -- ] ; do
       if [ ! -e ${2} ]; then 
 	    mkdir -p "$2"
       else
-	  echo ${2} | grep '/dev/null' >/dev/null 2>&1
-	  if [ $? -eq 1 ] && [ -f ${2} ]; then
-	      echo "Log destination is a file (should be a folder)" >&2
-	      exit -1
-	  fi
+	    echo ${2} | grep '/dev/null' >/dev/null 2>&1
+	    if [ $? -eq 1 ] && [ -f ${2} ]; then
+	        echo "Log destination is a file (should be a folder)" >&2
+	        exit -1
+	    fi
       fi
       shift;;
     -F)
@@ -473,7 +473,7 @@ if [ -z "$queue" ]; then
 fi
 
 $QCONF -sq $queue >/dev/null 2>&1
-if [ $? -eq 1 ]; then
+if [ "$?" -eq 1 ]; then
     echo "Invalid queue specified!" >&2
     exit 127
 fi
@@ -501,7 +501,7 @@ fi
 
 if [ -z "$taskfile" ] && [ ! -x "$1" ]; then
 	which "$1" >/dev/null 2>&1
-	if [ $? -ne 0 ]; then
+	if [ "$?" -ne 0 ]; then
 		echo "The command you have requested cannot be found or is not executable" >&2
 		exit 126
 	fi
@@ -569,24 +569,24 @@ case $METHOD in
 
 	    if [ $? -eq 1 ]; then
 		    echo "$@" >&2
-		echo "$peName is not a valid PE" >&2
-		exit -1
+		    echo "$peName is not a valid PE" >&2
+		    exit -1
 	    fi
 
             # Get a list of queues configured for this PE and confirm that the queue
             # we have submitted to has that PE set up.
 	    qstat -g c -pe "$peName" >/dev/null 2>&1
 	    if [ $? -eq 1 ]; then
-		echo "No parallel environments configured!" >&2
-		exit -1
+		    echo "No parallel environments configured!" >&2
+		    exit -1
 	    fi
 
 	    qstat -g c -pe "$peName" | sed '1,2d' | awk '{ print $1 }' | grep "^$queue" >/dev/null 2>&1
 
-	    if [ $? -eq 1 ]; then
+        if [ $? -eq 1 ]; then
 	    	echo "$@"
-		echo "PE $peName is not configured on $queue" >&2
-		exit -1
+		    echo "PE $peName is not configured on $queue" >&2
+		    exit -1
 	    fi
 
 	    # The -w e option will result in the job failing if there are insufficient slots
@@ -632,7 +632,7 @@ EOF
     NONE)
 	if [ "x$tasks" = "x" ] ; then
 	    if [ "$verbose" -eq 1 ] ; then 
-		    echo "executing: " "$@" >&2
+		echo "executing: " "$@" >&2
 	    fi
 
 	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
@@ -640,7 +640,7 @@ $@
 EOF1
 	    ERR=$?
 	    if [ "$ERR" -ne 0 ] ; then
-		    cat "${LogDir}${JobName}.e$$" >&2
+		cat "${LogDir}${JobName}.e$$" >&2
 		exit $ERR
 	    fi
 	else
