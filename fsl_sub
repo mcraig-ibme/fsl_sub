@@ -246,8 +246,7 @@ short.qc:   This queue is for jobs which last under 24h.
 long.qc:    This queue is for jobs which last less than 7 days
 himem.qh:   This queue is for jobs which require up to 43GB of memory and last less than 14 days
 
-EOF | fold -w $width >&2
-
+USAGE_EOF
   exit 1
 }
 
