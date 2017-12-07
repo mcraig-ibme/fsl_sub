@@ -24,7 +24,6 @@ METHOD=SGE
 POSIXLY_CORRECT=${OLD_POSIXLY_CORRECT}
 export POSIXLY_CORRECT
 
-
 ###########################################################################
 # If you have a Parallel Environment configured for OpenMP tasks then
 # the variable omp_pe should be set to the name you have defined for that
