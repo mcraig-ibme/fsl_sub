@@ -65,9 +65,9 @@ cuda_queue="cuda.q"
 # Define the CUDA hardware classes available here (e.g. what -y options
 # are acceptable on your system) and the default type. The classes can only
 # be single characters
-cuda_types=array("G" "K" "P" "V")
+cuda_types=("G" "K" "P" "V")
 # And the resource strings that correspond to these
-cuda_resources=array("geforce", "kepler", "pascal", "volta")
+cuda_resources=("geforce", "kepler", "pascal", "volta")
 # And the name of the CUDA complex (a string complex)
 cuda_complex="cuda_hardware_generation"
 # Provide some helpful info to your user about the available classes
@@ -123,8 +123,12 @@ export FSLSUBALREADYRUN
 
 find_first_in_array ()
 {
-    for local i in "${!$1[@]}"; do
-        if [[ "${my_array[$1]}" = "${2}" ]]; then
+    local index
+    local match="$1"
+    shift
+    local values="$@"
+    for value in values; do
+        if [[ "$value" = "$match" ]]; then
             echo "${i}"
             return
         fi
@@ -509,17 +513,17 @@ if [ $cuda_job ]; then
         echo "Unknown CUDA hardware type $cuda_type" >&2
         exit 127
     fi
-    for i in ${cuda_resources[@]:${#a[@]}}; do
+    for i in "${cuda_resources[@]:${#a[@]}}"; do
         complexes="$complexes -l $cuda_complex=$i"
     done
     # Configure CUDA Toolkit version
     if [ $cuda_uses_modules ]; then
         cuda_module="$cuda_modules/$cuda_version"
-        cuda_module_available=$(module avail $cuda_module 2>&1)
+        cuda_module_available=$(module avail "$cuda_module" 2>&1)
         if [ -z "$cuda_module_available" ]; then
             echo "CUDA SDK $cuda_version not found!" >&2
             width=$(tput cols)
-            echo "Available modules: $cuda_available_modules" | fold -w $width >&2
+            echo "Available modules: $cuda_available_modules" | fold -w "$width" >&2
             exit -1
         fi
         module add "$cuda_module"

@@ -1,4 +1,6 @@
 #!/bin/bash
+alias qsub=echo
+qsub "Starting tests"
 
 chmod -x test_script.sh
 result=`../fsl_sub ./test_script.sh 2>&1`
