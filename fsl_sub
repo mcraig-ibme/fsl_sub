@@ -536,7 +536,7 @@ if [ "$cuda_job" ]; then
         if [ -z "$cuda_module_available" ]; then
             echo "CUDA SDK $cuda_version not found!" >&2
             width=$(tput cols)
-            echo "Available modules: $cuda_available_modules" | fold -w "$width" >&2
+            echo "Available modules: $cuda_modules_available" | fold -w "$width" >&2
             exit -1
         fi
         module add "$cuda_module"
