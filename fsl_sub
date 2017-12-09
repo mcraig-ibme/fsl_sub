@@ -123,15 +123,16 @@ export FSLSUBALREADYRUN
 
 find_first_in_array ()
 {
-    local index
+    local index=0
     local match="$1"
     shift
-    local values="$@"
-    for value in values; do
+    local values="$*"
+    for value in $values; do
         if [[ "$value" = "$match" ]]; then
-            echo "${i}"
+            echo "$index"
             return
         fi
+        ((index++))
     done
 }
 
