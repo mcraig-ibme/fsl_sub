@@ -225,7 +225,7 @@ map_ram ()
 OLD_POSIXLY_CORRECT=${POSIXLY_CORRECT}
 POSIXLY_CORRECT=1
 export POSIXLY_CORRECT
-command=$(basename $0)
+command=$(basename "$0")
 
 usage ()
 {
@@ -284,7 +284,7 @@ if [ "$nargs" -eq 0 ] ; then
   usage
 fi
 
-set -- $(getopt T:q:a:p:M:j:t:z:N:R:Fvm:l:s:cy:C:x: $*)
+set -- "$(getopt T:q:a:p:M:j:t:z:N:R:Fvm:l:s:cy:C:x: "$@")"
 result=$?
 if [ "$result" != 0 ] ; then
   echo "What? Your arguments make no sense!" >&2
@@ -346,28 +346,28 @@ fi
 
 scriptmode=0
 cuda_job=0
-cuda_version=$cuda_modules_default
+cuda_version="$cuda_modules_default"
 complexes=''
 queue=''
 job_time=''
 job_ram=''
 
-while [ $1 != -- ] ; do
-  case $1 in
+while [ "$1" != -- ] ; do
+  case "$1" in
     -z)
-      if [ -e $2 -o $(${FSLDIR}/bin/imtest $2) = 1 ] ; then
+      if [ -e "$2" -o "$("${FSLDIR}/bin/imtest" "$2")" = 1 ] ; then
         exit 0
       fi
       shift;;
     -T)
-      job_time $2
+      job_time "$2"
       shift;;
     -R)
-      job_ram $2
+      job_ram "$2"
       #RAM="-l mem_free=${2}M"
       shift;;
     -q)
-      queue=$2
+      queue="$2"
       queueCmd=" -q $queue " 
       $QCONF -sq "$queue" >/dev/null 2>&1
       if [ $? -eq 1 ]; then
@@ -383,24 +383,24 @@ while [ $1 != -- ] ; do
       fi
       ;;
     -y)
-      cuda_type=$2
-      if [[ ! "$cuda_type" =~ "[$(printf "%s" "${array[@]}")]" ]]; then
+      cuda_type="$2"
+      if [[ ! "$cuda_type" =~ [$(printf %s "${cuda_types[@]}")] ]]; then
         echo "CUDA hardware type $cuda_type not recognised" >&2
         echo "$cuda_type_docs" >&2
         exit -1
       fi
       shift;;
     -C)
-      cuda_version=$2
-      if [ ! $cuda_uses_modules ]; then
+      cuda_version="$2"
+      if [ ! "$cuda_uses_modules" ]; then
         echo "CUDA Shell Modules not configured, ignoring requested CUDA version" >&2
       fi
       shift;;
     -a)
       acceptable_arch="no"
       available_archs=$(qhost | tail -n +4 | awk '{print $2}' | sort | uniq)
-      for a in $available_archs; do
-        if [ $2 = $a ] ; then
+      for a in "${available_archs[@]}"; do
+        if [ "$2" = "$a" ] ; then
             acceptable_arch="yes"
         fi
       done
@@ -408,12 +408,12 @@ while [ $1 != -- ] ; do
         sge_arch="-l arch=$2"
       else
         echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
-        echo "Should be one of:" $available_archs >&2
+        echo "Should be one of: ${available_archs[*]}" >&2
         exit -1
       fi
       shift;;
     -r)
-      if [[ "$2" =~ ".+=.+" ]]; then
+      if [[ "$2" =~ .+=.+ ]]; then
         complexes="$complexes -l $2"
       else
         echo "Resource requests should take form, resource=value" >&2
@@ -424,16 +424,16 @@ while [ $1 != -- ] ; do
       sge_priority="-p $2"
       shift;;
     -M)
-      mailto=$2
+      mailto="$2"
       shift;;
     -j)
-      jid=$2
+      jid="$2"
       sge_hold="-hold_jid $jid"
       shift;;
     -t)
-      taskfile=$2
+      taskfile="$2"
       if [ -f "$taskfile" ] ; then
-        tasks=$(wc -l $taskfile | awk '{print $1}')
+        tasks=$(wc -l "$taskfile" | awk '{print $1}')
         if [ "$tasks" -ne 0 ]; then
             sge_tasks="-t 1-$tasks"
         else
@@ -447,26 +447,26 @@ while [ $1 != -- ] ; do
       fi
       shift;;
     -x)
-      max_parallel_jobs=$2
-      if [[ ! $max_parallel_jobs =~ [[:digit:]]+ ]]; then
+      max_parallel_jobs="$2"
+      if [[ ! "$max_parallel_jobs" =~ [[:digit:]]+ ]]; then
         echo "Maximum concurrent parallel jobs should be an integer." >&2
         exit -1
       fi
       shift;;
     -N)
-      JobName=$2;
+      JobName="$2";
       shift;;
     -m)
-      MailOpts=$2;
+      MailOpts="$2";
       shift;;
     -l)
       LogOpts="-o $2 -e $2";
       LogDir="${2}/";
-      if [ ! -e ${2} ]; then 
+      if [ ! -e "${2}" ]; then 
 	    mkdir -p "$2"
       else
-	    echo ${2} | grep '/dev/null' >/dev/null 2>&1
-	    if [ $? -eq 1 ] && [ -f ${2} ]; then
+	    echo "${2}" | grep '/dev/null' >/dev/null 2>&1
+	    if [ $? -eq 1 ] && [ -f "${2}" ]; then
 	        echo "Log destination is a file (should be a folder)" >&2
 	        exit -1
 	    fi
@@ -479,9 +479,9 @@ while [ $1 != -- ] ; do
       verbose=1
       ;;
     -s)
-      pe_string=$2;
-      peName=$(echo $pe_string | cut -d',' -f 1)
-      peThreads=$(echo $pe_string | cut -d',' -f 2)
+      pe_string="$2";
+      peName=$(echo "$pe_string" | cut -d',' -f 1)
+      peThreads=$(echo "$pe_string" | cut -d',' -f 2)
       shift;;
   esac
   shift  # next flag
@@ -527,7 +527,7 @@ if [ $cuda_job ]; then
         complexes="$complexes -l $cuda_complex=$i"
     done
     # Configure CUDA Toolkit version
-    if [ $cuda_uses_modules ]; then
+    if [ "$cuda_uses_modules" ]; then
         cuda_module="$cuda_modules/$cuda_version"
         cuda_module_available=$(module avail "$cuda_module" 2>&1)
         if [ -z "$cuda_module_available" ]; then
@@ -539,7 +539,6 @@ if [ $cuda_job ]; then
         module add "$cuda_module"
     fi
 fi
-
 
 if [ -z "$taskfile" ] && [ -z "$1" ]; then
 	echo "Either supply a command to run or a parallel task file" >&2
@@ -591,7 +590,7 @@ fi
 if [ -n "$peName" ]; then
     # If the PE name is 'openmp' then limit the number of threads to those specified
     if [ "$peName" = "$omp_pe" ]; then
-        OMP_NUM_THREADS=$peThreads
+        OMP_NUM_THREADS="$peThreads"
 	export OMP_NUM_THREADS
     fi
 fi
@@ -612,7 +611,7 @@ case $METHOD in
 	if [ "x$peName" != x ]; then
             # Is this a configured PE?
 
-	    $QCONF -sp $peName >/dev/null 2>&1
+	    $QCONF -sp "$peName" >/dev/null 2>&1
 
 	    if [ $? -eq 1 ]; then
 		    echo "$@" >&2
