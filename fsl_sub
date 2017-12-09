@@ -67,7 +67,7 @@ cuda_queue="cuda.q"
 # be single characters
 cuda_types=("G" "K" "P" "V")
 # And the resource strings that correspond to these
-cuda_resources=("geforce", "kepler", "pascal", "volta")
+cuda_resources=("geforce" "kepler" "pascal" "volta")
 # And the name of the CUDA complex (a string complex)
 cuda_complex="cuda_hardware_generation"
 # Provide some helpful info to your user about the available classes
@@ -90,11 +90,10 @@ cuda_modules="cuda"
 if [ $cuda_uses_modules ]; then
     # Define the Shell Module prefix for the CUDA Libraries - module name
     # should match the toolkit version
-    cuda_modules="cuda"
     cuda_modules_available=$(module avail $cuda_modules 2>&1 | \
         sed -e 's/---.*---//' | tr -s ' ' | tr -d '\n' | \
         awk 'NF>1{print $NF}' | sed "s/$cuda_modules\///")
-    cuda_modules_default=$(echo "$cuda_available_modules" | awk 'NF>1{print $NF}')     
+    cuda_modules_default=$(echo "$cuda_modules_available" | awk 'NF>1{print $NF}')     
 fi
 # If you don't use Shell Modules make sure the libraries are available
 
@@ -254,7 +253,7 @@ $command -a darwin regscript rawdata outputdir ...
   -y                    Request a specific CUDA device type
                         $cuda_type_docs
   -C <version>          Request a specific CUDA version, e.g.
-                        $cuda_available_modules
+                        $cuda_modules_available
   -v                    Verbose mode.
 
 Queues:
