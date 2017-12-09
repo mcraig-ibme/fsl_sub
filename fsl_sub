@@ -141,43 +141,22 @@ find_first_in_array ()
 # which tells fsl_sub how long (in minutes) the process is expected to
 # take (in the case of the -t option, how long each line in the
 # supplied file is expected to take). You need to setup the following
-# list to map ranges of timings into your cluster queues - it doesn't
+# function to map ranges of timings into your cluster queues - it doesn't
 # matter how many you setup, that's up to you.
-# The function takes two arguments, duration (in seconds) and optionally
-# size (in MB).
 ###########################################################################
 
 map_qname ()
 {
-    # Takes two inputs, duration (in )
     duration=$1
-    size=$2
-
-    if [ -z "$size" ]; then
         qtype='c'
-    else
-        size=$(printf %0.f $size)
-        if [ "$size" -le 16384 ]; then
-            qtype='c'
-        elif [ "$size" -le 43694 ]; then
-            qtype='h'
-        else
-            return 1
-        fi
-    fi
 
-    if [ "$duration" -gt 20160 ]; then
-        return 3
-    fi
 
-    if [ "X$qtype" == "Xh" ]; then
-        qduration='himem'
-    elif [ "$duration" -gt 1440 ] && [ "$duration" -le 10080 ] ; then
-        qduration='long'
-    elif [ "$duration" -le 1440 ]; then
+    if [ "$duration" -le 1440 ]; then
         qduration='short'
+    elif [ "$duration" -le 10080 ] ; then
+        qduration='long'
     else
-        return 2
+        return 1
     fi
 
     queue="${qduration}.q${qtype}"
@@ -190,21 +169,53 @@ map_qname ()
 # which tells fsl_sub how long (in minutes) the process is expected to
 # take (in the case of the -t option, how long each line in the
 # supplied file is expected to take). You need to setup the following
-# list to map ranges of timings into your cluster queues - it doesn't
+# function to map ranges of timings into your cluster queues - it doesn't
 # matter how many you setup, that's up to you.
-# The function takes two arguments, duration (in seconds) and optionally
-# size (in MB).
 ###########################################################################
 
 map_cuda_qname ()
 {
-    # Takes two inputs, duration (in minutes), memory size in MB (optional)
     duration=$1
-    size=$2
 
     # No resource specific queues...
     queue="${cuda_queue}"
-    #echo "Estimated time was $1 mins: queue name is $queue"
+    if [ "$verbose" ]; then
+        echo "Estimated time was $1 mins: queue name is $queue" >&2
+    fi
+}
+
+###########################################################################
+# The following makes any modifications to queue parameters based on
+# promised RAM requirements as specified by the -R option when calling 
+# fsl_sub, which tells fsl_sub how much RAM the job is expected to require
+# (in GB) (in the case of the -t option, the RAM promise applies to  each 
+# line in the supplied file). You need to setup the following
+# list to map ranges of timings into your cluster queues - it doesn't
+# matter how many you setup, that's up to you.
+###########################################################################
+
+map_ram ()
+{
+    ram=$1
+    max_ram="16"
+    slots=$(("$ram" / "$max_ram"))
+    if [ $(("$ram" % "$max_ram")) ]; then
+        slots=$(("$slots" + 1))
+    fi
+
+    if [ "$slots" -gt 1 ]; then
+        if [ -z "$peName" ]; then
+            peName="$omp_pe"
+            peThreads="$slots"
+        else
+            if [ "$peThreads" -lt "$slots" ]; then
+                peThreads="$slots"
+            fi
+        fi
+    fi
+    if [ "$verbose" ]; then
+        echo "Estimated RAM was ${ram} GB, this needs ${slots}" >&2
+    fi
 }
 
 ###########################################################################
@@ -263,7 +274,6 @@ time limits. All queues, except bigmem.q, have a 16GB memory limit.
 
 short.qc:   This queue is for jobs which last under 24h.
 long.qc:    This queue is for jobs which last less than 7 days
-himem.qh:   This queue is for jobs which require up to 43GB of memory and last less than 14 days
 
 USAGE_EOF
   exit 1
