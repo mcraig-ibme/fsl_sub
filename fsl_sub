@@ -148,9 +148,9 @@ find_first_in_array ()
 map_qname ()
 {
     duration=$1
-        qtype='c'
+    qtype='c'
 
-
+    
     if [ "$duration" -le 1440 ]; then
         qduration='short'
     elif [ "$duration" -le 10080 ] ; then
@@ -620,8 +620,8 @@ case $METHOD in
 		    exit -1
 	    fi
 
-            # Get a list of queues configured for this PE and confirm that the queue
-            # we have submitted to has that PE set up.
+        # Get a list of queues configured for this PE and confirm that the queue
+        # we have submitted to has that PE set up.
 	    qstat -g c -pe "$peName" >/dev/null 2>&1
 	    if [ $? -eq 1 ]; then
 		    echo "No parallel environments configured!" >&2
@@ -637,7 +637,7 @@ case $METHOD in
 	    fi
 
 	    # The -w e option will result in the job failing if there are insufficient slots
-            # on any of the cluster nodes
+        # on any of the cluster nodes
 	    pe_options="-pe $peName $peThreads -w e"
 
 	fi
