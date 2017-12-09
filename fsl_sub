@@ -549,8 +549,7 @@ if [ -z "$taskfile" ] && [ -z "$1" ]; then
 fi
 
 if [ -z "$taskfile" ] && [ ! -x "$1" ]; then
-	which "$1" >/dev/null 2>&1
-	if [ $? -ne 0 ]; then
+	if command -v "$1" >/dev/null 2>&1; then
 		echo "The command you have requested cannot be found or is not executable" >&2
 		exit 126
 	fi
@@ -562,15 +561,14 @@ if [ -n "$taskfile" ]; then
     fi
     # Validate commands in task file
     lno=1
-    for line in $(cat $taskfile); do
+    while read line; do
         tf_cmd=$(echo "$line" | cut -d ' ' -f1)
-        which "${tf_cmd}" >/dev/null 2>&1
-        if [ $? -ne 0 ]; then
+        if command -v "${tf_cmd}" >/dev/null 2>&1; then
             echo "The command $tf_cmd in the task file $taskfile, line $lno cannot be found or is not executable" >&2
             exit 126
         fi
-        lno=$(expr $lno + 1)
-    done
+        lno=$(( "$lno" + 1 ))
+    done < "$taskfile"
 elif [ -n "$max_parallel_tasks" ]; then
     echo "-x option ignored as not a parallel task job" >&2
     max_parallel_tasks=""
@@ -706,7 +704,7 @@ EOF1
 		/bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
 $line
 EOF2
-		n=$(expr $n + 1)
+		n=$(( "$n" + 1 ))
 	    done
 	fi	
 	echo $$
