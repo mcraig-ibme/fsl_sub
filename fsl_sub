@@ -494,22 +494,25 @@ shift
 
 # If job resources are specified, choose the queue automatically
 if [ -z "$queue" ]; then
-    if [ -n "$job_time" ] || [ -n "$job_ram" ]; then
-        if [ $cuda_job ]; then
-            map_cuda_qname \"$job_time\" \"$job_ram\"
+    if [ -n "$job_time" ]; then
+        if [ "$cuda_job" ]; then
+            map_cuda_qname \"$job_time\"
         else
-            map_qname \"$job_time\" \"$job_ram\"
+            map_qname \"$job_time\"
         fi
     else
-        if [ $cuda_job ]; then
-            queue=$cuda_queue
+        if [ "$cuda_job" ]; then
+            queue="$cuda_queue"
         else
-            queue=$default_queue
+            queue="$default_queue"
         fi
     fi
 fi
 
-$QCONF -sq $queue >/dev/null 2>&1
+# Queue modifications based on RAM
+map_ram "$job_ram"
+
+$QCONF -sq "$queue" >/dev/null 2>&1
 if [ $? -eq 1 ]; then
     echo "Invalid queue specified!" >&2
     exit 127
