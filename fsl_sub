@@ -521,7 +521,7 @@ queueCmd=" -q $queue "
 
 if [ "$cuda_job" ]; then
     # Configure CUDA hardware version
-    lowest_hardware=$(find_first_in_array "$cuda_type" "$cuda_types")
+    lowest_hardware=$(find_first_in_array "$cuda_type" "${cuda_types[@]}")
     if [ -z "$lowest_hardware" ]; then
         echo "Unknown CUDA hardware type $cuda_type" >&2
         exit 127
