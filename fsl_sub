@@ -72,14 +72,13 @@ cuda_queue="cuda.q"
 # Define the CUDA hardware classes available here (e.g. what -y options
 # are acceptable on your system) and the default type. The classes can only
 # be single characters
-cuda_types=("G" "K" "P" "V")
+cuda_types=("K" "P" "V")
 # And the resource strings that correspond to these
-cuda_resources=("geforce" "kepler" "pascal" "volta")
+cuda_resources=("kepler" "pascal" "volta")
 # And the name of the CUDA complex (a string complex)
 cuda_complex="cuda_hardware_generation"
 # Provide some helpful info to your user about the available classes
 cuda_type_docs="Available CUDA hardware classes are
-  G - GeForce. No ECC, single-precision workloads
   K - Kepler. ECC, double- or single-precision workloads
   P - Pascal. ECC, double-, single- and half-precision workloads
   V - Volta. ECC, double-, single-, half- and quarter-precision workloads"
