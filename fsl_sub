@@ -113,17 +113,22 @@ MailOpts="a"
 # Change this to 0 if you do not have CUDA hardware.
 cuda_available=1
 # Name the CUDA queue here.
-cuda_queue="cuda.q"
+cuda_queue="gpu.q"
+# Define the Univa GPU complex here
+cuda_gpu_resource="gpu"
+# Do we care about GPU hardware classes?
+cuda_classes_available=1
+# GPU Hardware class configuration
+cuda_class_resource="gputype"
 # Define the CUDA hardware classes available here (e.g. what -y options
 # are acceptable on your system) and the default type. The classes can only
 # be single characters
-cuda_types=("K" "P" "V")
+cuda_types=("G" "K" "P" "V")
 # And the resource strings that correspond to these
-cuda_resources=("kepler" "pascal" "volta")
-# And the name of the CUDA complex (a string complex)
-cuda_complex="cuda_hardware_generation"
+cuda_type_names=("TitanX" "k80"  "v100" "p100")
 # Provide some helpful info to your user about the available classes
 cuda_type_docs="Available CUDA hardware classes are
+  G - TitanX. No-ECC, single-precision workloads
   K - Kepler. ECC, double- or single-precision workloads
   P - Pascal. ECC, double-, single- and half-precision workloads
   V - Volta. ECC, double-, single-, half- and quarter-precision workloads"
@@ -252,6 +257,31 @@ map_ram ()
     if [ "$verbose" ]; then
         echo "Estimated RAM was ${ram} GB, this needs ${slots}" >&2
     fi
+}
+
+###########################################################################
+# The following makes any modifications to queue parameters based on
+# requested GPU class (assuming gpu classes are configured) as defined
+# by the --cuda_type option to fsl_sub.
+###########################################################################
+
+map_gpu_class ()
+{
+    class="$1"
+    REGEX="$class "
+    if [[ ! "${cuda_types[@]}" =~ $REGEX ]]; then
+        echo "CUDA hardware class $class not recognised" >&2
+        echo "$cuda_type_docs" >&2
+        exit $NO_CUDA_TYPE
+    fi
+    echo "TYPES TO BE PASSED ---${cuda_types[@]}---"
+    lowest_hardware=$(index_in_list "$class" "${cuda_types[@]}")
+    if [ "$lowest_hardware" -eq 0 ]; then
+        echo "Unknown CUDA hardware class $class" >&2
+        exit $MISS_CONFIGURED
+    fi
+    cuda_complex=$(join_list "|" "${cuda_type_names[@]:$lowest_hardware}")
+    add_complex "$cuda_class_resource" "$cuda_complex"
 }
 
 ###########################################################################
@@ -389,6 +419,7 @@ scriptmode=0
 cuda_job=0
 cuda_version="$cuda_modules_default"
 cuda_type="$cuda_type_default"
+cuda_multi_gpu=1
 complexes=''
 queue=''
 job_time=''
@@ -442,6 +473,11 @@ do
       if [ ! "$cuda_uses_modules" ]; then
         echo "CUDA Shell Modules not configured, ignoring requested CUDA version" >&2
       fi
+            shift 2
+        ;;
+        --multi_gpu)
+            with_arguments 1 "$@"
+            cuda_multi_gpu="$2"
             shift 2
         ;;
         -a|--arch)
@@ -605,20 +641,9 @@ if [ "$cuda_job" ]; then
     #
     # Configure CUDA hardware version
     #
-    if [[ ! "$cuda_type" =~ [$(printf %s "${cuda_types[@]}")] ]]; then
-        echo "CUDA hardware type $cuda_type not recognised" >&2
-        echo "$cuda_type_docs" >&2
-        exit $NO_CUDA_TYPE
+    if [ -n "$cuda_type" ] && [ "$cuda_classes_available" ]; then
+        map_gpu_class "$cuda_type"
     fi
-    lowest_hardware=$(find_first_in_array "$cuda_type" "${cuda_types[@]}")
-    if [ -z "$lowest_hardware" ]; then
-        echo "Unknown CUDA hardware type $cuda_type" >&2
-        exit $MISS_CONFIGURED
-    fi
-    for i in "${cuda_resources[@]:${#a[@]}}"; do
-        complexes="$complexes -l $cuda_complex=$i"
-    done
-
     #
     # Configure CUDA Toolkit version
     #
@@ -633,6 +658,11 @@ if [ "$cuda_job" ]; then
         fi
         module add "$cuda_module"
     fi
+
+    #
+    # Configure multi-GPU CUDA support
+    #
+    add_complex "$cuda_gpu_resource" "$cuda_multi_gpu"
 fi
 
 if [ -z "$taskfile" ] && [ -z "$1" ]; then
