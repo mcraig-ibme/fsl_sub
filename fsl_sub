@@ -582,16 +582,27 @@ fi
 queueCmd=" -q $queue "
 
 if [ "$cuda_job" ]; then
+
+    #
     # Configure CUDA hardware version
+    #
+    if [[ ! "$cuda_type" =~ [$(printf %s "${cuda_types[@]}")] ]]; then
+        echo "CUDA hardware type $cuda_type not recognised" >&2
+        echo "$cuda_type_docs" >&2
+        exit $NO_CUDA_TYPE
+    fi
     lowest_hardware=$(find_first_in_array "$cuda_type" "${cuda_types[@]}")
     if [ -z "$lowest_hardware" ]; then
         echo "Unknown CUDA hardware type $cuda_type" >&2
-        exit 127
+        exit $MISS_CONFIGURED
     fi
     for i in "${cuda_resources[@]:${#a[@]}}"; do
         complexes="$complexes -l $cuda_complex=$i"
     done
+
+    #
     # Configure CUDA Toolkit version
+    #
     if [ "$cuda_uses_modules" ]; then
         cuda_module="$cuda_modules/$cuda_version"
         cuda_module_available=$(module avail "$cuda_module" 2>&1)
