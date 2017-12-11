@@ -500,7 +500,8 @@ do
         ;;
         -r|--resource)
             with_arguments 1 "$@"
-      if [[ "$2" =~ .+=.+ ]]; then
+            REGEX=".+=.+"
+            if [[ "$2" =~ $REGEX ]]; then
         complexes="$complexes -l $2"
       else
         echo "Resource requests should take form, resource=value" >&2
@@ -545,7 +546,8 @@ do
         -x|--parallellimit)
             with_arguments 1 "$@"
       max_parallel_jobs="$2"
-      if [[ ! "$max_parallel_jobs" =~ [[:digit:]]+ ]]; then
+            REGEX="[[:digit:]]+"
+            if [[ ! "$max_parallel_jobs" =~ $REGEX ]]; then
         echo "Maximum concurrent parallel jobs should be an integer." >&2
                 usage "$INVALID_SYNTAX"
       fi
@@ -567,7 +569,8 @@ do
       if [ ! -e "${2}" ]; then 
 	    mkdir -p "$2"
       else
-                if [[ ! "${2}" =~ /^\/dev\/null$ ]] && [ -f "${2}" ]; then
+                REGEX="^/dev/null$"
+                if [[ ! "${2}" =~ $REGEX ]] && [ -f "${2}" ]; then
 	        echo "Log destination is a file (should be a folder)" >&2
                     usage "$INVALID_SYNTAX"
 	    fi
