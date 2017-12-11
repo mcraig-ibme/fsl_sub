@@ -427,7 +427,7 @@ do
         cuda_job=1
       else
         echo "CUDA devices not available" >&2
-                exit $NO_CUDA
+                exit "$NO_CUDA"
       fi
             shift
       ;;
@@ -458,7 +458,7 @@ do
       else
         echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
         echo "Should be one of: ${available_archs[*]}" >&2
-        exit -1
+                exit "$INVALID_SYNTAX"
       fi
             shift 2
         ;;
@@ -468,7 +468,7 @@ do
         complexes="$complexes -l $2"
       else
         echo "Resource requests should take form, resource=value" >&2
-        exit 127
+                exit "$INVALID_SYNTAX"
       fi
             shift 2
         ;;
@@ -596,7 +596,7 @@ fi
 $QCONF -sq "$queue" >/dev/null 2>&1
 if [ $? -eq 1 ]; then
     echo "Invalid queue specified!" >&2
-    exit 127
+    exit "$BAD_QUEUE"
 fi
 queueCmd=" -q $queue "
 
@@ -629,7 +629,7 @@ if [ "$cuda_job" ]; then
             echo "CUDA SDK $cuda_version not found!" >&2
             width=$(tput cols)
             echo "Available modules: $cuda_modules_available" | fold -w "$width" >&2
-            exit -1
+            usage "$NO_CUDA_VERSION"
         fi
         module add "$cuda_module"
     fi
