@@ -1,0 +1,22 @@
+#!/bin/bash
+for i in "$@"; do
+    case $i in
+        avail)
+            if [[ "$2" =~ /\// ]]; then
+                echo "Incorrect input detected!"
+                exit
+            fi
+            echo "
+------------------------------------------------ /usr/local/etc/ShellModules ------------------------------------------------
+CUDA/6.0   CUDA/6.5   CUDA/7.0   CUDA/7.5   CUDA/8.0   CUDA/8.5   CUDA/9.0   CUDA/9.5
+"
+        ;;
+        add)
+            if [[ "$2" =~ /\// ]]; then
+                echo "Incorrect input detected!"
+                exit
+            fi
+            echo "added module $2"
+        ;;
+    esac
+done

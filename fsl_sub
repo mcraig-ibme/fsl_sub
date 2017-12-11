@@ -429,50 +429,50 @@ sge_arch=''
 
 while :
 do
-  case "$1" in
+    case "$1" in
         -z|--fileisimage)
             with_arguments 1 "$@"
-      if [ -e "$2" -o "$("${FSLDIR}/bin/imtest" "$2")" = 1 ] ; then
-        exit 0
-      fi
+            if [ -e "$2" -o "$("${FSLDIR}/bin/imtest" "$2")" = 1 ] ; then
+                exit 0
+            fi
             shift 2
         ;;
         -T|--jobtime)
             with_arguments 1 "$@"
-      job_time "$2"
+            job_time "$2"
             shift 2
         ;;
         -R|--jobram)
             with_arguments 1 "$@"
-      job_ram "$2"
+            job_ram "$2"
             shift 2
         ;;
         -q|--queue)
             with_arguments 1 "$@"
-      queue="$2"
-      queueCmd=" -q $queue " 
+            queue="$2"
+            queueCmd=" -q $queue "
             shift 2
         ;;
         -c|--cuda)
-      if [ "$cuda_available" ]; then
-        cuda_job=1
-      else
-        echo "CUDA devices not available" >&2
+            if [ "$cuda_available" ]; then
+                cuda_job=1
+            else
+                echo "CUDA devices not available" >&2
                 exit "$NO_CUDA"
-      fi
+            fi
             shift
-      ;;
+        ;;
         --cuda_type)
             with_arguments 1 "$@"
-      cuda_type="$2"
+            cuda_type="$2"
             shift 2
         ;;
         -cuda_version)
             with_arguments 1 "$@"
-      cuda_version="$2"
-      if [ ! "$cuda_uses_modules" ]; then
-        echo "CUDA Shell Modules not configured, ignoring requested CUDA version" >&2
-      fi
+            cuda_version="$2"
+            if [ ! "$cuda_uses_modules" ]; then
+                echo "CUDA Shell Modules not configured, ignoring requested CUDA version" >&2
+            fi
             shift 2
         ;;
         --multi_gpu)
@@ -482,114 +482,114 @@ do
         ;;
         -a|--arch)
             with_arguments 1 "$@"
-      acceptable_arch="no"
-      available_archs=$(qhost | tail -n +4 | awk '{print $2}' | sort | uniq)
-      for a in "${available_archs[@]}"; do
-        if [ "$2" = "$a" ] ; then
-            acceptable_arch="yes"
-        fi
-      done
-      if [ "$acceptable_arch" = "yes" ]; then
-        sge_arch="-l arch=$2"
-      else
-        echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
-        echo "Should be one of: ${available_archs[*]}" >&2
+            acceptable_arch="no"
+            available_archs=$(qhost | tail -n +4 | awk '{print $2}' | sort | uniq)
+            for a in "${available_archs[@]}"; do
+                if [ "$2" = "$a" ] ; then
+                    acceptable_arch="yes"
+                fi
+            done
+            if [ "$acceptable_arch" = "yes" ]; then
+                sge_arch="-l arch=$2"
+            else
+                echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
+                echo "Should be one of: ${available_archs[*]}" >&2
                 exit "$INVALID_SYNTAX"
-      fi
+            fi
             shift 2
         ;;
         -r|--resource)
             with_arguments 1 "$@"
             REGEX=".+=.+"
             if [[ "$2" =~ $REGEX ]]; then
-        complexes="$complexes -l $2"
-      else
-        echo "Resource requests should take form, resource=value" >&2
+                complexes="$complexes -l $2"
+            else
+                echo "Resource requests should take form, resource=value" >&2
                 exit "$INVALID_SYNTAX"
-      fi
+            fi
             shift 2
         ;;
         -p|--priority)
             with_arguments 1 "$@"
-      sge_priority="-p $2"
+            sge_priority="-p $2"
             shift 2
         ;;
         -M|--mailto)
             with_arguments 1 "$@"
-      mailto="$2"
+            mailto="$2"
             shift 2
         ;;
         -j|--jobhold)
             with_arguments 1 "$@"
-      jid="$2"
-      sge_hold="-hold_jid $jid"
+            jid="$2"
+            sge_hold="-hold_jid $jid"
             shift 2
         ;;
         -t|--paralleltask)
             with_arguments 1 "$@"    
-      taskfile="$2"
-      if [ -f "$taskfile" ] ; then
-        tasks=$(wc -l "$taskfile" | awk '{print $1}')
-        if [ "$tasks" -ne 0 ]; then
-            sge_tasks="-t 1-$tasks"
-        else
-            echo "Task file ${taskfile} is empty" >&2
-            echo "Should be a text file listing all the commands to run!" >&2
+            taskfile="$2"
+            if [ -f "$taskfile" ] ; then
+                tasks=$(wc -l "$taskfile" | awk '{print $1}')
+                if [ "$tasks" -ne 0 ]; then
+                    sge_tasks="-t 1-$tasks"
+                else
+                    echo "Task file ${taskfile} is empty" >&2
+                    echo "Should be a text file listing all the commands to run!" >&2
                     usage "$INVALID_SYNTAX"
-        fi
-      else
-        echo "Task file (${taskfile}) does not exist" >&2
+                fi
+            else
+                echo "Task file (${taskfile}) does not exist" >&2
                 exit "$MISSING_FILE"
-      fi
+            fi
             shift 2
         ;;
         -x|--parallellimit)
             with_arguments 1 "$@"
-      max_parallel_jobs="$2"
+            max_parallel_jobs="$2"
             REGEX="[[:digit:]]+"
             if [[ ! "$max_parallel_jobs" =~ $REGEX ]]; then
-        echo "Maximum concurrent parallel jobs should be an integer." >&2
+                echo "Maximum concurrent parallel jobs should be an integer." >&2
                 usage "$INVALID_SYNTAX"
-      fi
+            fi
             shift 2
         ;;
         -N|--name)
             with_arguments 1 "$@"
-      JobName="$2";
+            JobName="$2";
             shift 2
         ;;
         -m|--mailoptions)
-      MailOpts="$2";
+            MailOpts="$2";
             shift 2
         ;;
         -l|--logdir)
             with_arguments 1 "$@"
-      LogOpts="-o $2 -e $2";
-      LogDir="${2}/";
-      if [ ! -e "${2}" ]; then 
-	    mkdir -p "$2"
-      else
+            LogOpts="-o $2 -e $2";
+            LogDir="${2}/";
+            if [ ! -e "${2}" ]; then 
+                mkdir -p "$2"
+            else
                 REGEX="^/dev/null$"
                 if [[ ! "${2}" =~ $REGEX ]] && [ -f "${2}" ]; then
-	        echo "Log destination is a file (should be a folder)" >&2
+                    echo "Log destination is a file (should be a folder)" >&2
                     usage "$INVALID_SYNTAX"
-	    fi
-      fi
+                fi
+            fi
             shift 2
-      ;;
+        ;;
         -F|--usescript)
             scriptmode=1
             shift
         ;;
         -v|--verbose)
-      verbose=1
+            verbose=1
             shift
-      ;;
+        ;;
         -s|--parallelenv)
             with_arguments 1 "$@"
-      pe_string="$2";
-      peName=$(echo "$pe_string" | cut -d',' -f 1)
-      peThreads=$(echo "$pe_string" | cut -d',' -f 2)
+            pe_string="$2";
+            peName=$(echo "$pe_string" | cut -d',' -f 1)
+            peThreads=$(echo "$pe_string" | cut -d',' -f 2)
             shift 2
         ;;
         --)
@@ -603,7 +603,7 @@ do
         *)
             break
         ;;
-  esac
+    esac
 done
 
 ###########################################################################
@@ -629,7 +629,7 @@ fi
 
 # Queue modifications based on RAM
 if [ -n "$job_ram" ]; then
-map_ram "$job_ram"
+    map_ram "$job_ram"
 fi
 
 $QCONF -sq "$queue" >/dev/null 2>&1
@@ -717,7 +717,7 @@ if [ -n "$peName" ]; then
     # If the PE name is 'openmp' then limit the number of threads to those specified
     if [ "$peName" = "$omp_pe" ]; then
         OMP_NUM_THREADS="$peThreads"
-	export OMP_NUM_THREADS
+	    export OMP_NUM_THREADS
     fi
 fi
 
@@ -769,9 +769,9 @@ case $METHOD in
 
 	if [ "x$tasks" = "x" ] ; then
 	    if [ "$scriptmode" -ne 1 ] ; then
-		    sge_command="qsub -cwd -shell n -b y -r y $queueCmd $proc_affinities $sge_priority $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold"
+		    sge_command="qsub -cwd -shell n -b y -r y $queueCmd $proc_affinities $sge_priority $complexes $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold"
 	    else
-		    sge_command="qsub $proc_affinities $sge_priority $LogOpts $sge_arch $sge_hold"
+		    sge_command="qsub $proc_affinities $sge_priority $complexes $pe_options $LogOpts $sge_arch $sge_hold"
 	    fi
 	    if [ "$verbose" -eq 1 ] ; then 
 	    	echo "sge_command: $sge_command" >&2
@@ -779,7 +779,7 @@ case $METHOD in
 	    fi
 	    exec "$sge_command" "$@" | awk '{print $3}'
 	else
-	    sge_command="qsub -cwd $queueCmd $proc_affinities $sge_priority $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold $sge_tasks"
+	    sge_command="qsub -cwd $queueCmd $proc_affinities $sge_priority $complexes $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold $sge_tasks"
 	    if [ "$verbose" -eq 1 ] ; then 
     		echo "sge_command: $sge_command" >&2
     		echo "control file: $taskfile" >&2
@@ -840,4 +840,3 @@ esac
 ###########################################################################
 # Done.
 ###########################################################################
-
