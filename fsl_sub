@@ -568,7 +568,9 @@ if [ -z "$queue" ]; then
 fi
 
 # Queue modifications based on RAM
+if [ -n "$job_ram" ]; then
 map_ram "$job_ram"
+fi
 
 $QCONF -sq "$queue" >/dev/null 2>&1
 if [ $? -eq 1 ]; then
