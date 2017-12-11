@@ -364,6 +364,7 @@ complexes=''
 queue=''
 job_time=''
 job_ram=''
+sge_arch=''
 
 # Validate passed arguments - takes number of arguments and the argument string
 with_arguments () {
