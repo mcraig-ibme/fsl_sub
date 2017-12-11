@@ -617,13 +617,13 @@ fi
 
 if [ -z "$taskfile" ] && [ -z "$1" ]; then
 	echo "Either supply a command to run or a parallel task file" >&2
-	exit 126
+	usage "$NO_EXECUTABLE"
 fi
 
 if [ -z "$taskfile" ] && [ ! -x "$1" ]; then
 	if command -v "$1" >/dev/null 2>&1; then
 		echo "The command you have requested cannot be found or is not executable" >&2
-		exit 126
+		exit "$NO_EXECUTABLE"
 	fi
 fi
 
@@ -637,7 +637,7 @@ if [ -n "$taskfile" ]; then
         tf_cmd=$(echo "$line" | cut -d ' ' -f1)
         if command -v "${tf_cmd}" >/dev/null 2>&1; then
             echo "The command $tf_cmd in the task file $taskfile, line $lno cannot be found or is not executable" >&2
-            exit 126
+            exit "$NO_EXECUTABLE"
         fi
         lno=$(( "$lno" + 1 ))
     done < "$taskfile"
@@ -657,7 +657,7 @@ fi
 if [ -n "$tasks" ] && [ -n "$@" ] ; then
     echo "Spurious input after parsing command line:" "$@" >&2
     echo "You appear to have specified both a task file and a command to run" >&2
-    exit 127
+    usage "$INVALID_SYNTAX"
 fi
 
 if [ -n "$peName" ]; then
@@ -689,7 +689,7 @@ case $METHOD in
 	    if [ $? -eq 1 ]; then
 		    echo "$@" >&2
 		    echo "$peName is not a valid PE" >&2
-		    exit -1
+		    exit "$INVALID_SYNTAX"
 	    fi
 
         # Get a list of queues configured for this PE and confirm that the queue
@@ -697,7 +697,7 @@ case $METHOD in
 	    qstat -g c -pe "$peName" >/dev/null 2>&1
 	    if [ $? -eq 1 ]; then
 		    echo "No parallel environments configured!" >&2
-		    exit -1
+		    exit "$MISS_CONFIGURED"
 	    fi
 
 	    qstat -g c -pe "$peName" | sed '1,2d' | awk '{ print $1 }' | grep "^$queue" >/dev/null 2>&1
@@ -705,7 +705,7 @@ case $METHOD in
         if [ $? -eq 1 ]; then
 	    	echo "$@"
 		    echo "PE $peName is not configured on $queue" >&2
-		    exit -1
+		    exit "$MISS_CONFIGURED"
 	    fi
 
 	    # The -w e option will result in the job failing if there are insufficient slots
