@@ -17,6 +17,51 @@ NO_CUDA_TYPE="66"
 MISS_CONFIGURED="67"
 ARG_MISSING_VALUE="68"
 MISSING_FILE="69"
+NO_CUDA_VERSION="70"
+NO_EXECUTABLE="71"
+BAD_QUEUE="72"
+
+# Functions
+# Validate passed arguments - takes number of arguments and the argument string
+with_arguments () {
+    nargs=$1
+    REGEX="-.*"
+    for (( arg=0; arg<"$nargs"; arg++ )); do
+        if [[ "$2" =~ $REGEX ]]; then
+            usage "$ARG_MISSING_VALUE"
+        fi
+        shift
+    done
+}
+
+# Augment the complexes with the passed complex name and value
+add_complex () {
+    complexes="$complexes -l $1=\"$2\""
+}
+
+# Join the second argument array with the first argument delimeter
+join_list ()
+{
+    delimeter=$1
+    array=("${@:2}")
+    array_string=$(printf "$delimeter%s" "${array[@]}")
+    echo "${array_string:1}"
+}
+
+index_in_list ()
+{
+    local index=0
+    local match="$1"
+    local values="${@:2}"
+    for value in $values; do
+        if [ "$value" = "$1" ]; then
+            echo "$index"
+            return
+        fi
+        ((index++))
+    done
+    echo "$index"
+}
 
 ###########################################################################
 # The following section determines what to do when fsl_sub is called
@@ -125,21 +170,6 @@ if [ "X$METHOD" = "XNONE" ]; then
 fi
 FSLSUBALREADYRUN=true
 export FSLSUBALREADYRUN
-
-find_first_in_array ()
-{
-    local index=0
-    local match="$1"
-    shift
-    local values="$*"
-    for value in $values; do
-        if [[ "$value" = "$match" ]]; then
-            echo "$index"
-            return
-        fi
-        ((index++))
-    done
-}
 
 ###########################################################################
 # The following auto-decides what cluster queue to use. The calling
@@ -365,16 +395,6 @@ job_time=''
 job_ram=''
 sge_arch=''
 
-# Validate passed arguments - takes number of arguments and the argument string
-with_arguments () {
-    nargs=$1
-    for (( arg=0; arg<"$nargs"; arg++ )); do
-        if [[] "$2" =~ /-.*/ ]]; then
-            usage "$ARG_MISSING_VALUE"
-        fi
-        shift
-    done
-}
 
 while :
 do
