@@ -754,12 +754,13 @@ if [ -n "$taskfile" ]; then
     lno=1
     while read line; do
         tf_cmd=$(echo "$line" | cut -d ' ' -f1)
-        if command -v "${tf_cmd}" >/dev/null 2>&1; then
+        if ! command -v "${tf_cmd}" >/dev/null 2>&1; then
             echo "The command $tf_cmd in the task file $taskfile, line $lno cannot be found or is not executable" >&2
             exit "$NO_EXECUTABLE"
         fi
-        lno=$(( "$lno" + 1 ))
+        lno=$((lno + 1 ))
     done < "$taskfile"
+
 elif [ -n "$max_parallel_tasks" ]; then
     echo "-x option ignored as not a parallel task job" >&2
     max_parallel_tasks=""
