@@ -93,6 +93,7 @@ METHOD=SGE
 POSIXLY_CORRECT=${OLD_POSIXLY_CORRECT}
 export POSIXLY_CORRECT
 
+VERSION="2.0"
 #
 # Give the queue submission command name here
 #
@@ -169,10 +170,15 @@ affinity_type="linear:slots"
 # change. It also sets up the basic emailing control.
 ###########################################################################
 
-default_queue=long.qc
+queue_list=("long.qc" "short.qc")
+queue_list_times=("7 days" "24h")
+default_queue="long.qc"
 mailto=$(whoami)@$(hostname -f | cut -d . -f 2-)
 MailOpts="a"
 
+#
+# Set this to the maximum amount of RAM available to a slot (in GB)
+slot_ram_limit="16"
 
 ###########################################################################
 # The following sets up the CUDA queue, which you will need to change to
@@ -183,6 +189,10 @@ MailOpts="a"
 cuda_available="yes"
 # Name the CUDA queue here.
 cuda_queue="gpu.q"
+# Job time limit
+cuda_time_limit="300h"
+# Set this to maximum amount of RAM available to a slot
+cuda_slot_ram_limit="32"
 # Define the Univa GPU complex here
 cuda_gpu_resource="gpu"
 # Do we care about GPU hardware classes?
@@ -308,9 +318,9 @@ map_ram ()
 {
     ram=$1
     if is_true "$cuda_job"; then
-        max_ram="32"
+        max_ram="$cuda_slot_ram_limit"
     else
-    max_ram="16"
+        max_ram="$slot_ram_limit"
     fi
     slots=$(("$ram" / "$max_ram"))
     if [ $(("$ram" % "$max_ram")) ]; then
@@ -372,10 +382,16 @@ usage ()
   else
     rval="$INVALID_SYNTAX"
   fi
+  qdesc=()
+  for ((i=0; i<${#queue_list[@]}; i++ )); do
+    qdesc+=("${queue_list[$i]}: This queue is for jobs which last under ${queue_list_times[$i]}")
+  done
+  qdesc+=("$cuda_queue: This queue is for GPU (CUDA) tasks which last under $cuda_time_limit")
+  
   width=$(tput cols)
   fold -w "$width" >&2 <<USAGE_EOF
 
-$this_command V2.0 - wrapper for job control system such as SGE
+$this_command V$VERSION - wrapper for job control system such as SGE
 
 Usage: $this_command [options] <command>
 
@@ -383,40 +399,52 @@ $this_command gzip *.img *.hdr
 $this_command -q short.q gzip *.img *.hdr
 $this_command -a darwin regscript rawdata outputdir ...
 
-  -T <minutes>          Estimated job length in minutes, used to auto-set queue name
-  -q <queuename>        Possible values for <queuename> are "verylong.q", "long.q" 
-                        and "short.q". See below for details
-                        Default is "long.q".
-  -a <arch-name>        Architecture [e.g., darwin or lx24-amd64]
-  -p <job-priority>     Lower priority [0:-1024] default = 0                 
-  -M <email-address>    Who to email, default = $(whoami)@$(hostname) 
-  -j <jid>              Place a hold on this task until job jid has completed
-  -t <filename>         Specify a task file of commands to execute in parallel
-  -x <number>           Specify the maximum number of parallel job sub-tasks to run
-                        concurrently.
-  -N <jobname>          Specify jobname as it will appear on queue
-  -R <RAM>              Max total RAM to use for job (integer in GB)
-  -l <logdirname>       Where to output logfiles
-  -m <mailoptions>      Change the SGE mail options, see qsub for details
-  -z <output>           If <output> image or file already exists, do nothing and exit
-  -F                    Use flags embedded in scripts to set SGE queuing options
-  -s <pename>,<threads> Submit a multi-threaded task - requires a PE (<pename>) to be
-                        configured for the requested queues.
-                        <threads> specifies the number of threads to run
-  -c                    Request a CUDA capable device
-  -y                    Request a specific CUDA device type
-                        $cuda_type_docs
-  -C <version>          Request a specific CUDA version, e.g.
-                        $cuda_modules_available
-  -v                    Verbose mode.
+  -a|--arch <arch-name>        Architecture [e.g., darwin or lx24-amd64].
+  -c|--cuda                    Request a CUDA capable device.
+     --cuda_type               Request a specific CUDA device type.
+                               $cuda_type_docs
+     --cuda_version <version>  Request a specific CUDA version, e.g.
+                               $cuda_modules_available
+     --multi_gpu               Request multiple GPUs, e.g. 2 for two GPUs or complex.
+                               GPU request strings.
+  -F|--usescript               Use flags embedded in scripts to set SGE queuing options.
+  -j|--jobhold <jid>           Place a hold on this task until job jid has completed.
+  -l|--logdir <logdirname>     Where to output logfiles.
+  -m|--mailoptions <mailoptions> Change the SGE mail options, see qsub for details.
+  -M|--mailto <email-address>  Who to email, default = $(whoami)@$(hostname).
+  -N|--name <jobname>          Specify jobname as it will appear on queue.
+  -p|--priority <job-priority> Lower priority [0:-1024] default = 0.               
+  -q|--queue <queuename>       Possible values for <queuename> are ${queue_list[*]}.
+                               See below for details.
+                               Default is "$default_queue". Instead of choosing a queue
+                               specify the time required.
+  -r|--resource                Pass a Grid Engine resource request string through to the
+                               job scheduler.
+  -R|--jobram <RAM>            Max total RAM to use for job (integer in GB).
+                               *This is very important to set if your job requires more
+                               than ${slot_ram_limit} (CPU) or ${cuda_slot_ram_limit}GB (GPU)
+  -s|--parallelenv <pename>,<threads> Submit a multi-threaded task - requires a PE 
+                               (<pename>) to be configured for the requested queues.
+                               <threads> specifies the number of threads to run
+                               e.g. '$omp_pe,2'.
+  -t|--paralleltask <filename> Specify a task file of commands to execute in parallel.
+  -T|--jobtime <minutes>       Estimated job length in minutes, used to auto-set queue name
+  -v|--verbose                 Verbose mode.
+  -V|--version                 Print version number and exit
+  -x|--parallellimit <number>  Specify the maximum number of parallel job sub-tasks to run
+                               concurrently.
+  -z|--fileisimage <output>    If <output> image or file already exists, do nothing and exit
+                        
+  
 
 Queues:
 
 There are several batch queues configured on the cluster, each with defined CPU
-time limits. All queues, except bigmem.q, have a 16GB memory limit.
+time limits. All CPU queues have a ${slot_ram_limit}GB memory limit and GPU queues have a
+${cuda_slot_ram_limit}GB memory limit. If you specify a required RAM the job will be
+scheduled with the required number of slots to achieve your memory requirement.
 
-short.qc:   This queue is for jobs which last under 24h.
-long.qc:    This queue is for jobs which last less than 7 days
+$(printf "%s\n" "${qdesc[@]}")
 
 USAGE_EOF
   exit "$rval"
@@ -643,6 +671,11 @@ do
         ;;
         -v|--verbose)
             verbose=1
+            shift
+        ;;
+        -V|--version)
+            echo "$VERSION"
+            exit 0
             shift
         ;;
         -x|--parallellimit)
