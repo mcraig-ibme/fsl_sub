@@ -1,6 +1,6 @@
 #!/bin/bash
-here=$(pwd)/bin
-PATH=${PATH/"$here":/}
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PATH=${PATH/"$DIR":/}
 export PATH
 if command qconf >/dev/null 2>&1; then
     qconf "$@"
