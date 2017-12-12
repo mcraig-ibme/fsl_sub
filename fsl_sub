@@ -47,8 +47,9 @@ is_false () {
 with_arguments () {
     nargs=$1
     REGEX="-.*"
+    shift 2
     for (( arg=0; arg<"$nargs"; arg++ )); do
-        if [[ "$2" =~ $REGEX ]]; then
+        if [[ "$1" =~ $REGEX ]]; then
             usage "$ARG_MISSING_VALUE"
         fi
         shift
