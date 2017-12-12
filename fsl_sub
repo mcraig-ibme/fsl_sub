@@ -162,8 +162,9 @@ omp_pe='shmem'
 # allocated to the job (or PE)
 ###########################################################################
 AFFINITY_CMD="-binding"
-affinity_type="linear:slots"
-
+affinity_type="linear"
+# How to specify linear affinity
+affinity_control="threads"
 
 ###########################################################################
 # The following sets up the default queue name, which you may want to
@@ -521,6 +522,7 @@ cuda_version="$cuda_modules_default"
 cuda_type="$cuda_type_default"
 cuda_multi_gpu=1
 complexes=()
+peThreads=1
 queue=''
 job_time=''
 job_ram=''
@@ -870,7 +872,15 @@ case $METHOD in
 
     sge_args=()
     if [ -n "$affinity_type" ]; then
-        sge_args+=("$AFFINITY_CMD" "$affinity_type")
+        case "$affinity_control" in
+            threads)
+                affinity_spec="$affinity_type:$peThreads"
+            ;;
+            slots)
+                affinity_spec="$affinity_type:slots"
+            ;;
+        esac
+        sge_args+=("$AFFINITY_CMD" "$affinity_spec")
     fi
     if [ -n "$sge_priority" ]; then
         sge_args+=("$PRIORITY_CMD" "$sge_priority")
