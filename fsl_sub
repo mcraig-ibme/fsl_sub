@@ -363,7 +363,7 @@ map_gpu_class ()
 OLD_POSIXLY_CORRECT=${POSIXLY_CORRECT}
 POSIXLY_CORRECT=1
 export POSIXLY_CORRECT
-command=$(basename "$0")
+this_command=$(basename "$0")
 
 usage ()
 {
@@ -375,13 +375,13 @@ usage ()
   width=$(tput cols)
   fold -w "$width" >&2 <<USAGE_EOF
 
-$command V1.1 - wrapper for job control system such as SGE
+$this_command V2.0 - wrapper for job control system such as SGE
 
-Usage: $command [options] <command>
+Usage: $this_command [options] <command>
 
-$command gzip *.img *.hdr
-$command -q short.q gzip *.img *.hdr
-$command -a darwin regscript rawdata outputdir ...
+$this_command gzip *.img *.hdr
+$this_command -q short.q gzip *.img *.hdr
+$this_command -a darwin regscript rawdata outputdir ...
 
   -T <minutes>          Estimated job length in minutes, used to auto-set queue name
   -q <queuename>        Possible values for <queuename> are "verylong.q", "long.q" 
@@ -676,6 +676,7 @@ do
     esac
 done
 
+the_command="$1"
 ###########################################################################
 # Don't change the following (but keep scrolling down!)
 ###########################################################################
@@ -737,13 +738,12 @@ if is_true "$cuda_job"; then
     complexes+=("$cuda_gpu_resource=$cuda_multi_gpu")
 fi
 
-if [ -z "$taskfile" ] && [ -z "$1" ]; then
+if [ -z "$taskfile" ] && [ -z "$the_command" ]; then
 	echo "Either supply a command to run or a parallel task file" >&2
 	usage "$NO_EXECUTABLE"
 fi
-
-if [ -z "$taskfile" ] && [ ! -x "$1" ]; then
-	if command -v "$1" >/dev/null 2>&1; then
+if [ -z "$taskfile" ]; then
+    if ! command -v "$the_command" >/dev/null 2>&1; then
 		echo "The command you have requested cannot be found or is not executable" >&2
 		exit "$NO_EXECUTABLE"
 	fi
@@ -772,12 +772,11 @@ if [ -z "$JobName" ] ; then
     if [ -n "$taskfile" ] ; then
         JobName=$(basename "$taskfile")
     else
-	    JobName=$(basename "$1")
+	    JobName=$(basename "$the_command")
     fi
 fi
 
-if [ -n "$tasks" ] && [ -n "$@" ] ; then
-    echo "Spurious input after parsing command line:" "$@" >&2
+if [ -n "$tasks" ] && [ -n "$the_command" ] ; then
     echo "You appear to have specified both a task file and a command to run" >&2
     usage "$INVALID_SYNTAX"
 fi
