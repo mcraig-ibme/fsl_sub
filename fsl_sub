@@ -395,7 +395,7 @@ $this_command -a darwin regscript rawdata outputdir ...
   -x <number>           Specify the maximum number of parallel job sub-tasks to run
                         concurrently.
   -N <jobname>          Specify jobname as it will appear on queue
-  -R <RAM>              Max total RAM to use for job (integer in MB)
+  -R <RAM>              Max total RAM to use for job (integer in GB)
   -l <logdirname>       Where to output logfiles
   -m <mailoptions>      Change the SGE mail options, see qsub for details
   -z <output>           If <output> image or file already exists, do nothing and exit
