@@ -22,6 +22,27 @@ NO_EXECUTABLE="71"
 BAD_QUEUE="72"
 
 # Functions
+# Is variable set to yes/1/YES/y or no/0/NO/n
+is_true () {
+    REGEXY="^yes$|^1$|^YES$|^Yes$|^y$"
+    REGEXN="^no$|^0$|^NO$|^No$|^n$"
+    if [ -z "$1" ]; then
+        return 1
+    elif [[ "$1" =~ $REGEXY ]]; then
+        return 0
+    elif [[ "$1" =~ $REGEXN ]]; then
+        return 1
+    else
+        echo "Miss-configured, $1 should be yes or no!"
+        exit "$MISS_CONFIGURED"
+    fi
+}
+
+is_false () {
+    is_true "$1"
+    return $((1-$?))
+}
+
 # Validate passed arguments - takes number of arguments and the argument string
 with_arguments () {
     nargs=$1
@@ -52,9 +73,9 @@ index_in_list ()
 {
     local index=0
     local match="$1"
-    local values="${@:2}"
+    local values="${*:2}"
     for value in $values; do
-        if [ "$value" = "$1" ]; then
+        if [ "$value" = "$match" ]; then
             echo "$index"
             return
         fi
@@ -111,13 +132,13 @@ MailOpts="a"
 ###########################################################################
 
 # Change this to 0 if you do not have CUDA hardware.
-cuda_available=1
+cuda_available="yes"
 # Name the CUDA queue here.
 cuda_queue="gpu.q"
 # Define the Univa GPU complex here
 cuda_gpu_resource="gpu"
 # Do we care about GPU hardware classes?
-cuda_classes_available=1
+cuda_classes_available="yes"
 # GPU Hardware class configuration
 cuda_class_resource="gputype"
 # Define the CUDA hardware classes available here (e.g. what -y options
@@ -137,7 +158,7 @@ cuda_type_default="K"
 
 # If your system is configured to use Shell Modules for environment setup
 # and you have appropriate versioned CUDA modules define this variable as '1'
-cuda_uses_modules=1
+cuda_uses_modules="yes"
 # The next setting defines the parent to your versioned CUDA modules, e.g.
 # 'cuda' would mean you would load CUDA 9 with 'module load cuda/9'
 cuda_modules="cuda"
@@ -154,18 +175,18 @@ fi
 # If you don't use Shell Modules make sure the libraries are available
 
 #unset module
-if [ "x$SGE_ROOT" = "x" ] ; then
+if [ -z "$SGE_ROOT" ] ; then
 	METHOD=NONE
 else
 	QCONF=$(which qconf)
-	if [ "x$QCONF" = "x" ]; then
+	if [ -z "$QCONF" ]; then
 		METHOD=NONE
 		echo "Warning: SGE_ROOT environment variable is set but Grid Engine software not found, will run locally" >&2
 	fi
 fi
 
 # stop submitted scripts from submitting jobs themselves
-if [ "X$FSLSUBALREADYRUN" = "Xtrue" ] ; then
+if is_true "$FSLSUBALREADYRUN" ] ; then
     METHOD=NONE
     echo "Warning: job on queue attempted to submit parallel jobs - running jobs serially instead" >&2
 fi
@@ -220,7 +241,7 @@ map_cuda_qname ()
 
     # No resource specific queues...
     queue="${cuda_queue}"
-    if [ "$verbose" ]; then
+    if is_true "$verbose"; then
         echo "Estimated time was $1 mins: queue name is $queue" >&2
     fi
 }
@@ -274,7 +295,6 @@ map_gpu_class ()
         echo "$cuda_type_docs" >&2
         exit $NO_CUDA_TYPE
     fi
-    echo "TYPES TO BE PASSED ---${cuda_types[@]}---"
     lowest_hardware=$(index_in_list "$class" "${cuda_types[@]}")
     if [ "$lowest_hardware" -eq 0 ]; then
         echo "Unknown CUDA hardware class $class" >&2
@@ -408,9 +428,7 @@ fi
 ###########################################################################
 
 
-if [ -z "$FSLSUBVERBOSE" ] ; then
-    verbose=0
-else
+if [ -n "$FSLSUBVERBOSE" ] ; then
     verbose="$FSLSUBVERBOSE";
     echo "METHOD=$METHOD : args=" "$@" >&2
 fi
@@ -454,8 +472,8 @@ do
             shift 2
         ;;
         -c|--cuda)
-            if [ "$cuda_available" ]; then
-                cuda_job=1
+            if is_true "$cuda_available"; then
+                cuda_job="cuda_job"
             else
                 echo "CUDA devices not available" >&2
                 exit "$NO_CUDA"
@@ -470,7 +488,7 @@ do
         -cuda_version)
             with_arguments 1 "$@"
             cuda_version="$2"
-            if [ ! "$cuda_uses_modules" ]; then
+            if is_false "$cuda_uses_modules"; then
                 echo "CUDA Shell Modules not configured, ignoring requested CUDA version" >&2
             fi
             shift 2
@@ -489,7 +507,7 @@ do
                     acceptable_arch="yes"
                 fi
             done
-            if [ "$acceptable_arch" = "yes" ]; then
+            if is_true "$acceptable_arch"; then
                 sge_arch="-l arch=$2"
             else
                 echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
@@ -613,13 +631,13 @@ done
 # If job resources are specified, choose the queue automatically
 if [ -z "$queue" ]; then
     if [ -n "$job_time" ]; then
-        if [ "$cuda_job" ]; then
-            map_cuda_qname \"$job_time\"
+        if is_true "$cuda_job"; then
+            map_cuda_qname "$job_time"
         else
-            map_qname \"$job_time\"
+            map_qname "$job_time"
         fi
     else
-        if [ "$cuda_job" ]; then
+        if is_true "$cuda_job"; then
             queue="$cuda_queue"
         else
             queue="$default_queue"
@@ -639,7 +657,7 @@ if [ $? -eq 1 ]; then
 fi
 queueCmd=" -q $queue "
 
-if [ "$cuda_job" ]; then
+if is_true "$cuda_job"; then
 
     #
     # Configure CUDA hardware version
@@ -650,7 +668,7 @@ if [ "$cuda_job" ]; then
     #
     # Configure CUDA Toolkit version
     #
-    if [ "$cuda_uses_modules" ]; then
+    if is_true "$cuda_uses_modules"; then
         cuda_module="$cuda_modules/$cuda_version"
         cuda_module_available=$(module avail "$cuda_module" 2>&1)
         if [ -z "$cuda_module_available" ]; then
@@ -734,7 +752,7 @@ case $METHOD in
        ###########################################################################
        # Test Parallel environment options
        ###########################################################################
-	if [ "x$peName" != x ]; then
+	if [ -n "$peName" ]; then
             # Is this a configured PE?
 
 	    $QCONF -sp "$peName" >/dev/null 2>&1
@@ -767,20 +785,20 @@ case $METHOD in
 
 	fi
 
-	if [ "x$tasks" = "x" ] ; then
-	    if [ "$scriptmode" -ne 1 ] ; then
+	if [ -z "$tasks" ] ; then
+	    if is_true "$scriptmode"; then
 		    sge_command="qsub -cwd -shell n -b y -r y $queueCmd $proc_affinities $sge_priority $complexes $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold"
 	    else
 		    sge_command="qsub $proc_affinities $sge_priority $complexes $pe_options $LogOpts $sge_arch $sge_hold"
 	    fi
-	    if [ "$verbose" -eq 1 ] ; then 
+	    if is_true "$verbose"; then 
 	    	echo "sge_command: $sge_command" >&2
 		    echo "executing: " "$@" >&2
 	    fi
 	    exec "$sge_command" "$@" | awk '{print $3}'
 	else
 	    sge_command="qsub -cwd $queueCmd $proc_affinities $sge_priority $complexes $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold $sge_tasks"
-	    if [ "$verbose" -eq 1 ] ; then 
+	    if is_true "$verbose"; then 
     		echo "sge_command: $sge_command" >&2
     		echo "control file: $taskfile" >&2
 	    fi
@@ -802,8 +820,8 @@ EOF
 ###########################################################################
 
     NONE)
-	if [ "x$tasks" = "x" ] ; then
-	    if [ "$verbose" -eq 1 ] ; then 
+	if [ -z "$tasks" ] ; then
+	    if is_true "$verbose"; then 
 		    echo "executing: " "$@" >&2
 	    fi
 
@@ -816,14 +834,14 @@ EOF1
 		    exit $ERR
 	    fi
 	else
-	    if [ "$verbose" -eq 1 ] ; then 
+	    if is_true "$verbose"; then 
 		echo "Running commands in: $taskfile" >&2
 	    fi
 
 	    n=1
 	    while [ "$n" -le "$tasks" ] ; do
 		line=$(sed -n -e ''${n}'p' "$taskfile")
-		if [ "$verbose" -eq 1 ] ; then 
+		if is_true "$verbose"; then 
 		    echo executing: "$line" >&2
 		fi
 		/bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
