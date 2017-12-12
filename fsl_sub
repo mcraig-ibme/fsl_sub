@@ -327,7 +327,7 @@ map_ram ()
             fi
         fi
     fi
-    if [ "$verbose" ]; then
+    if is_true "$verbose"; then
         echo "Estimated RAM was ${ram} GB, this needs ${slots}" >&2
     fi
 }
@@ -494,8 +494,9 @@ complexes=()
 queue=''
 job_time=''
 job_ram=''
-sge_arch=''
-
+if is_true "$verbose"; then
+    echo "Command line is '$*'"
+fi
 
 while :
 do
