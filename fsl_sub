@@ -850,8 +850,10 @@ case $METHOD in
 
         # Get a list of queues configured for this PE and confirm that the queue
         # we have submitted to has that PE set up.
-	    qstat -g c -pe "$peName" >/dev/null 2>&1
-	    if [ $? -eq 1 ]; then
+        REGEX="error: no such parallel environment"
+        error=$(qstat -g c -pe "$peName" 2>&1)
+
+	    if [ $? -eq 1 ] || [[ "$error" =~ $REGEX ]]; then
 		    echo "No parallel environments configured!" >&2
 		    exit "$MISS_CONFIGURED"
 	    fi
