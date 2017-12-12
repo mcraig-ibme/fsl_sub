@@ -750,9 +750,6 @@ if [ -z "$taskfile" ]; then
 fi
 
 if [ -n "$taskfile" ]; then
-    if [ -n "$max_parallel_tasks" ]; then
-        max_parallel_tasks="-tc ${max_parallel_tasks}"
-    fi
     # Validate commands in task file
     lno=1
     while read line; do
