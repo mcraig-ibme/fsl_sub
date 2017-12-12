@@ -307,7 +307,11 @@ map_cuda_qname ()
 map_ram ()
 {
     ram=$1
+    if is_true "$cuda_job"; then
+        max_ram="32"
+    else
     max_ram="16"
+    fi
     slots=$(("$ram" / "$max_ram"))
     if [ $(("$ram" % "$max_ram")) ]; then
         slots=$(("$slots" + 1))
