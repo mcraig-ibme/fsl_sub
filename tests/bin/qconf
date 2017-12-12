@@ -1,6 +1,7 @@
 #!/bin/bash
 here=$(pwd)/bin
 PATH=${PATH/"$here":/}
+export PATH
 if command qconf >/dev/null 2>&1; then
     qconf "$@"
 else
