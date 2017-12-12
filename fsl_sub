@@ -402,7 +402,9 @@ $this_command -a darwin regscript rawdata outputdir ...
   -a|--arch <arch-name>        Architecture [e.g., darwin or lx24-amd64].
   -c|--cuda                    Request a CUDA capable device.
      --cuda_type               Request a specific CUDA device type.
+
                                $cuda_type_docs
+     
      --cuda_version <version>  Request a specific CUDA version, e.g.
                                $cuda_modules_available
      --multi_gpu               Request multiple GPUs, e.g. 2 for two GPUs or complex.
