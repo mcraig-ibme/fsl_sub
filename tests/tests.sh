@@ -24,10 +24,10 @@ status=$?
 echo "Test 1"
 if [ $status -ne $NO_EXECUTABLE ]; then
     echo "Failed - status is $status, should be $NO_EXCUTABLE"
-    echo $result
+    echo "$result"
 else
     if [ "$result" != "The command you have requested cannot be found or is not executable" ]; then
-        echo "Failed"
+        echo "Failed ($result)"
     else
         echo "Passed"    
     fi
@@ -40,20 +40,20 @@ if [ $status -ne $NO_EXECUTABLE ]; then
     echo "Failed"
 else
     if [ "$result" != "The command you have requested cannot be found or is not executable" ]; then
-        echo "Failed"
+        echo "Failed ($result)"
     else
         echo "Passed"
     fi
 fi
 echo "Test 3"
 chmod -x test_script.sh
-result=$(bash -x ../fsl_sub -t test_parallel 2>&1)
+result=$(../fsl_sub -t test_parallel 2>&1)
 status=$?
 if [ $status -ne $NO_EXECUTABLE ]; then
     echo "Failed (status was $status, should be $NO_EXECUTABLE"
 else
-    if [ "$result" != "The command test_script.sj in the task file test_parallel, line 1 cannot be found or is not executable" ]; then
-        echo "Failed"
+    if [ "$result" != "The command ./test_script.sh in the task file test_parallel, line 1 cannot be found or is not executable" ]; then
+        echo "Failed ($result)"
     else
         echo "Passed"
     fi
@@ -66,8 +66,8 @@ status=$?
 if [ $status -ne $NO_EXECUTABLE ]; then
     echo "Failed"
 else
-    if [ "$result" != "The command test_script.sj in the task file test_parallel, line 2 cannot be found or is not executable" ]; then
-        echo "Failed"
+    if [ "$result" != "The command test_script.sh in the task file test_parallel_fail_1, line 2 cannot be found or is not executable" ]; then
+        echo "Failed ($result)"
     else
         echo "Passed"
     fi
@@ -80,9 +80,10 @@ status=$?
 if [ $status -ne $NO_EXECUTABLE ]; then
     echo "Failed"
 else
-    if [ "$result" != "The command test_script.sj in the task file test_parallel, line 2 cannot be found or is not executable" ]; then
-        echo "Failed"
+    if [ "$result" != "The command test_script.sh in the task file test_parallel_fail_2, line 2 cannot be found or is not executable" ]; then
+        echo "Failed ($result)"
     else
         echo "Passed"
     fi
 fi
+
