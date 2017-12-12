@@ -56,11 +56,6 @@ with_arguments () {
     done
 }
 
-# Augment the complexes with the passed complex name and value
-add_complex () {
-    complexes="$complexes -l $1=\"$2\""
-}
-
 # Join the second argument array with the first argument delimeter
 join_list ()
 {
@@ -98,6 +93,57 @@ METHOD=SGE
 POSIXLY_CORRECT=${OLD_POSIXLY_CORRECT}
 export POSIXLY_CORRECT
 
+#
+# Give the queue submission command name here
+#
+QSUB="qsub"
+
+#
+# Option that specifies the queue
+#
+QCMD="-q"
+
+#
+# Option that specifies a parallel task file and a limit on concurrent tasks
+#
+LLTASK="-t"
+LLLIMIT="-tc"
+#
+# Option that specifies a job priority
+#
+PRIORITY_CMD="-p"
+
+#
+# Option that specifies a complex
+#
+COMPLEX_CMD="-l"
+
+#
+# Options that specifies stdout/err dir
+#
+STDOUT_DIR="-o"
+STDERR_DIR="-e"
+
+#
+# Option that specifies a job hold
+#
+JHOLD_CMD="-hold_jid"
+
+#
+# Option that specifies mail address
+#
+MAILTO_CMD="-M"
+
+#
+# Option that specifies when to mail
+#
+MAILOPT_CMD="-m"
+
+#
+# Option that specifies the job name argument
+#
+JOBNAME_CMD="-N"
+
 ###########################################################################
 # If you have a Parallel Environment configured for OpenMP tasks then
 # the variable omp_pe should be set to the name you have defined for that
@@ -114,7 +160,8 @@ omp_pe='shmem'
 # This instructs Grid Engine to bind the task to the number of job slots
 # allocated to the job (or PE)
 ###########################################################################
-proc_affinities="-binding linear:slots"
+AFFINITY_CMD="-binding"
+affinity_type="linear:slots"
 
 
 ###########################################################################
@@ -302,7 +349,7 @@ map_gpu_class ()
         exit $MISS_CONFIGURED
     fi
     cuda_complex=$(join_list "|" "${cuda_type_names[@]:$lowest_hardware}")
-    add_complex "$cuda_class_resource" "$cuda_complex"
+    echo "$cuda_class_resource=$cuda_complex"
 }
 
 ###########################################################################
@@ -439,7 +486,7 @@ cuda_job=0
 cuda_version="$cuda_modules_default"
 cuda_type="$cuda_type_default"
 cuda_multi_gpu=1
-complexes=''
+complexes=()
 queue=''
 job_time=''
 job_ram=''
@@ -464,12 +511,12 @@ do
         -R|--jobram)
             with_arguments 1 "$@"
             job_ram "$2"
+            complexes+=("mem_free=${job_ram}G")
             shift 2
         ;;
         -q|--queue)
             with_arguments 1 "$@"
             queue="$2"
-            queueCmd=" -q $queue "
             shift 2
         ;;
         -c|--cuda)
@@ -509,7 +556,7 @@ do
                 fi
             done
             if is_true "$acceptable_arch"; then
-                sge_arch="-l arch=$2"
+                complexes+=("arch=$2")
             else
                 echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
                 echo "Should be one of: ${available_archs[*]}" >&2
@@ -521,7 +568,7 @@ do
             with_arguments 1 "$@"
             REGEX=".+=.+"
             if [[ "$2" =~ $REGEX ]]; then
-                complexes="$complexes -l $2"
+                complexes+=("$2")
             else
                 echo "Resource requests should take form, resource=value" >&2
                 exit "$INVALID_SYNTAX"
@@ -530,7 +577,7 @@ do
         ;;
         -p|--priority)
             with_arguments 1 "$@"
-            sge_priority="-p $2"
+            sge_priority="$2"
             shift 2
         ;;
         -M|--mailto)
@@ -540,8 +587,7 @@ do
         ;;
         -j|--jobhold)
             with_arguments 1 "$@"
-            jid="$2"
-            sge_hold="-hold_jid $jid"
+            sge_hold="$2"
             shift 2
         ;;
         -t|--paralleltask)
@@ -550,7 +596,7 @@ do
             if [ -f "$taskfile" ] ; then
                 tasks=$(wc -l "$taskfile" | awk '{print $1}')
                 if [ "$tasks" -ne 0 ]; then
-                    sge_tasks="-t 1-$tasks"
+                    sge_tasks="1-$tasks"
                 else
                     echo "Task file ${taskfile} is empty" >&2
                     echo "Should be a text file listing all the commands to run!" >&2
@@ -583,13 +629,13 @@ do
         ;;
         -l|--logdir)
             with_arguments 1 "$@"
-            LogOpts="-o $2 -e $2";
+            log_dir="$2"
             LogDir="${2}/";
-            if [ ! -e "${2}" ]; then 
-                mkdir -p "$2"
+            if [ ! -e "${LogDir}" ]; then 
+                mkdir -p "${LogDir}"
             else
                 REGEX="^/dev/null$"
-                if [[ ! "${2}" =~ $REGEX ]] && [ -f "${2}" ]; then
+                if [[ ! "${LogDir}" =~ $REGEX ]] && [ -f "${LogDir}" ]; then
                     echo "Log destination is a file (should be a folder)" >&2
                     usage "$INVALID_SYNTAX"
                 fi
@@ -656,7 +702,6 @@ if [ $? -eq 1 ]; then
     echo "Invalid queue specified!" >&2
     exit "$BAD_QUEUE"
 fi
-queueCmd=" -q $queue "
 
 if is_true "$cuda_job"; then
 
@@ -664,7 +709,7 @@ if is_true "$cuda_job"; then
     # Configure CUDA hardware version
     #
     if [ -n "$cuda_type" ] && [ "$cuda_classes_available" ]; then
-        map_gpu_class "$cuda_type"
+        complexes+=("$(map_gpu_class "$cuda_type")")
     fi
     #
     # Configure CUDA Toolkit version
@@ -684,7 +729,7 @@ if is_true "$cuda_job"; then
     #
     # Configure multi-GPU CUDA support
     #
-    add_complex "$cuda_gpu_resource" "$cuda_multi_gpu"
+    complexes+=("$cuda_gpu_resource=$cuda_multi_gpu")
 fi
 
 if [ -z "$taskfile" ] && [ -z "$1" ]; then
@@ -782,35 +827,67 @@ case $METHOD in
 
 	    # The -w e option will result in the job failing if there are insufficient slots
         # on any of the cluster nodes
-	    pe_options="-pe $peName $peThreads -w e"
+	    pe_options=("-pe" "$peName" "$peThreads" "-w" "e")
 
 	fi
 
+    sge_args=()
+    if [ -n "$affinity_type" ]; then
+        sge_args+=("$AFFINITY_CMD" "$affinity_type")
+    fi
+    if [ -n "$sge_priority" ]; then
+        sge_args+=("$PRIORITY_CMD" "$sge_priority")
+    fi
+    if [ -n "${complexes[*]}" ]; then
+        sge_args+=("$COMPLEX_CMD" "$(join_list "," "${complexes[@]}")")
+    fi
+    if [ -n "$log_dir" ]; then
+        sge_args+=("$STDOUT_DIR" "$log_dir" "$STDERR_DIR" "$log_dir")
+    fi
+    if [ -n "$sge_hold" ]; then
+        sge_args+=("$JHOLD_CMD" "$sge_hold")
+    fi
 	if [ -z "$tasks" ] ; then
-	    if is_true "$scriptmode"; then
-		    sge_command="qsub -cwd -shell n -b y -r y $queueCmd $proc_affinities $sge_priority $complexes $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold"
+	    if is_false "$scriptmode"; then
+            sge_args+=("$MAILTO_CMD" "$mailto")
+            if [ -n "$MailOpts" ]; then
+                sge_args+=("$MAILOPT_CMD" "$MailOpts")
+            fi
+            sge_args+=("$JOBNAME_CMD" "$JobName")
+            sge_args+=("${pe_options[@]}")
+		    sge_args+=("-cwd" "-shell" "n" "-b" "y" "-r" "y" "$QCMD" "$queue")
 	    else
-		    sge_command="qsub $proc_affinities $sge_priority $complexes $pe_options $LogOpts $sge_arch $sge_hold"
+		    sge_args+=("${pe_options[@]}")
 	    fi
 	    if is_true "$verbose"; then 
-	    	echo "sge_command: $sge_command" >&2
-		    echo "executing: " "$@" >&2
+	    	echo "sge_args: " "${sge_args[@]}" >&2
+		    echo "executing: $QSUB " "${sge_args[@]}" "$@" >&2
 	    fi
-	    exec "$sge_command" "$@" | awk '{print $3}'
+	    exec "$QSUB" "${sge_args[@]}" "$@" | awk '{print $3}'
 	else
-	    sge_command="qsub -cwd $queueCmd $proc_affinities $sge_priority $complexes $pe_options -M $mailto -N $JobName -m $MailOpts $LogOpts $sge_arch $RAM $sge_hold $sge_tasks"
+	    sge_args+=("-cwd" "$QCMD" "$queue")
+        if [ -n "$max_parallel_tasks" ]; then
+            sge_args+=("$LLLIMIT" "$max_parallel_jobs")
+        fi
+        sge_args+=("$LLTASK" "$sge_tasks")
+        sge_args+=("$MAILTO_CMD" "$mailto")
+        if [ -n "$MailOpts" ]; then
+            sge_args+=("$MAILOPT_CMD" "$MailOpts")
+        fi
+        sge_args+=("$JOBNAME_CMD" "$JobName")
+		sge_args+=("${pe_options[@]}")
 	    if is_true "$verbose"; then 
-    		echo "sge_command: $sge_command" >&2
+    		echo "sge_args: " "${sge_args[@]}" >&2
     		echo "control file: $taskfile" >&2
 	    fi
-	    exec "$sge_command" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
+	    exec "$QSUB" "${sge_args[@]}" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
 #!/bin/sh
 
 #$ -S /bin/sh
 
-command=\$\(sed -n -e "\${SGE_TASK_ID}p" $taskfile\$\)
+the_command=\$\(sed -n -e "\${SGE_TASK_ID}p" $taskfile\$\)
 
-exec /bin/sh -c "\$command"
+exec /bin/sh -c "\$the_command"
 EOF
 	fi
 	;;
