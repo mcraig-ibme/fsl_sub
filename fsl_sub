@@ -930,7 +930,7 @@ EOF1
 		/bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
 $line
 EOF2
-		n=$(( "$n" + 1 ))
+		n=$((n + 1))
 	    done
 	fi	
 	echo $$
