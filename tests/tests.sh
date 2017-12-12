@@ -14,58 +14,75 @@ NO_CUDA_VERSION="70"
 NO_EXECUTABLE="71"
 BAD_QUEUE="72"
 
+SGE_ROOT="./"
+export SGE_ROOT
+
 chmod -x test_script.sh
-result=$(bash -x ../fsl_sub ./test_script.sh)
+ls -l test_script.sh
+result=$(../fsl_sub -v ./test_script.sh 2>&1)
 status=$?
-if [ $status -eq $NO_EXECUTABLE ]; then
-    echo "Test 1 failed - status is $status, should be 126"
+echo "Test 1"
+if [ $status -ne $NO_EXECUTABLE ]; then
+    echo "Failed - status is $status, should be $NO_EXCUTABLE"
     echo $result
 else
     if [ "$result" != "The command you have requested cannot be found or is not executable" ]; then
-        echo "Test 1 failed"
+        echo "Failed"
+    else
+        echo "Passed"    
     fi
 fi
-
+echo "Test 2"
 chmod +x test_script.sh
 result=$(../fsl_sub test_script.sh 2>&1)
 status=$?
-if [ $status -eq $NO_EXECUTABLE ]; then
-    echo "Test 2 failed"
+if [ $status -ne $NO_EXECUTABLE ]; then
+    echo "Failed"
 else
     if [ "$result" != "The command you have requested cannot be found or is not executable" ]; then
-        echo "Test 2 failed"
+        echo "Failed"
+    else
+        echo "Passed"
     fi
 fi
-
+echo "Test 3"
 chmod -x test_script.sh
-result=$(../fsl_sub -t test_parallel 2>&1)
+result=$(bash -x ../fsl_sub -t test_parallel 2>&1)
 status=$?
-if [ $status -eq $NO_EXECUTABLE ]; then
-    echo "Test 3 failed"
+if [ $status -ne $NO_EXECUTABLE ]; then
+    echo "Failed (status was $status, should be $NO_EXECUTABLE"
 else
     if [ "$result" != "The command test_script.sj in the task file test_parallel, line 1 cannot be found or is not executable" ]; then
-        echo "Test 3 failed"
+        echo "Failed"
+    else
+        echo "Passed"
     fi
 fi
 
+echo "Test 4"
 chmod +x test_script.sh
 result=$(../fsl_sub -t test_parallel_fail_1 2>&1)
 status=$?
-if [ $status -eq $NO_EXECUTABLE ]; then
-    echo "Test 4 failed"
+if [ $status -ne $NO_EXECUTABLE ]; then
+    echo "Failed"
 else
     if [ "$result" != "The command test_script.sj in the task file test_parallel, line 2 cannot be found or is not executable" ]; then
-        echo "Test 4 failed"
+        echo "Failed"
+    else
+        echo "Passed"
     fi
 fi
 
+echo "Test 5"
 chmod +x test_script.sh
 result=$(../fsl_sub -t test_parallel_fail_2 2>&1)
 status=$?
-if [ $status -eq $NO_EXECUTABLE ]; then
-    echo "Test 5 failed"
+if [ $status -ne $NO_EXECUTABLE ]; then
+    echo "Failed"
 else
     if [ "$result" != "The command test_script.sj in the task file test_parallel, line 2 cannot be found or is not executable" ]; then
-        echo "Test 5 failed"
+        echo "Failed"
+    else
+        echo "Passed"
     fi
 fi
