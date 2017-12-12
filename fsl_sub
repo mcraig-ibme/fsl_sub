@@ -501,27 +501,22 @@ fi
 while :
 do
     case "$1" in
-        -z|--fileisimage)
+        -a|--arch)
             with_arguments 1 "$@"
-            if [ -e "$2" -o "$("${FSLDIR}/bin/imtest" "$2")" = 1 ] ; then
-                exit 0
+            acceptable_arch="no"
+            available_archs=$(qhost | tail -n +4 | awk '{print $2}' | sort | uniq)
+            for a in "${available_archs[@]}"; do
+                if [ "$2" = "$a" ] ; then
+                    acceptable_arch="yes"
+                fi
+            done
+            if is_true "$acceptable_arch"; then
+                complexes+=("arch=$2")
+            else
+                echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
+                echo "Should be one of: ${available_archs[*]}" >&2
+                exit "$INVALID_SYNTAX"
             fi
-            shift 2
-        ;;
-        -T|--jobtime)
-            with_arguments 1 "$@"
-            job_time "$2"
-            shift 2
-        ;;
-        -R|--jobram)
-            with_arguments 1 "$@"
-            job_ram "$2"
-            complexes+=("mem_free=${job_ram}G")
-            shift 2
-        ;;
-        -q|--queue)
-            with_arguments 1 "$@"
-            queue="$2"
             shift 2
         ;;
         -c|--cuda)
@@ -546,27 +541,57 @@ do
             fi
             shift 2
         ;;
+        -F|--usescript)
+            scriptmode=1
+            shift
+        ;;
+        -j|--jobhold)
+            with_arguments 1 "$@"
+            sge_hold="$2"
+            shift 2
+        ;;
+        -l|--logdir)
+            with_arguments 1 "$@"
+            log_dir="$2"
+            LogDir="${2}/";
+            if [ ! -e "${LogDir}" ]; then 
+                mkdir -p "${LogDir}"
+            else
+                REGEX="^/dev/null$"
+                if [[ ! "${LogDir}" =~ $REGEX ]] && [ -f "${LogDir}" ]; then
+                    echo "Log destination is a file (should be a folder)" >&2
+                    usage "$INVALID_SYNTAX"
+                fi
+            fi
+            shift 2
+        ;;
+        -m|--mailoptions)
+            MailOpts="$2";
+            shift 2
+        ;;
+        -M|--mailto)
+            with_arguments 1 "$@"
+            mailto="$2"
+            shift 2
+        ;;
         --multi_gpu)
             with_arguments 1 "$@"
             cuda_multi_gpu="$2"
             shift 2
         ;;
-        -a|--arch)
+        -N|--name)
             with_arguments 1 "$@"
-            acceptable_arch="no"
-            available_archs=$(qhost | tail -n +4 | awk '{print $2}' | sort | uniq)
-            for a in "${available_archs[@]}"; do
-                if [ "$2" = "$a" ] ; then
-                    acceptable_arch="yes"
-                fi
-            done
-            if is_true "$acceptable_arch"; then
-                complexes+=("arch=$2")
-            else
-                echo "Sorry arch of $2 is not supported on this GE configuration!" >&2
-                echo "Should be one of: ${available_archs[*]}" >&2
-                exit "$INVALID_SYNTAX"
-            fi
+            JobName="$2";
+            shift 2
+        ;;
+        -p|--priority)
+            with_arguments 1 "$@"
+            sge_priority="$2"
+            shift 2
+        ;;
+        -q|--queue)
+            with_arguments 1 "$@"
+            queue="$2"
             shift 2
         ;;
         -r|--resource)
@@ -580,19 +605,17 @@ do
             fi
             shift 2
         ;;
-        -p|--priority)
+        -R|--jobram)
             with_arguments 1 "$@"
-            sge_priority="$2"
+            job_ram "$2"
+            complexes+=("mem_free=${job_ram}G")
             shift 2
         ;;
-        -M|--mailto)
+        -s|--parallelenv)
             with_arguments 1 "$@"
-            mailto="$2"
-            shift 2
-        ;;
-        -j|--jobhold)
-            with_arguments 1 "$@"
-            sge_hold="$2"
+            pe_string="$2";
+            peName=$(echo "$pe_string" | cut -d',' -f 1)
+            peThreads=$(echo "$pe_string" | cut -d',' -f 2)
             shift 2
         ;;
         -t|--paralleltask)
@@ -613,6 +636,15 @@ do
             fi
             shift 2
         ;;
+        -T|--jobtime)
+            with_arguments 1 "$@"
+            job_time "$2"
+            shift 2
+        ;;
+        -v|--verbose)
+            verbose=1
+            shift
+        ;;
         -x|--parallellimit)
             with_arguments 1 "$@"
             max_parallel_jobs="$2"
@@ -623,43 +655,11 @@ do
             fi
             shift 2
         ;;
-        -N|--name)
+        -z|--fileisimage)
             with_arguments 1 "$@"
-            JobName="$2";
-            shift 2
-        ;;
-        -m|--mailoptions)
-            MailOpts="$2";
-            shift 2
-        ;;
-        -l|--logdir)
-            with_arguments 1 "$@"
-            log_dir="$2"
-            LogDir="${2}/";
-            if [ ! -e "${LogDir}" ]; then 
-                mkdir -p "${LogDir}"
-            else
-                REGEX="^/dev/null$"
-                if [[ ! "${LogDir}" =~ $REGEX ]] && [ -f "${LogDir}" ]; then
-                    echo "Log destination is a file (should be a folder)" >&2
-                    usage "$INVALID_SYNTAX"
-                fi
+            if [ -e "$2" -o "$("${FSLDIR}/bin/imtest" "$2")" = 1 ] ; then
+                exit 0
             fi
-            shift 2
-        ;;
-        -F|--usescript)
-            scriptmode=1
-            shift
-        ;;
-        -v|--verbose)
-            verbose=1
-            shift
-        ;;
-        -s|--parallelenv)
-            with_arguments 1 "$@"
-            pe_string="$2";
-            peName=$(echo "$pe_string" | cut -d',' -f 1)
-            peThreads=$(echo "$pe_string" | cut -d',' -f 2)
             shift 2
         ;;
         --)
