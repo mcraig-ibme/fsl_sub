@@ -565,7 +565,7 @@ do
             cuda_type="$2"
             shift 2
         ;;
-        -cuda_version)
+        --cuda_version)
             with_arguments 1 "$@"
             cuda_version="$2"
             if is_false "$cuda_uses_modules"; then
