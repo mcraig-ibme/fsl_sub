@@ -517,7 +517,7 @@ if [ -n "$FSLSUBVERBOSE" ] ; then
 fi
 
 scriptmode=0
-cuda_job=0
+cuda_job="no"
 cuda_version="$cuda_modules_default"
 cuda_type="$cuda_type_default"
 cuda_multi_gpu=1
@@ -553,7 +553,7 @@ do
         ;;
         -c|--cuda)
             if is_true "$cuda_available"; then
-                cuda_job="cuda_job"
+                cuda_job="yes"
             else
                 echo "CUDA devices not available" >&2
                 exit "$NO_CUDA"
