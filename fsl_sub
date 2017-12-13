@@ -228,8 +228,8 @@ if [ $cuda_uses_modules ]; then
     # should match the toolkit version
     cuda_modules_available=$(module avail $cuda_modules 2>&1 | \
         sed -e 's/---.*---//' | tr -s ' ' | tr -d '\n' | \
-        awk 'NF>1{print $NF}' | sed "s/$cuda_modules\///")
-    cuda_modules_default=$(echo "$cuda_modules_available" | awk 'NF>1{print $NF}')     
+        sed "s/$cuda_modules\///g")
+    cuda_modules_default=$(echo "$cuda_modules_available" | awk 'NF>1{print $NF}')
 fi
 # If you don't use Shell Modules make sure the libraries are available
 
