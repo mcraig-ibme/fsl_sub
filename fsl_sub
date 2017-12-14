@@ -646,7 +646,6 @@ do
         -R|--jobram)
             with_arguments 1 "$@"
             job_ram "$2"
-            complexes+=("mem_free=${job_ram}G")
             shift 2
         ;;
         -s|--parallelenv)
