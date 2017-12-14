@@ -233,7 +233,7 @@ cuda_modules="cuda"
 if [ $cuda_uses_modules ]; then
     # Define the Shell Module prefix for the CUDA Libraries - module name
     # should match the toolkit version
-    available_mods=$(module -t avail $cuda_modules 2>&1 | tail -n +2 | tr -c '[[:print:]]' ' ')
+    available_mods=$(module -t avail $cuda_modules 2>&1 | tail -n +2 | tr -c '[:print:]' ' ')
     IFS=' ' read -r -a cuda_modules_available <<< "${available_mods//$cuda_modules\//}"
     cuda_modules_default="${cuda_modules_available[${#array[@]}-1]}"
 fi
