@@ -764,7 +764,7 @@ if is_true "$cuda_job"; then
     # Configure CUDA Toolkit version
     #
     if is_true "$cuda_uses_modules"; then
-        if ! array_contains "${cuda_version}" "$cuda_modules_available"; then
+        if ! array_contains "${cuda_version}" "$cuda_modules_available[*]"; then
             echo "CUDA SDK $cuda_version not found!" >&2
             width=$(tput cols)
             echo "Available modules: $cuda_modules_available" | fold -w "$width" >&2
