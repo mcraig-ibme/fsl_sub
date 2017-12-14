@@ -727,8 +727,8 @@ if is_true "$cuda_job"; then
         # Check for existing CUDA modules
         cuda_modules_loaded=$(module -t list 2>&1 | tail -n +2 | grep "${cuda_modules}")
         if [ -n "${cuda_modules_loaded}" ]; then
-            for module in ${cuda_modules_loaded}; do
-                module unload "${module}"
+            for loaded_module in ${cuda_modules_loaded}; do
+                module unload "${loaded_module}"
             done
         fi 
         cuda_module="$cuda_modules/$cuda_version"
