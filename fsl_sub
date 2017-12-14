@@ -83,8 +83,8 @@ index_in_list ()
 array_contains () {
   local e match="$1"
   shift
-  for e; do [[ "$e" == "$match" ]] && return 0; done
-  return 1
+  for e; do [[ "$e" == "$match" ]] && return 1; done
+  return 0
 }
 
 ###########################################################################
@@ -764,7 +764,7 @@ if is_true "$cuda_job"; then
     # Configure CUDA Toolkit version
     #
     if is_true "$cuda_uses_modules"; then
-        if ! array_contains "${cuda_version}" "$cuda_modules_available[*]"; then
+        if ! array_contains "${cuda_version}" "${cuda_modules_available[@]}"; then
             echo "CUDA SDK $cuda_version not found!" >&2
             width=$(tput cols)
             echo "Available modules: $cuda_modules_available" | fold -w "$width" >&2
