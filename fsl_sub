@@ -80,6 +80,13 @@ index_in_list ()
     echo "$index"
 }
 
+array_contains () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
 ###########################################################################
 # The following section determines what to do when fsl_sub is called
 # by an FSL program. If SGE_ROOT is set it will attempt to pass the
@@ -226,10 +233,9 @@ cuda_modules="cuda"
 if [ $cuda_uses_modules ]; then
     # Define the Shell Module prefix for the CUDA Libraries - module name
     # should match the toolkit version
-    cuda_modules_available=$(module avail $cuda_modules 2>&1 | \
-        sed -e 's/---.*---//' | tr -s ' ' | tr -d '\n' | \
-        sed "s/$cuda_modules\///g")
-    cuda_modules_default=$(echo "$cuda_modules_available" | awk 'NF>1{print $NF}')
+    available_mods=$(module -t avail $cuda_modules 2>&1 | tail -n +2 | tr -c '[[:print:]]' ' ')
+    IFS=' ' read -r -a cuda_modules_available <<< "${available_mods//$cuda_modules\//}"
+    cuda_modules_default="${cuda_modules_available[${#array[@]}-1]}"
 fi
 # If you don't use Shell Modules make sure the libraries are available
 
@@ -758,14 +764,20 @@ if is_true "$cuda_job"; then
     # Configure CUDA Toolkit version
     #
     if is_true "$cuda_uses_modules"; then
-        cuda_module="$cuda_modules/$cuda_version"
-        cuda_module_available=$(module avail "$cuda_module" 2>&1)
-        if [ -z "$cuda_module_available" ]; then
+        if ! array_contains "${cuda_version}" "$cuda_modules_available"; then
             echo "CUDA SDK $cuda_version not found!" >&2
             width=$(tput cols)
             echo "Available modules: $cuda_modules_available" | fold -w "$width" >&2
             usage "$NO_CUDA_VERSION"
         fi
+        # Check for existing CUDA modules
+        cuda_modules_loaded=$(module -t list 2>&1 | tail -n +2 | grep "${cuda_modules}")
+        if [ -n "${cuda_modules_loaded}" ]; then
+            for module in "${cuda_modules_loaded}"; then
+                module unload "${module}"
+            done
+        fi 
+        cuda_module="$cuda_modules/$cuda_version"
         module add "$cuda_module"
     fi
 
@@ -850,10 +862,10 @@ case $METHOD in
 
         # Get a list of queues configured for this PE and confirm that the queue
         # we have submitted to has that PE set up.
-        REGEX="error: no such parallel environment"
+        REGEX=
         error=$(qstat -g c -pe "$peName" 2>&1)
 
-	    if [ $? -eq 1 ] || [[ "$error" =~ $REGEX ]]; then
+	    if [ $? -eq 1 ] || [[ "$error" = "*error: no such parallel environment*" ]]; then
 		    echo "No parallel environments configured!" >&2
 		    exit "$MISS_CONFIGURED"
 	    fi
