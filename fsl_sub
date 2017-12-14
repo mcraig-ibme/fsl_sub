@@ -838,7 +838,9 @@ case $METHOD in
 	fi
 
     sge_args=()
-    (( is_true "$COPY_ENV" )) && sge_args+=("$COPY_ENV_CMD")
+    if is_true "$COPY_ENV"; then
+        sge_args+=("$COPY_ENV_CMD")
+    fi
 
     if [ -n "$affinity_type" ]; then
         case "$affinity_control" in
