@@ -645,7 +645,7 @@ do
         ;;
         -R|--jobram)
             with_arguments 1 "$@"
-            job_ram "$2"
+            job_ram="$2"
             shift 2
         ;;
         -s|--parallelenv)
