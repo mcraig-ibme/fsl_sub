@@ -152,6 +152,16 @@ MAILOPT_CMD="-m"
 #
 JOBNAME_CMD="-N"
 
+#
+# Option that specifies that the environment should be copied to the job
+#
+COPY_ENV_CMD="-V"
+
+#
+# Should we copy the environment
+#
+COPY_ENV="yes"
+
 ###########################################################################
 # If you have a Parallel Environment configured for OpenMP tasks then
 # the variable omp_pe should be set to the name you have defined for that
@@ -828,6 +838,8 @@ case $METHOD in
 	fi
 
     sge_args=()
+    (( is_true "$COPY_ENV" )) && sge_args+=("$COPY_ENV_CMD")
+
     if [ -n "$affinity_type" ]; then
         case "$affinity_control" in
             threads)
