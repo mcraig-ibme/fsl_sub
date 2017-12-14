@@ -329,9 +329,9 @@ map_ram ()
     else
         max_ram="$slot_ram_limit"
     fi
-    slots=$(("$ram" / "$max_ram"))
-    if [ $(("$ram" % "$max_ram")) ]; then
-        slots=$(("$slots" + 1))
+    slots=$((ram / max_ram))
+    if [ $((ram % max_ram)) ]; then
+        slots=$((slots + 1))
     fi
 
     if [ "$slots" -gt 1 ]; then
