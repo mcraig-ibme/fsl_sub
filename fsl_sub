@@ -462,59 +462,6 @@ if [ "$nargs" -eq 0 ] ; then
   usage
 fi
 
-#set -- "$(getopt T:q:a:p:M:j:t:z:N:R:Fvm:l:s:cy:C:x: "$@")"
-#result=$?
-#if [ "$result" != 0 ] ; then
-#  echo "What? Your arguments make no sense!" >&2
-#fi
-
-#if [ "$nargs" -eq 0 ] || [ "$result" != 0 ] ; then
-#  usage
-#fi
-
-
-###########################################################################
-# In the following, you might want to change the behaviour of some
-# flags so that they prepare the right arguments for the actual
-# cluster queue submission program, in our case "qsub".
-#
-# -a sets is the cluster submission flag for controlling the required
-# hardware architecture (normally not set by the calling program)
-#
-# -p set the priority of the job - ignore this if your cluster
-# environment doesn't have priority control in this way.
-#
-# -j tells the cluster not to start this job until cluster job ID $jid
-# has completed. You will need this feature.
-#
-# -t will pass on to the cluster software the name of a text file
-# containing a set of commands to run in parallel; one command per
-# line.
-#
-# -x will limit the number of concurrently running sub-tasks to the
-# provided number of jobs
-#
-# -N option determines what the command will be called when you list
-# running processes.
-#
-# -l tells the cluster what to call the standard output and standard
-# -error logfiles for the submitted program.
-#
-# -c will request a CUDA capable resource
-#   (-q can be used to override the default cuda queue)
-#
-# -y will request a specific CUDA hardware generation and takes the
-# values:
-#   G - GeForce hardware (single-precision optimised, no-ECC)
-#   K - Kepler class (double-precision optimised, ECC)
-#   P - Pascal class (as per K but with half-precision)
-#   V - Volta class (as per P but with quarter-precision)
-#
-# -C will request a specific CUDA SDK version number, e.g. 6, 6.5, 7 etc
-#
-###########################################################################
-
-
 if [ -n "$FSLSUBVERBOSE" ] ; then
     verbose="$FSLSUBVERBOSE";
     echo "METHOD=$METHOD : args=" "$@" >&2
