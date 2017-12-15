@@ -533,12 +533,12 @@ do
             fi
             shift
         ;;
-        --cuda_type)
+        --cuda-type)
             with_arguments 1 "$@"
             cuda_type="$2"
             shift 2
         ;;
-        --cuda_version)
+        --cuda-version)
             with_arguments 1 "$@"
             cuda_version="$2"
             if is_false "$cuda_uses_modules"; then
@@ -546,21 +546,21 @@ do
             fi
             shift 2
         ;;
-        -F|--usescript)
+        -F|--use-script)
             scriptmode=1
             shift
         ;;
-        -j|--jobhold)
+        -j|--job-hold)
             with_arguments 1 "$@"
             sge_hold="$2"
             shift 2
         ;;
-        --parallelhold)
+        --parallel-hold)
             with_arguments 1 "$@"
             parallel_hold="$2"
             shift 2
         ;;
-        -l|--logdir)
+        -l|--log-dir)
             with_arguments 1 "$@"
             log_dir="$2"
             LogDir="${2}/";
@@ -575,21 +575,21 @@ do
             fi
             shift 2
         ;;
-        -m|--mailoptions)
+        -m|--mail-options)
             MailOpts="$2";
             shift 2
         ;;
-        -M|--mailto)
+        -M|--mail-to)
             with_arguments 1 "$@"
             mailto="$2"
             shift 2
         ;;
-        --multi_gpu)
+        --multi-gpu)
             with_arguments 1 "$@"
             cuda_multi_gpu="$2"
             shift 2
         ;;
-        -n|--novalidation)
+        -n|--no-validation)
             validation="no"
             shift
         ;;
@@ -619,19 +619,19 @@ do
             fi
             shift 2
         ;;
-        -R|--jobram)
+        -R|--job-ram)
             with_arguments 1 "$@"
             job_ram="$2"
             shift 2
         ;;
-        -s|--parallelenv)
+        -s|--parallel-env)
             with_arguments 1 "$@"
             pe_string="$2";
             peName=$(echo "$pe_string" | cut -d',' -f 1)
             peThreads=$(echo "$pe_string" | cut -d',' -f 2)
             shift 2
         ;;
-        -t|--paralleltask)
+        -t|--parallel-task)
             with_arguments 1 "$@"    
             taskfile="$2"
             if [ -f "$taskfile" ] ; then
@@ -649,7 +649,7 @@ do
             fi
             shift 2
         ;;
-        -T|--jobtime)
+        -T|--job-time)
             with_arguments 1 "$@"
             job_time "$2"
             shift 2
@@ -663,7 +663,7 @@ do
             exit 0
             shift
         ;;
-        -x|--parallellimit)
+        -x|--parallel-limit)
             with_arguments 1 "$@"
             max_parallel_jobs="$2"
             REGEX="[[:digit:]]+"
@@ -673,7 +673,7 @@ do
             fi
             shift 2
         ;;
-        -z|--fileisimage)
+        -z|--file-is-image)
             with_arguments 1 "$@"
             if [ -e "$2" -o "$("${FSLDIR}/bin/imtest" "$2")" = 1 ] ; then
                 exit 0
