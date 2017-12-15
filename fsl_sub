@@ -138,6 +138,11 @@ STDERR_DIR="-e"
 JHOLD_CMD="-hold_jid"
 
 #
+# Option that specifies a parallel job hold
+#
+LLJHOLD_CMD="-hold_jid_ad"
+
+#
 # Option that specifies mail address
 #
 MAILTO_CMD="-M"
@@ -426,6 +431,9 @@ $this_command -a darwin regscript rawdata outputdir ...
                                GPU request strings.
   -F|--usescript               Use flags embedded in scripts to set SGE queuing options.
   -j|--jobhold <jid>           Place a hold on this task until job jid has completed.
+  --parallelhold <paralleljid> Place a parallel hold on the specified array task. Each
+                               sub-task is held until the equivalent sub-task in the
+                               parent array task completes.
   -l|--logdir <logdirname>     Where to output logfiles.
   -m|--mailoptions <mailoptions> Change the SGE mail options, see qsub for details.
   -M|--mailto <email-address>  Who to email, default = $(whoami)@$(hostname).
@@ -545,6 +553,11 @@ do
         -j|--jobhold)
             with_arguments 1 "$@"
             sge_hold="$2"
+            shift 2
+        ;;
+        --parallelhold)
+            with_arguments 1 "$@"
+            parallel_hold="$2"
             shift 2
         ;;
         -l|--logdir)
@@ -775,11 +788,16 @@ if [ -n "$taskfile" ]; then
             lno=$((lno + 1 ))
         done < "$taskfile"
     fi
-elif [ -n "$max_parallel_tasks" ]; then
-    echo "-x option ignored as not a parallel task job" >&2
-    max_parallel_tasks=""
+else
+    if [ -n "$max_parallel_tasks" ]; then
+        echo "-x option ignored as not a parallel task job" >&2
+        max_parallel_tasks=""
+    fi
+    if [ -n "$parallel_hold" ]; then
+        echo "Cannot apply a parallel job hold on a non-array task." >&2
+        usage "$INVALID_SYNTAX"
+    fi
 fi
-
 if [ -z "$JobName" ] ; then 
     if [ -n "$taskfile" ] ; then
         JobName=$(basename "$taskfile")
@@ -875,6 +893,9 @@ case $METHOD in
     fi
     if [ -n "$sge_hold" ]; then
         sge_args+=("$JHOLD_CMD" "$sge_hold")
+    fi
+    if [ -n "$parallel_hold" ]; then
+        sge_args+=("$LLJHOLD_CMD" "$parallel_hold")
     fi
 	if [ -z "$tasks" ] ; then
 	    if is_false "$scriptmode"; then
