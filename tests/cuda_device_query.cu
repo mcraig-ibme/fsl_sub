@@ -3,8 +3,12 @@
 int main()
 {
 	int deviceCount;
-	cudaGetDeviceCount(&deviceCount);
 	int device;
+	printf("Looking for CUDA devices...\n");
+	cudaGetDeviceCount(&deviceCount);
+	if (deviceCount == 0) {
+		printf("No devices found\n");
+	}
 	for(device = 0; device < deviceCount; ++device) {
 		cudaDeviceProp deviceProp;
 		cudaGetDeviceProperties(&deviceProp, device);
