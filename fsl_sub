@@ -429,6 +429,9 @@ $this_command -a darwin regscript rawdata outputdir ...
   -l|--logdir <logdirname>     Where to output logfiles.
   -m|--mailoptions <mailoptions> Change the SGE mail options, see qsub for details.
   -M|--mailto <email-address>  Who to email, default = $(whoami)@$(hostname).
+  -n|--novalidation            Don't check for presence of script/binary in your search
+                               path (use where the software is only available on the 
+                               compute node).
   -N|--name <jobname>          Specify jobname as it will appear on queue.
   -p|--priority <job-priority> Lower priority [0:-1024] default = 0.               
   -q|--queue <queuename>       Possible values for <queuename> are ${queue_list[*]}.
@@ -487,6 +490,7 @@ peThreads=1
 queue=''
 job_time=''
 job_ram=''
+validation="yes"
 if is_true "$verbose"; then
     echo "Command line is '$*'"
 fi
@@ -571,6 +575,10 @@ do
             with_arguments 1 "$@"
             cuda_multi_gpu="$2"
             shift 2
+        ;;
+        -n|--novalidation)
+            validation="no"
+            shift
         ;;
         -N|--name)
             with_arguments 1 "$@"
@@ -746,24 +754,27 @@ if [ -z "$taskfile" ] && [ -z "$the_command" ]; then
 	usage "$NO_EXECUTABLE"
 fi
 if [ -z "$taskfile" ]; then
-    if ! command -v "$the_command" >/dev/null 2>&1; then
-		echo "The command you have requested cannot be found or is not executable" >&2
-		exit "$NO_EXECUTABLE"
-	fi
+    if is_true "$validation"; then
+        if ! command -v "$the_command" >/dev/null 2>&1; then
+            echo "The command you have requested cannot be found or is not executable" >&2
+            exit "$NO_EXECUTABLE"
+        fi
+    fi
 fi
 
 if [ -n "$taskfile" ]; then
-    # Validate commands in task file
-    lno=1
-    while read line; do
-        tf_cmd=$(echo "$line" | cut -d ' ' -f1)
-        if ! command -v "${tf_cmd}" >/dev/null 2>&1; then
-            echo "The command $tf_cmd in the task file $taskfile, line $lno cannot be found or is not executable" >&2
-            exit "$NO_EXECUTABLE"
-        fi
-        lno=$((lno + 1 ))
-    done < "$taskfile"
-
+    if is_true "$validation"; then
+        # Validate commands in task file
+        lno=1
+        while read line; do
+            tf_cmd=$(echo "$line" | cut -d ' ' -f1)
+            if ! command -v "${tf_cmd}" >/dev/null 2>&1; then
+                echo "The command $tf_cmd in the task file $taskfile, line $lno cannot be found or is not executable" >&2
+                exit "$NO_EXECUTABLE"
+            fi
+            lno=$((lno + 1 ))
+        done < "$taskfile"
+    fi
 elif [ -n "$max_parallel_tasks" ]; then
     echo "-x option ignored as not a parallel task job" >&2
     max_parallel_tasks=""
