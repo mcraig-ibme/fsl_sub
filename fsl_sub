@@ -416,26 +416,32 @@ usage ()
     rval="$INVALID_SYNTAX"
   fi
   qdesc=()
-  for ((i=0; i<${#queue_list[@]}; i++ )); do
-    if [[ "${queue_list_times_doc[$i]}" == "-" ]]; then
-        qdesc+=("${queue_list[$i]}: This queue has no time limit ${queue_list_times_doc[$i]}")
+  length="${#queue_list[@]}"
+  longestname=0
+  for (( i=0; i<length; i++ )); do
+    if [[ ${#queue_list[$i]} -gt longestname ]]; then
+        longestname="${#queue_list[$i]}"
+    fi
+  done
+  (( longestname+=2 ))
+  for (( i=0; i<length; i++ )); do
+    qname="${queue_list[$i]}"
+    queue_description=''
+    if [[ "${queue_list_times_minutes[$i]}" == "-" ]]; then
+        queue_description=("${qname}: This queue has no time limit")
     else
-        qdesc+=("${queue_list[$i]}: This queue is for jobs which last under ${queue_list_times_doc[$i]}")
+        queue_description=("${qname}: This queue is for jobs which last under ${queue_list_times_doc[$i]}")
     fi
     if [[ "${queue_list_memory_limits[$i]}" != "-" ]]; then
-        indent=''
-        for (( i=0; i<${#queue_list[$i]}; i++ )); do
-            indent+=$(printf ' ')
-        done
-        qdesc+=("$indent and a memory limit of ${queue_list_memory_limits[$]}")
+        queue_description+=" with a memory limit of ${queue_list_memory_limits[$i]}GB"
     fi
+    qdesc+=("$queue_description")
   done
   if [[ "$cuda_time_limit" == "-" ]]; then
     qdesc+=("$cuda_queue: This queue is for GPU (CUDA) tasks with no time limit")
   else
     qdesc+=("$cuda_queue: This queue is for GPU (CUDA) tasks which last under $cuda_time_limit")
   fi
-
   width=$(tput cols)
   fold -w "$width" >&2 <<USAGE_EOF
 
@@ -493,7 +499,8 @@ $this_command -a darwin regscript rawdata outputdir ...
                         
   
 
-Queues:
+Queues
+======
 
 There are several batch queues configured on the cluster:
 
