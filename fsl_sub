@@ -766,7 +766,11 @@ if is_true "$cuda_job"; then
     # Configure CUDA hardware version
     #
     if [ -n "$cuda_type" ] && [ "$cuda_classes_available" ]; then
-        complexes+=("$(map_gpu_class "$cuda_type")")
+        gpu_complex="$(map_gpu_class "$cuda_type")"
+        if [[ $? -ne 0 ]]; then
+            exit $?
+        fi
+        complexes+=("$gpu_complex")
     fi
     #
     # Configure CUDA Toolkit version
@@ -943,14 +947,14 @@ case $METHOD in
 		    sge_args+=("${pe_options[@]}")
 	    fi
         if is_true "$verbose" || is_true "$debug"; then 
-	    	echo "sge_args: " "${sge_args[@]}" >&2
-		    echo "executing: $QSUB " "${sge_args[@]}" "$@" >&2
-	    fi
-        if is_false "$debug"; then
-	    exec "$QSUB" "${sge_args[@]}" "$@" | awk '{print $3}'
+            echo "sge_args: " "${sge_args[@]}" >&2
+            echo "executing: $QSUB " "${sge_args[@]}" "$@" >&2
         fi
-	else
-	    sge_args+=("-cwd" "$QCMD" "$queue")
+        if is_false "$debug"; then
+            exec "$QSUB" "${sge_args[@]}" "$@" | awk '{print $3}'
+        fi
+    else
+        sge_args+=("-cwd" "$QCMD" "$queue")
         if [ -n "$max_parallel_tasks" ]; then
             sge_args+=("$LLLIMIT" "$max_parallel_jobs")
         fi
@@ -966,7 +970,7 @@ case $METHOD in
     		echo "control file: $taskfile" >&2
 	    fi
         if is_false "$debug"; then
-	    exec "$QSUB" "${sge_args[@]}" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
+            exec "$QSUB" "${sge_args[@]}" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
 #!/bin/sh
 
 #$ -S /bin/sh
@@ -975,9 +979,9 @@ the_command=\$\(sed -n -e "\${SGE_TASK_ID}p" $taskfile\$\)
 
 exec /bin/sh -c "\$the_command"
 EOF
-	fi
+        fi
     fi
-	;;
+    ;;
 
 ###########################################################################
 # Don't change the following - this runs the commands directly if a
@@ -990,36 +994,36 @@ EOF
 		    echo "executing: " "$@" >&2
 	    fi
         if is_false "$debug"; then
-	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
+    	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
 $@
 EOF1
-	    ERR=$?
+            ERR=$?
 
-	    if [ "$ERR" -ne 0 ] ; then
-		    cat "${LogDir}${JobName}.e$$" >&2
-		    exit $ERR
-	    fi
+            if [ "$ERR" -ne 0 ] ; then
+                cat "${LogDir}${JobName}.e$$" >&2
+                exit $ERR
+            fi
         fi
-	else
+    else
         if is_true "$verbose" || is_true "$debug"; then 
-		echo "Running commands in: $taskfile" >&2
-	    fi
-	    n=1
-	    while [ "$n" -le "$tasks" ] ; do
-		line=$(sed -n -e ''${n}'p' "$taskfile")
+            echo "Running commands in: $taskfile" >&2
+        fi
+        n=1
+        while [ "$n" -le "$tasks" ] ; do
+            line=$(sed -n -e ''${n}'p' "$taskfile")
             if is_true "$verbose" || is_true "$debug"; then 
-		    echo executing: "$line" >&2
-		fi
+                echo executing: "$line" >&2
+            fi
             if is_false "$debug"; then
-		/bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
+                /bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
 $line
 EOF2
             fi
-		n=$((n + 1))
-	    done
-	fi	
-	echo $$
-	;;
+            n=$((n + 1))
+        done
+    fi
+    echo $$
+    ;;
 
 esac
 
