@@ -389,12 +389,12 @@ map_gpu_class ()
     if [[ ! "${cuda_types[@]}" =~ $REGEX ]]; then
         echo "CUDA hardware class $class not recognised" >&2
         echo "$cuda_type_docs" >&2
-        exit $NO_CUDA_TYPE
+        return $NO_CUDA_TYPE
     fi
     lowest_hardware=$(index_in_list "$class" "${cuda_types[@]}")
-    if [ "$lowest_hardware" -eq 0 ]; then
+    if [ -z "$lowest_hardware" ]; then
         echo "Unknown CUDA hardware class $class" >&2
-        exit $MISS_CONFIGURED
+        return $MISS_CONFIGURED
     fi
     cuda_complex=$(join_list "|" "${cuda_type_names[@]:$lowest_hardware}")
     echo "$cuda_class_resource=$cuda_complex"
