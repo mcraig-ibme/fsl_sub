@@ -68,17 +68,16 @@ join_list ()
 index_in_list ()
 {
     local index=0
-    local found="no"
     local match="$1"
     local values="${*:2}"
     for value in $values; do
         if [ "$value" = "$match" ]; then
             echo "$index"
-            return 0
+            return
         fi
         ((index++))
     done
-    return 1
+    echo "$index"
 }
 
 array_contains () {
@@ -106,11 +105,6 @@ VERSION="2.0"
 # Give the queue submission command name here
 #
 QSUB="qsub"
-
-#
-# Provide any queue name suffix here
-#
-QSUFFIX=".q"
 
 #
 # Option that specifies the queue
@@ -180,7 +174,7 @@ COPY_ENV="yes"
 # Note, we support openmp tasks even when Grid Engine is not in use.
 ###########################################################################
 
-omp_pe='openmp'
+omp_pe='shmem'
 
 
 ###########################################################################
@@ -192,25 +186,22 @@ omp_pe='openmp'
 AFFINITY_CMD="-binding"
 affinity_type="linear"
 # How to specify linear affinity
-affinity_control="slots"
+affinity_control="threads"
 
 ###########################################################################
 # The following sets up the default queue name, which you may want to
 # change. It also sets up the basic emailing control.
 ###########################################################################
 
-queue_list=("veryshort.q" "short.q" "long.q" "verylong.q" "bigmem.q")
-queue_list_times_minutes=("40" "240" "2800" "-" "-")
-queue_list_times_doc=("40m" "4h" "48h" "Infinite" "Infinite")
-queue_list_memory_limits=("12" "12" "12" "12" "-")
-default_queue="long.q"
+queue_list=("long.qc" "short.qc")
+queue_list_times=("7 days" "24h")
+default_queue="long.qc"
 mailto=$(whoami)@$(hostname -f | cut -d . -f 2-)
 MailOpts="a"
 
 #
 # Set this to the maximum amount of RAM available to a slot (in GB)
-slot_ram_limit="12"
-map_ram="Yes"
+slot_ram_limit="16"
 
 ###########################################################################
 # The following sets up the CUDA queue, which you will need to change to
@@ -220,31 +211,31 @@ map_ram="Yes"
 # Change this to 0 if you do not have CUDA hardware.
 cuda_available="yes"
 # Name the CUDA queue here.
-cuda_queue="cuda${QSUFFIX}"
+cuda_queue="gpu.q"
 # Job time limit
-cuda_time_limit="-"
+cuda_time_limit="300h"
 # Set this to maximum amount of RAM available to a slot
-cuda_slot_ram_limit="-"
-cuda_map_ram="No"
-# Define the GPU complex here
+cuda_slot_ram_limit="32"
+# Define the Univa GPU complex here
 cuda_gpu_resource="gpu"
 # Do we care about GPU hardware classes?
 cuda_classes_available="yes"
 # GPU Hardware class configuration
 cuda_class_resource="gputype"
-# Define the CUDA hardware classes available here and the default type.
-# Your compute nodes have to have these defined in the class resource
-# defined above
-cuda_types=("K20" "K40" "K80")
-# Default CUDA type
-cuda_type_default="K20"
+# Define the CUDA hardware classes available here (e.g. what -y options
+# are acceptable on your system) and the default type. The classes can only
+# be single characters
+cuda_types=("G" "K" "P" "V")
 # And the resource strings that correspond to these
-cuda_type_names=("k20" "k40" "k80")
+cuda_type_names=("TitanX" "k80"  "v100" "p100")
 # Provide some helpful info to your user about the available classes
 cuda_type_docs="Available CUDA hardware classes are
-  K20 - Kepler. 5GB ECC RAM, double- or single-precision workloads
-  K40 - Kepler. 12GB ECC RAM, double-, single-precision workloads
-  K80 - Kepler. 12GB ECC RAM, double-, single-precision workloads"
+  G - TitanX. No-ECC, single-precision workloads
+  K - Kepler. ECC, double- or single-precision workloads
+  P - Pascal. ECC, double-, single- and half-precision workloads
+  V - Volta. ECC, double-, single-, half- and quarter-precision workloads"
+# Default CUDA type
+cuda_type_default="K"
 
 # If your system is configured to use Shell Modules for environment setup
 # and you have appropriate versioned CUDA modules define this variable as '1'
@@ -257,7 +248,7 @@ cuda_modules="cuda"
 if [ $cuda_uses_modules ]; then
     # Define the Shell Module prefix for the CUDA Libraries - module name
     # should match the toolkit version
-    available_mods=$(module -t avail $cuda_modules 2>&1 | grep -v ':' | tail -n +2 | tr -c '[:print:]' ' ')
+    available_mods=$(module -t avail $cuda_modules 2>&1 | tail -n +2 | tr -c '[:print:]' ' ')
     IFS=' ' read -r -a cuda_modules_available <<< "${available_mods//$cuda_modules\//}"
     cuda_modules_default="${cuda_modules_available[${#cuda_modules_available[@]}-1]}"
 fi
@@ -299,22 +290,18 @@ export FSLSUBALREADYRUN
 map_qname ()
 {
     duration=$1
+    qtype='c'
 
-    local index=0
-    for qtime in "${queue_list_times_minutes[@]}"; do
-        if [[ "$qtime" == '-' ]]; then
-            qduration="${queue_list[$index]}"
-            break
-        elif [[ "$duration" -le "$qtime" ]]; then
-            qduration="${queue_list[$index]}"
-            break
-        fi
-    done
-    if [[ -z "$qduration" ]]; then
+    
+    if [ "$duration" -le 1440 ]; then
+        qduration='short'
+    elif [ "$duration" -le 10080 ] ; then
+        qduration='long'
+    else
         return 1
     fi
 
-    queue="${qduration}${QSUFFIX}"
+    queue="${qduration}.q${qtype}"
     #echo "Estimated time was $1 mins: queue name is $queue"
 }
 
@@ -330,6 +317,8 @@ map_qname ()
 
 map_cuda_qname ()
 {
+    duration=$1
+
     # No resource specific queues...
     queue="${cuda_queue}"
     if is_true "$verbose"; then
@@ -354,9 +343,6 @@ map_ram ()
         max_ram="$cuda_slot_ram_limit"
     else
         max_ram="$slot_ram_limit"
-    fi
-    if [[ "$max_ram" == "-" ]]; then
-        return
     fi
     slots=$((ram / max_ram))
     ((ram % max_ram)) && slots=$((slots + 1))
@@ -389,12 +375,12 @@ map_gpu_class ()
     if [[ ! "${cuda_types[@]}" =~ $REGEX ]]; then
         echo "CUDA hardware class $class not recognised" >&2
         echo "$cuda_type_docs" >&2
-        return $NO_CUDA_TYPE
+        exit $NO_CUDA_TYPE
     fi
     lowest_hardware=$(index_in_list "$class" "${cuda_types[@]}")
-    if [ -z "$lowest_hardware" ]; then
+    if [ "$lowest_hardware" -eq 0 ]; then
         echo "Unknown CUDA hardware class $class" >&2
-        return $MISS_CONFIGURED
+        exit $MISS_CONFIGURED
     fi
     cuda_complex=$(join_list "|" "${cuda_type_names[@]:$lowest_hardware}")
     echo "$cuda_class_resource=$cuda_complex"
@@ -417,25 +403,11 @@ usage ()
     rval="$INVALID_SYNTAX"
   fi
   qdesc=()
-  length="${#queue_list[@]}"
-  for (( i=0; i<length; i++ )); do
-    qname="${queue_list[$i]}"
-    queue_description=''
-    if [[ "${queue_list_times_minutes[$i]}" == "-" ]]; then
-        queue_description=("${qname}: This queue has no time limit")
-    else
-        queue_description=("${qname}: This queue is for jobs which last under ${queue_list_times_doc[$i]}")
-    fi
-    if [[ "${queue_list_memory_limits[$i]}" != "-" ]]; then
-        queue_description+=" with a memory limit of ${queue_list_memory_limits[$i]}GB"
-    fi
-    qdesc+=("$queue_description")
+  for ((i=0; i<${#queue_list[@]}; i++ )); do
+    qdesc+=("${queue_list[$i]}: This queue is for jobs which last under ${queue_list_times[$i]}")
   done
-  if [[ "$cuda_time_limit" == "-" ]]; then
-    qdesc+=("$cuda_queue: This queue is for GPU (CUDA) tasks with no time limit")
-  else
-    qdesc+=("$cuda_queue: This queue is for GPU (CUDA) tasks which last under $cuda_time_limit")
-  fi
+  qdesc+=("$cuda_queue: This queue is for GPU (CUDA) tasks which last under $cuda_time_limit")
+  
   width=$(tput cols)
   fold -w "$width" >&2 <<USAGE_EOF
 
@@ -454,7 +426,7 @@ $this_command -a darwin regscript rawdata outputdir ...
                                $cuda_type_docs
      
      --cuda_version <version>  Request a specific CUDA version, e.g.
-                               ${cuda_modules_available[@]}
+                               $cuda_modules_available
      --multi_gpu               Request multiple GPUs, e.g. 2 for two GPUs or complex.
                                GPU request strings.
   -F|--usescript               Use flags embedded in scripts to set SGE queuing options.
@@ -493,10 +465,12 @@ $this_command -a darwin regscript rawdata outputdir ...
                         
   
 
-Queues
-======
+Queues:
 
-There are several batch queues configured on the cluster:
+There are several batch queues configured on the cluster, each with defined CPU
+time limits. All CPU queues have a ${slot_ram_limit}GB memory limit and GPU queues have a
+${cuda_slot_ram_limit}GB memory limit. If you specify a required RAM the job will be
+scheduled with the required number of slots to achieve your memory requirement.
 
 $(printf "%s\n" "${qdesc[@]}")
 
@@ -522,7 +496,6 @@ cuda_multi_gpu=1
 complexes=()
 peThreads=1
 queue=''
-debug="no"
 job_time=''
 job_ram=''
 validation="yes"
@@ -572,10 +545,6 @@ do
                 echo "CUDA Shell Modules not configured, ignoring requested CUDA version" >&2
             fi
             shift 2
-        ;;
-        --debug)
-            debug="yes"
-            shift
         ;;
         -F|--use-script)
             scriptmode=1
@@ -748,10 +717,8 @@ if [ -z "$queue" ]; then
 fi
 
 # Queue modifications based on RAM
-if [[ -n "$job_ram" ]]; then
-    if is_true ${map_ram} || is_true ${cuda_map_ram}; then
-        map_ram "$job_ram"
-    fi
+if [ -n "$job_ram" ]; then
+    map_ram "$job_ram"
 fi
 
 $QCONF -sq "$queue" >/dev/null 2>&1
@@ -766,11 +733,7 @@ if is_true "$cuda_job"; then
     # Configure CUDA hardware version
     #
     if [ -n "$cuda_type" ] && [ "$cuda_classes_available" ]; then
-        gpu_complex="$(map_gpu_class "$cuda_type")"
-        if [[ $? -ne 0 ]]; then
-            exit $?
-        fi
-        complexes+=("$gpu_complex")
+        complexes+=("$(map_gpu_class "$cuda_type")")
     fi
     #
     # Configure CUDA Toolkit version
@@ -946,15 +909,13 @@ case $METHOD in
 	    else
 		    sge_args+=("${pe_options[@]}")
 	    fi
-        if is_true "$verbose" || is_true "$debug"; then 
-            echo "sge_args: " "${sge_args[@]}" >&2
-            echo "executing: $QSUB " "${sge_args[@]}" "$@" >&2
-        fi
-        if is_false "$debug"; then
-            exec "$QSUB" "${sge_args[@]}" "$@" | awk '{print $3}'
-        fi
-    else
-        sge_args+=("-cwd" "$QCMD" "$queue")
+	    if is_true "$verbose"; then 
+	    	echo "sge_args: " "${sge_args[@]}" >&2
+		    echo "executing: $QSUB " "${sge_args[@]}" "$@" >&2
+	    fi
+	    exec "$QSUB" "${sge_args[@]}" "$@" | awk '{print $3}'
+	else
+	    sge_args+=("-cwd" "$QCMD" "$queue")
         if [ -n "$max_parallel_tasks" ]; then
             sge_args+=("$LLLIMIT" "$max_parallel_jobs")
         fi
@@ -965,12 +926,11 @@ case $METHOD in
         fi
         sge_args+=("$JOBNAME_CMD" "$JobName")
 		sge_args+=("${pe_options[@]}")
-	    if is_true "$verbose" || is_true "$debug"; then 
+	    if is_true "$verbose"; then 
     		echo "sge_args: " "${sge_args[@]}" >&2
     		echo "control file: $taskfile" >&2
 	    fi
-        if is_false "$debug"; then
-            exec "$QSUB" "${sge_args[@]}" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
+	    exec "$QSUB" "${sge_args[@]}" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
 #!/bin/sh
 
 #$ -S /bin/sh
@@ -979,9 +939,8 @@ the_command=\$\(sed -n -e "\${SGE_TASK_ID}p" $taskfile\$\)
 
 exec /bin/sh -c "\$the_command"
 EOF
-        fi
-    fi
-    ;;
+	fi
+	;;
 
 ###########################################################################
 # Don't change the following - this runs the commands directly if a
@@ -990,40 +949,37 @@ EOF
 
     NONE)
 	if [ -z "$tasks" ] ; then
-	    if is_true "$verbose" || is_true "$debug"; then 
+	    if is_true "$verbose"; then 
 		    echo "executing: " "$@" >&2
 	    fi
-        if is_false "$debug"; then
-    	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
+
+	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
 $@
 EOF1
-            ERR=$?
+	    ERR=$?
+	    if [ "$ERR" -ne 0 ] ; then
+		    cat "${LogDir}${JobName}.e$$" >&2
+		    exit $ERR
+	    fi
+	else
+	    if is_true "$verbose"; then 
+		echo "Running commands in: $taskfile" >&2
+	    fi
 
-            if [ "$ERR" -ne 0 ] ; then
-                cat "${LogDir}${JobName}.e$$" >&2
-                exit $ERR
-            fi
-        fi
-    else
-        if is_true "$verbose" || is_true "$debug"; then 
-            echo "Running commands in: $taskfile" >&2
-        fi
-        n=1
-        while [ "$n" -le "$tasks" ] ; do
-            line=$(sed -n -e ''${n}'p' "$taskfile")
-            if is_true "$verbose" || is_true "$debug"; then 
-                echo executing: "$line" >&2
-            fi
-            if is_false "$debug"; then
-                /bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
+	    n=1
+	    while [ "$n" -le "$tasks" ] ; do
+		line=$(sed -n -e ''${n}'p' "$taskfile")
+		if is_true "$verbose"; then 
+		    echo executing: "$line" >&2
+		fi
+		/bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
 $line
 EOF2
-            fi
-            n=$((n + 1))
-        done
-    fi
-    echo $$
-    ;;
+		n=$((n + 1))
+	    done
+	fi	
+	echo $$
+	;;
 
 esac
 
