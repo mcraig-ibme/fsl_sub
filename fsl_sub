@@ -236,6 +236,8 @@ cuda_class_resource="gputype"
 # Your compute nodes have to have these defined in the class resource
 # defined above
 cuda_types=("K20" "K40" "K80")
+# Default CUDA type
+cuda_type_default="K20"
 # And the resource strings that correspond to these
 cuda_type_names=("k20" "k40" "k80")
 # Provide some helpful info to your user about the available classes
@@ -243,8 +245,6 @@ cuda_type_docs="Available CUDA hardware classes are
   K20 - Kepler. 5GB ECC RAM, double- or single-precision workloads
   K40 - Kepler. 12GB ECC RAM, double-, single-precision workloads
   K80 - Kepler. 12GB ECC RAM, double-, single-precision workloads"
-# Default CUDA type
-cuda_type_default="K20"
 
 # If your system is configured to use Shell Modules for environment setup
 # and you have appropriate versioned CUDA modules define this variable as '1'
