@@ -68,16 +68,17 @@ join_list ()
 index_in_list ()
 {
     local index=0
+    local found="no"
     local match="$1"
     local values="${*:2}"
     for value in $values; do
         if [ "$value" = "$match" ]; then
             echo "$index"
-            return
+            return 0
         fi
         ((index++))
     done
-    echo "$index"
+    return 1
 }
 
 array_contains () {
