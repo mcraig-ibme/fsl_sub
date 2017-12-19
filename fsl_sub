@@ -674,7 +674,7 @@ do
             shift 2
         ;;
         -S|--autoslotsbyram)
-            autoslots="yes"
+            autoslotsbyram="yes"
             shift
         ;;
         -t|--parallel-task)
