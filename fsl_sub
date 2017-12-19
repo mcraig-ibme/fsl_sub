@@ -522,6 +522,7 @@ cuda_multi_gpu=1
 complexes=()
 peThreads=1
 queue=''
+debug="no"
 job_time=''
 job_ram=''
 validation="yes"
@@ -571,6 +572,10 @@ do
                 echo "CUDA Shell Modules not configured, ignoring requested CUDA version" >&2
             fi
             shift 2
+        ;;
+        --debug)
+            debug="yes"
+            shift
         ;;
         -F|--use-script)
             scriptmode=1
@@ -937,11 +942,13 @@ case $METHOD in
 	    else
 		    sge_args+=("${pe_options[@]}")
 	    fi
-	    if is_true "$verbose"; then 
+        if is_true "$verbose" || is_true "$debug"; then 
 	    	echo "sge_args: " "${sge_args[@]}" >&2
 		    echo "executing: $QSUB " "${sge_args[@]}" "$@" >&2
 	    fi
+        if is_false "$debug"; then
 	    exec "$QSUB" "${sge_args[@]}" "$@" | awk '{print $3}'
+        fi
 	else
 	    sge_args+=("-cwd" "$QCMD" "$queue")
         if [ -n "$max_parallel_tasks" ]; then
@@ -954,10 +961,11 @@ case $METHOD in
         fi
         sge_args+=("$JOBNAME_CMD" "$JobName")
 		sge_args+=("${pe_options[@]}")
-	    if is_true "$verbose"; then 
+	    if is_true "$verbose" || is_true "$debug"; then 
     		echo "sge_args: " "${sge_args[@]}" >&2
     		echo "control file: $taskfile" >&2
 	    fi
+        if is_false "$debug"; then
 	    exec "$QSUB" "${sge_args[@]}" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
 #!/bin/sh
 
@@ -968,6 +976,7 @@ the_command=\$\(sed -n -e "\${SGE_TASK_ID}p" $taskfile\$\)
 exec /bin/sh -c "\$the_command"
 EOF
 	fi
+    fi
 	;;
 
 ###########################################################################
@@ -977,32 +986,35 @@ EOF
 
     NONE)
 	if [ -z "$tasks" ] ; then
-	    if is_true "$verbose"; then 
+	    if is_true "$verbose" || is_true "$debug"; then 
 		    echo "executing: " "$@" >&2
 	    fi
-
+        if is_false "$debug"; then
 	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
 $@
 EOF1
 	    ERR=$?
+
 	    if [ "$ERR" -ne 0 ] ; then
 		    cat "${LogDir}${JobName}.e$$" >&2
 		    exit $ERR
 	    fi
+        fi
 	else
-	    if is_true "$verbose"; then 
+        if is_true "$verbose" || is_true "$debug"; then 
 		echo "Running commands in: $taskfile" >&2
 	    fi
-
 	    n=1
 	    while [ "$n" -le "$tasks" ] ; do
 		line=$(sed -n -e ''${n}'p' "$taskfile")
-		if is_true "$verbose"; then 
+            if is_true "$verbose" || is_true "$debug"; then 
 		    echo executing: "$line" >&2
 		fi
+            if is_false "$debug"; then
 		/bin/sh <<EOF2 > ${LogDir}${JobName}.o$$.$n 2> ${LogDir}${JobName}.e$$.$n
 $line
 EOF2
+            fi
 		n=$((n + 1))
 	    done
 	fi	
