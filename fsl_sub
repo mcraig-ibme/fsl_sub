@@ -426,7 +426,7 @@ $this_command -a darwin regscript rawdata outputdir ...
                                $cuda_type_docs
      
      --cuda_version <version>  Request a specific CUDA version, e.g.
-                               ${cuda_modules_available[@]}
+                               $cuda_modules_available
      --multi_gpu               Request multiple GPUs, e.g. 2 for two GPUs or complex.
                                GPU request strings.
   -F|--usescript               Use flags embedded in scripts to set SGE queuing options.
