@@ -418,13 +418,6 @@ usage ()
   fi
   qdesc=()
   length="${#queue_list[@]}"
-  longestname=0
-  for (( i=0; i<length; i++ )); do
-    if [[ ${#queue_list[$i]} -gt longestname ]]; then
-        longestname="${#queue_list[$i]}"
-    fi
-  done
-  (( longestname+=2 ))
   for (( i=0; i<length; i++ )); do
     qname="${queue_list[$i]}"
     queue_description=''
