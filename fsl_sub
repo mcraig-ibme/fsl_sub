@@ -437,8 +437,15 @@ usage ()
   else
     qdesc+=("$cuda_queue: This queue is for GPU (CUDA) tasks which last under $cuda_time_limit")
   fi
+  if is_true "$map_ram"; then
+    qdesc+=("")
+    qdesc+=("For tasks that require more memory than the limit of a queue a shared memory parallel environment will be requested with sufficient slots to run the task. You MUST provide the expected maximum RAM with the -R|--jobram option for this to operate.")
+  else
+    qdesc+=("")
+    qdesc+=("If your task requires more memory than these queue limits then you can request a shared memory parallel environment with the -S|--autoslotsbyram to allow larger jobs to run.")
+  fi
   width=$(tput cols)
-  fold -w "$width" >&2 <<USAGE_EOF
+  fold -s -w "$width" >&2 <<USAGE_EOF
 
 $this_command V$VERSION - wrapper for job control system such as SGE
 
@@ -446,7 +453,6 @@ Usage: $this_command [options] <command>
 
 $this_command gzip *.img *.hdr
 $this_command -q short.q gzip *.img *.hdr
-$this_command -a darwin regscript rawdata outputdir ...
 
   -a|--arch <arch-name>        Architecture [e.g., darwin or lx24-amd64].
   -c|--cuda                    Request a CUDA capable device.
@@ -484,6 +490,9 @@ $this_command -a darwin regscript rawdata outputdir ...
                                (<pename>) to be configured for the requested queues.
                                <threads> specifies the number of threads to run
                                e.g. '$omp_pe,2'.
+  -S|--autoslotsbyram          Use the memory requirement specified by -R|--jobram to request
+                               a parallel environment with sufficient slots to allow your job
+                               to run.
   -t|--paralleltask <filename> Specify a task file of commands to execute in parallel.
   -T|--jobtime <minutes>       Estimated job length in minutes, used to auto-set queue name
   -v|--verbose                 Verbose mode.
@@ -515,6 +524,7 @@ if [ -n "$FSLSUBVERBOSE" ] ; then
     echo "METHOD=$METHOD : args=" "$@" >&2
 fi
 
+autoslotsbyram="no"
 scriptmode=0
 cuda_job="no"
 cuda_version="$cuda_modules_default"
@@ -663,6 +673,10 @@ do
             peThreads=$(echo "$pe_string" | cut -d',' -f 2)
             shift 2
         ;;
+        -S|--autoslotsbyram)
+            autoslots="yes"
+            shift
+        ;;
         -t|--parallel-task)
             with_arguments 1 "$@"    
             taskfile="$2"
@@ -752,7 +766,11 @@ fi
 if [[ -n "$job_ram" ]]; then
     if is_true ${map_ram} || is_true ${cuda_map_ram}; then
         map_ram "$job_ram"
+    elif is_true ${autoslotsbyram}; then
+        map_ram "$job_ram"
     fi
+elif is_true ${map_ram}; then
+    echo "Warning: Requesting parallel environments for large jobs enabled but no job RAM requirement specified. Consider adding this to ensure your job completes" >&2
 fi
 
 $QCONF -sq "$queue" >/dev/null 2>&1
