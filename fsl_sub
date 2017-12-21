@@ -210,6 +210,9 @@ MailOpts="a"
 # Set this to the maximum amount of RAM available to a slot (in GB)
 slot_ram_limit="16"
 map_ram="Yes"
+ram_resource="m_mem_free"
+ram_units="G"
+ram_units_doc="GB"
 
 ###########################################################################
 # The following sets up the CUDA queue, which you will need to change to
@@ -361,7 +364,7 @@ map_ram ()
     fi
     slots=$((ram / max_ram))
     ((ram % max_ram)) && slots=$((slots + 1))
-
+    
     if [ "$slots" -gt 1 ]; then
         if [ -z "$peName" ]; then
             peName="$omp_pe"
@@ -483,9 +486,9 @@ $this_command -q short.q gzip *.img *.hdr
                                specify the time required.
   -r|--resource                Pass a Grid Engine resource request string through to the
                                job scheduler.
-  -R|--jobram <RAM>            Max total RAM to use for job (integer in GB).
+  -R|--jobram <RAM>            Max total RAM to use for job (integer in $ram_units_doc).
                                *This is very important to set if your job requires more
-                               than ${slot_ram_limit} (CPU) or ${cuda_slot_ram_limit}GB (GPU)
+                               than ${slot_ram_limit}${ram_units_doc} (CPU) or ${cuda_slot_ram_limit}${ram_units_doc} (GPU)
   -s|--parallelenv <pename>,<threads> Submit a multi-threaded task - requires a PE 
                                (<pename>) to be configured for the requested queues.
                                <threads> specifies the number of threads to run
@@ -536,6 +539,7 @@ queue=''
 debug="no"
 job_time=''
 job_ram=''
+slots=1
 validation="yes"
 if is_true "$verbose"; then
     echo "Command line is '$*'"
@@ -764,11 +768,14 @@ fi
 
 # Queue modifications based on RAM
 if [[ -n "$job_ram" ]]; then
-    if is_true ${map_ram} || is_true ${cuda_map_ram}; then
-        map_ram "$job_ram"
-    elif is_true ${autoslotsbyram}; then
-        map_ram "$job_ram"
+    if ( is_true ${map_ram} || is_true ${cuda_map_ram} ) || is_true ${autoslotsbyram}; then
+        slots=$(map_ram "$job_ram")
     fi
+    if [[ "$peThreads" -gt "$slots" ]]; then
+        slots="$peThreads"
+    fi
+    job_ram=$((ram / slots))
+    complexes+=("${ram_resource}=${job_ram}${ram_units}")
 elif is_true ${map_ram}; then
     echo "Warning: Requesting parallel environments for large jobs enabled but no job RAM requirement specified. Consider adding this to ensure your job completes" >&2
 fi
