@@ -360,7 +360,8 @@ map_ram ()
         max_ram="$slot_ram_limit"
     fi
     if [[ "$max_ram" == "-" ]]; then
-        return
+        echo "1"
+        return 0
     fi
     slots=$((ram / max_ram))
     ((ram % max_ram)) && slots=$((slots + 1))
