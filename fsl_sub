@@ -224,7 +224,7 @@ cuda_queue="gpu${cuda_qsuffix}"
 # Job time limit
 cuda_time_limit="300h"
 # Set this to maximum amount of RAM available to a slot
-cuda_slot_ram_limit="32"
+cuda_slot_ram_limit="64"
 cuda_map_ram="No"
 # Define the Univa GPU complex here
 cuda_gpu_resource="gpu"
