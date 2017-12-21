@@ -360,8 +360,7 @@ map_ram ()
         max_ram="$slot_ram_limit"
     fi
     if [[ "$max_ram" == "-" ]]; then
-        echo "1"
-        return 0
+        return
     fi
     slots=$((ram / max_ram))
     ((ram % max_ram)) && slots=$((slots + 1))
@@ -376,8 +375,7 @@ map_ram ()
             fi
         fi
     fi
-    echo "$slots"
-    
+
     if is_true "$verbose"; then
         echo "Estimated RAM was ${ram} GB, this needs ${slots}" >&2
     fi
@@ -772,7 +770,7 @@ fi
 # Queue modifications based on RAM
 if [[ -n "$job_ram" ]]; then
     if ( is_true ${map_ram} || is_true ${cuda_map_ram} ) || is_true ${autoslotsbyram}; then
-        slots=$(map_ram "$job_ram")
+        map_ram "$job_ram"
     fi
     if [[ "$peThreads" -gt "$slots" ]]; then
         slots="$peThreads"
