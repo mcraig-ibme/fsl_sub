@@ -375,6 +375,8 @@ map_ram ()
             fi
         fi
     fi
+    echo "$slots"
+    
     if is_true "$verbose"; then
         echo "Estimated RAM was ${ram} GB, this needs ${slots}" >&2
     fi
@@ -774,7 +776,7 @@ if [[ -n "$job_ram" ]]; then
     if [[ "$peThreads" -gt "$slots" ]]; then
         slots="$peThreads"
     fi
-    job_ram=$((ram / slots))
+    job_ram=$((job_ram / slots))
     complexes+=("${ram_resource}=${job_ram}${ram_units}")
 elif is_true ${map_ram}; then
     echo "Warning: Requesting parallel environments for large jobs enabled but no job RAM requirement specified. Consider adding this to ensure your job completes" >&2
