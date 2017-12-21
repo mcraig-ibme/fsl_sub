@@ -898,11 +898,6 @@ case $METHOD in
        ###########################################################################
        # Test Parallel environment options
        ###########################################################################
-    sge_args=()
-    if is_true "$COPY_ENV"; then
-        sge_args+=("$COPY_ENV_CMD")
-    fi
-
 	if [ -n "$peName" ]; then
             # Is this a configured PE?
 
@@ -933,9 +928,14 @@ case $METHOD in
 
 	    # The -w e option will result in the job failing if there are insufficient slots
         # on any of the cluster nodes
-	    sge_args+=("-pe" "$peName" "$peThreads" "-w" "e")
+	    pe_options=("-pe" "$peName" "$peThreads" "-w" "e")
 
 	fi
+
+    sge_args=()
+    if is_true "$COPY_ENV"; then
+        sge_args+=("$COPY_ENV_CMD")
+    fi
 
     if [ -n "$affinity_type" ]; then
         case "$affinity_control" in
