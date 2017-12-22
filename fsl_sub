@@ -98,9 +98,6 @@ array_contains () {
 ###########################################################################
 METHOD=SGE
 
-POSIXLY_CORRECT=${OLD_POSIXLY_CORRECT}
-export POSIXLY_CORRECT
-
 VERSION="2.0"
 #
 # Give the queue submission command name here
@@ -416,9 +413,6 @@ map_gpu_class ()
 # Don't change the following (but keep scrolling down!)
 ###########################################################################
 
-OLD_POSIXLY_CORRECT=${POSIXLY_CORRECT}
-POSIXLY_CORRECT=1
-export POSIXLY_CORRECT
 this_command=$(basename "$0")
 
 usage ()
