@@ -211,7 +211,7 @@ MailOpts="a"
 # Set this to the maximum amount of RAM available to a slot (in GB)
 slot_ram_limit="16"
 map_ram="Yes"
-ram_resource="m_mem_free"
+ram_resources=("m_mem_free" "h_vmem")
 ram_units="G"
 ram_units_doc="GB"
 # Set this to the maximum number of shared memory slots available on the cluster
@@ -270,8 +270,8 @@ if [ $cuda_uses_modules ]; then
         cuda_uses_modules="no"
         echo "Warning - no CUDA modules found, disabling selection of CUDA toolkit by shell modules." >&2
     else
-    cuda_modules_default="${cuda_modules_available[${#cuda_modules_available[@]}-1]}"
-fi
+        cuda_modules_default="${cuda_modules_available[${#cuda_modules_available[@]}-1]}"
+    fi
 fi
 # If you don't use Shell Modules make sure the libraries are available
 
@@ -791,8 +791,13 @@ if [[ -n "$job_ram" ]]; then
         echo "Unable to allocate $slots threads on this queue as required by memory request ${job_ram}${ram_units_doc} - maximum available on one system is $max_slots."
         exit "$NOT_ACHIEVABLE"
     fi
+    remainder=$((job_ram % slots))
+    add_ram=$(((remainder+slots-1)/slots))
     job_ram=$((job_ram / slots))
-    complexes+=("${ram_resource}=${job_ram}${ram_units}")
+    job_ram=$((job_ram+=add_ram))
+    for rresource in "${ram_resources[@]}"; do
+        complexes+=("${rresource}=${job_ram}${ram_units}")
+    done
 elif is_true ${map_ram}; then
     echo "Warning: Requesting parallel environments for large jobs enabled but no job RAM requirement specified. Consider adding this to ensure your job completes" >&2
 fi
