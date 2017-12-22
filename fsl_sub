@@ -215,7 +215,7 @@ ram_resources=("m_mem_free" "h_vmem")
 ram_units="G"
 ram_units_doc="GB"
 # Set this to the maximum number of shared memory slots available on the cluster
-max_slots="20"
+max_slots="16"
 
 ###########################################################################
 # The following sets up the CUDA queue, which you will need to change to
