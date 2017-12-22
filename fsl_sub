@@ -82,10 +82,10 @@ index_in_list ()
 }
 
 array_contains () {
-  local e match="$1"
-  shift
-  for e; do [[ "$e" == "$match" ]] && return 0; done
-  return 1
+    local e match="$1"
+    shift
+    for e; do [[ "$e" == "$match" ]] && return 0; done
+    return 1
 }
 
 ###########################################################################
@@ -274,13 +274,13 @@ fi
 
 #unset module
 if [ -z "$SGE_ROOT" ] ; then
-	METHOD=NONE
+    METHOD=NONE
 else
-	QCONF=$(which qconf)
-	if [ -z "$QCONF" ]; then
-		METHOD=NONE
-		echo "Warning: SGE_ROOT environment variable is set but Grid Engine software not found, will run locally" >&2
-	fi
+    QCONF=$(which qconf)
+    if [ -z "$QCONF" ]; then
+        METHOD=NONE
+        echo "Warning: SGE_ROOT environment variable is set but Grid Engine software not found, will run locally" >&2
+    fi
 fi
 
 # stop submitted scripts from submitting jobs themselves
@@ -290,7 +290,7 @@ if is_true "$FSLSUBALREADYRUN" ] ; then
 fi
 
 if [ "X$METHOD" = "XNONE" ]; then
-	QCONF=echo
+    QCONF=echo
 fi
 FSLSUBALREADYRUN=true
 export FSLSUBALREADYRUN
@@ -881,7 +881,7 @@ if [ -z "$JobName" ] ; then
     if [ -n "$taskfile" ] ; then
         JobName=$(basename "$taskfile")
     else
-	    JobName=$(basename "$the_command")
+        JobName=$(basename "$the_command")
     fi
 fi
 
@@ -894,7 +894,7 @@ if [ -n "$peName" ]; then
     # If the PE name is 'openmp' then limit the number of threads to those specified
     if [ "$peName" = "$omp_pe" ]; then
         OMP_NUM_THREADS="$peThreads"
-	    export OMP_NUM_THREADS
+        export OMP_NUM_THREADS
     fi
 fi
 
@@ -911,39 +911,39 @@ case $METHOD in
        ###########################################################################
        # Test Parallel environment options
        ###########################################################################
-	if [ -n "$peName" ]; then
+    if [ -n "$peName" ]; then
             # Is this a configured PE?
 
-	    $QCONF -sp "$peName" >/dev/null 2>&1
+        $QCONF -sp "$peName" >/dev/null 2>&1
 
-	    if [ $? -eq 1 ]; then
-		    echo "$@" >&2
-		    echo "$peName is not a valid PE" >&2
-		    exit "$INVALID_SYNTAX"
-	    fi
+        if [ $? -eq 1 ]; then
+            echo "$@" >&2
+            echo "$peName is not a valid PE" >&2
+            exit "$INVALID_SYNTAX"
+        fi
 
         # Get a list of queues configured for this PE and confirm that the queue
         # we have submitted to has that PE set up.
         error=$(qstat -g c -pe "$peName" 2>&1)
 
-	    if [ $? -eq 1 ] || [[ "$error" = "*error: no such parallel environment*" ]]; then
-		    echo "No parallel environments configured!" >&2
-		    exit "$MISS_CONFIGURED"
-	    fi
+        if [ $? -eq 1 ] || [[ "$error" = "*error: no such parallel environment*" ]]; then
+            echo "No parallel environments configured!" >&2
+            exit "$MISS_CONFIGURED"
+        fi
 
-	    qstat -g c -pe "$peName" | sed '1,2d' | awk '{ print $1 }' | grep "^$queue" >/dev/null 2>&1
+        qstat -g c -pe "$peName" | sed '1,2d' | awk '{ print $1 }' | grep "^$queue" >/dev/null 2>&1
 
         if [ $? -eq 1 ]; then
-	    	echo "$@"
-		    echo "PE $peName is not configured on $queue" >&2
-		    exit "$MISS_CONFIGURED"
-	    fi
+            echo "$@"
+            echo "PE $peName is not configured on $queue" >&2
+            exit "$MISS_CONFIGURED"
+        fi
 
-	    # The -w e option will result in the job failing if there are insufficient slots
+        # The -w e option will result in the job failing if there are insufficient slots
         # on any of the cluster nodes
-	    pe_options=("-pe" "$peName" "$peThreads" "-w" "e")
+        pe_options=("-pe" "$peName" "$peThreads" "-w" "e")
 
-	fi
+    fi
 
     sge_args=()
     if is_true "$COPY_ENV"; then
@@ -976,27 +976,27 @@ case $METHOD in
     if [ -n "$parallel_hold" ]; then
         sge_args+=("$LLJHOLD_CMD" "$parallel_hold")
     fi
-	if [ -z "$tasks" ] ; then
-	    if is_false "$scriptmode"; then
+    if [ -z "$tasks" ] ; then
+        if is_false "$scriptmode"; then
             sge_args+=("$MAILTO_CMD" "$mailto")
             if [ -n "$MailOpts" ]; then
                 sge_args+=("$MAILOPT_CMD" "$MailOpts")
             fi
             sge_args+=("$JOBNAME_CMD" "$JobName")
             sge_args+=("${pe_options[@]}")
-		    sge_args+=("-cwd" "-shell" "n" "-b" "y" "-r" "y" "$QCMD" "$queue")
-	    else
-		    sge_args+=("${pe_options[@]}")
-	    fi
+            sge_args+=("-cwd" "-shell" "n" "-b" "y" "-r" "y" "$QCMD" "$queue")
+        else
+            sge_args+=("${pe_options[@]}")
+        fi
         if is_true "$verbose" || is_true "$debug"; then 
-	    	echo "sge_args: " "${sge_args[@]}" >&2
-		    echo "executing: $QSUB " "${sge_args[@]}" "$@" >&2
-	    fi
+            echo "sge_args: " "${sge_args[@]}" >&2
+            echo "executing: $QSUB " "${sge_args[@]}" "$@" >&2
+        fi
         if is_false "$debug"; then
-    	    exec "$QSUB" "${sge_args[@]}" "$@" | awk '{print $3}'
+            exec "$QSUB" "${sge_args[@]}" "$@" | awk '{print $3}'
         fi
     else
-	    sge_args+=("-cwd" "$QCMD" "$queue")
+        sge_args+=("-cwd" "$QCMD" "$queue")
         if [ -n "$max_parallel_tasks" ]; then
             sge_args+=("$LLLIMIT" "$max_parallel_jobs")
         fi
@@ -1006,13 +1006,13 @@ case $METHOD in
             sge_args+=("$MAILOPT_CMD" "$MailOpts")
         fi
         sge_args+=("$JOBNAME_CMD" "$JobName")
-		sge_args+=("${pe_options[@]}")
-	    if is_true "$verbose" || is_true "$debug"; then 
-    		echo "sge_args: " "${sge_args[@]}" >&2
-    		echo "control file: $taskfile" >&2
-	    fi
+        sge_args+=("${pe_options[@]}")
+        if is_true "$verbose" || is_true "$debug"; then 
+            echo "sge_args: " "${sge_args[@]}" >&2
+            echo "control file: $taskfile" >&2
+        fi
         if is_false "$debug"; then
-	        exec "$QSUB" "${sge_args[@]}" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
+            exec "$QSUB" "${sge_args[@]}" <<EOF | awk '{print $3}' | awk -F. '{print $1}'
 #!/bin/sh
 
 #$ -S /bin/sh
@@ -1021,9 +1021,9 @@ the_command=\$\(sed -n -e "\${SGE_TASK_ID}p" $taskfile\$\)
 
 exec /bin/sh -c "\$the_command"
 EOF
-	    fi
+        fi
     fi
-	;;
+    ;;
 
 ###########################################################################
 # Don't change the following - this runs the commands directly if a
@@ -1031,27 +1031,27 @@ EOF
 ###########################################################################
 
     NONE)
-	if [ -z "$tasks" ] ; then
-	    if is_true "$verbose" || is_true "$debug"; then 
-		    echo "executing: " "$@" >&2
-	    fi
+    if [ -z "$tasks" ] ; then
+        if is_true "$verbose" || is_true "$debug"; then 
+            echo "executing: " "$@" >&2
+        fi
         if is_false "$debug"; then
-    	    /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
+            /bin/sh <<EOF1 > ${LogDir}${JobName}.o$$ 2> ${LogDir}${JobName}.e$$
 $@
 EOF1
-    	    ERR=$?
+            ERR=$?
 
-    	    if [ "$ERR" -ne 0 ] ; then
-	    	    cat "${LogDir}${JobName}.e$$" >&2
-		        exit $ERR
-	        fi
+            if [ "$ERR" -ne 0 ] ; then
+                cat "${LogDir}${JobName}.e$$" >&2
+                exit $ERR
+            fi
         fi
-	else
-	    if is_true "$verbose" || is_true "$debug"; then 
-		echo "Running commands in: $taskfile" >&2
-	    fi
-	    n=1
-	    while [ "$n" -le "$tasks" ] ; do
+    else
+        if is_true "$verbose" || is_true "$debug"; then 
+            echo "Running commands in: $taskfile" >&2
+        fi
+        n=1
+        while [ "$n" -le "$tasks" ] ; do
             line=$(sed -n -e ''${n}'p' "$taskfile")
             if is_true "$verbose" || is_true "$debug"; then 
                 echo executing: "$line" >&2
