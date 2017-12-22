@@ -266,7 +266,12 @@ if [ $cuda_uses_modules ]; then
     # should match the toolkit version
     available_mods=$(module -t avail $cuda_modules 2>&1 | grep -v ':' | tail -n +2 | tr -c '[:print:]' ' ')
     IFS=' ' read -r -a cuda_modules_available <<< "${available_mods//$cuda_modules\//}"
+    if [[ "${#cuda_modules_available[@]}" -eq 0 ]]; then
+        cuda_uses_modules="no"
+        echo "Warning - no CUDA modules found, disabling selection of CUDA toolkit by shell modules." >&2
+    else
     cuda_modules_default="${cuda_modules_available[${#cuda_modules_available[@]}-1]}"
+fi
 fi
 # If you don't use Shell Modules make sure the libraries are available
 
