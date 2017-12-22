@@ -365,8 +365,7 @@ map_ram ()
     if [[ "$max_ram" == "-" ]]; then
         return
     fi
-    slots=$((ram / max_ram))
-    ((ram % max_ram)) && slots=$((slots + 1))
+    slots=$(((ram+max_ram-1)/ max_ram))
     
     if [ "$slots" -gt 1 ]; then
         if [ -z "$peName" ]; then
