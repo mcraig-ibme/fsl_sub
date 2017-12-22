@@ -20,6 +20,7 @@ MISSING_FILE="69"
 NO_CUDA_VERSION="70"
 NO_EXECUTABLE="71"
 BAD_QUEUE="72"
+NOT_ACHIEVABLE="73"
 
 # Functions
 # Is variable set to yes/1/YES/y or no/0/NO/n
@@ -213,6 +214,8 @@ map_ram="Yes"
 ram_resource="m_mem_free"
 ram_units="G"
 ram_units_doc="GB"
+# Set this to the maximum number of shared memory slots available on the cluster
+max_slots="20"
 
 ###########################################################################
 # The following sets up the CUDA queue, which you will need to change to
@@ -767,6 +770,12 @@ if [ -z "$queue" ]; then
     fi
 fi
 
+# Verify we can accomodate the requested PE Slots
+if [[ -n "$peThreads" ]] && [[ "$peThreads" -gt "$max_slots" ]]; then
+    echo "Unable to allocate $peThreads threads - maximum available on one system is $max_slots."
+    exit "$NOT_ACHIEVABLE"
+fi
+
 # Queue modifications based on RAM
 if [[ -n "$job_ram" ]]; then
     if ( is_true ${map_ram} || is_true ${cuda_map_ram} ) || is_true ${autoslotsbyram}; then
@@ -774,6 +783,9 @@ if [[ -n "$job_ram" ]]; then
     fi
     if [[ "$peThreads" -gt "$slots" ]]; then
         slots="$peThreads"
+    elif [[ "$slots" -gt "$max_slots" ]]; then
+        echo "Unable to allocate $slots threads on this queue as required by memory request ${job_ram}${ram_units_doc} - maximum available on one system is $max_slots."
+        exit "$NOT_ACHIEVABLE"
     fi
     job_ram=$((job_ram / slots))
     complexes+=("${ram_resource}=${job_ram}${ram_units}")
