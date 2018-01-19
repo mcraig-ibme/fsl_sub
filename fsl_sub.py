@@ -1,18 +1,20 @@
 #!/usr/bin/env fslpython
 import argparse
-from collections import defaultdict
+import copy
 import getpass
 import importlib
-from operator import itemgetter
+import logging
 import os
 import pkgutil
-import platform
 import re
-import shlex
 import shutil
+import socket
 import subprocess
 import sys
 import yaml
+from collections import defaultdict
+from operator import itemgetter
+from math import ceil
 
 config_yaml = '''
 # Job submission method to use. Supported values are 'SGE' and 'NONE'
@@ -115,8 +117,8 @@ copro_opts:
 queues:
     gpu.q:
         time: 18000
-        max_gb: 250
-        gb_per_slot: 64
+        max_size: 250
+        slot_size: 64
         max_slots: 20
         copros:
             cuda:
@@ -133,8 +135,8 @@ queues:
         default: true
     short.qf,short.qe,short.qc:
         time: 1440
-        max_gb: 160
-        gb_per_slot: 4
+        max_size: 160
+        slot_size: 4
         max_slots: 16
         map_ram: true
         parallel_envs:
@@ -144,8 +146,8 @@ queues:
         default: true
     short.qe,short.qc:
         time: 1440
-        max_gb: 240
-        gb_per_slot: 16
+        max_size: 240
+        slot_size: 16
         max_slots: 16
         map_ram: true
         parallel_envs:
@@ -155,8 +157,8 @@ queues:
         default: true
     short.qc:
         time: 1440
-        max_gb: 368
-        gb_per_slot: 16
+        max_size: 368
+        slot_size: 16
         max_slots: 24
         map_ram: true
         parallel_envs:
@@ -166,8 +168,8 @@ queues:
         default: true
     long.qf,long.qe,long.qc:
         time: 10080
-        max_gb: 160
-        gb_per_slot: 4
+        max_size: 160
+        slot_size: 4
         max_slots: 16
         map_ram: true
         parallel_envs:
@@ -176,8 +178,8 @@ queues:
         group: 2
     long.qe,long.qc:
         time: 10080
-        max_gb: 240
-        gb_per_slot: 16
+        max_size: 240
+        slot_size: 16
         max_slots: 16
         map_ram: true
         parallel_envs:
@@ -186,8 +188,8 @@ queues:
         group: 2
     long.qc:
         time: 10080
-        max_gb: 368
-        gb_per_slot: 16
+        max_size: 368
+        slot_size: 16
         max_slots: 24
         map_ram: true
         parallel_envs:
@@ -206,12 +208,18 @@ default_queues:
 
 VERSION = '2.0'
 
-if __name__ == "__main__":
-    main()
-
 
 class ArgumentError(Exception):
     pass
+
+
+def memoize(f, cache={}):
+    def g(*args, **kwargs):
+        key = (f, tuple(args), frozenset(kwargs.items()))
+        if key not in cache:
+            cache[key] = f(*args, **kwargs)
+        return cache[key]
+    return g
 
 
 @memoize
@@ -258,7 +266,7 @@ def copro_classes(config, coprocessor):
         if 'copros' in q:
             try:
                 for c in q['copros'][coprocessor]['classes']:
-                    classes[c] = copro_opts[c][capability]
+                    classes[c] = copro_opts[c]['capability']
             except KeyError:
                 continue
     return sorted(classes, key=classes.get)
@@ -277,6 +285,20 @@ def parallel_envs(queues):
     return list(set(ll_envs))
 
 
+def coprocessor_toolkits(config)
+    '''Return list of coprocessor toolkit versions.'''
+    versions = []
+    copro_opts = config['copro_opts'][coprocessor]
+    for q in config['queues']:
+        if 'copros' in q:
+            try:
+                for c in q['copros'][coprocessor]['classes']:
+                    classes[c] = copro_opts[c]['capability']
+            except KeyError:
+                continue
+    return sorted(classes, key=classes.get)
+
+
 def build_parser(config):
     '''Parse the command line, returns a dict keyed on option'''
 
@@ -284,7 +306,8 @@ def build_parser(config):
     max_coprocessors = {c: max_coprocessors(c) for c in available_coprocessors}
     coprocessor_classes = {
         c: copro_classes(config, c) for c in available_coprocessors}
-    parallel_envs = parallel_envs(config['queues'])
+    coprocessor_toolkit = coprocessor_toolkits(config)
+    ll_envs = parallel_envs(config['queues'])
 
     # Build the epilog...
     epilog = []
@@ -296,7 +319,7 @@ There are several batch queues configured on the cluster:
         '''
         for qname, q in config.queues.items():
             epilog += (
-                "{qname}: {timelimit} max run time; {q[gb_per_slot]}GB "
+                "{qname}: {timelimit} max run time; {q[slot_size]}GB "
                 "per slot; {q[maxram]}GB total".format(
                     qname=qname,
                     timelimit=minutes_to_human(q['time']),
@@ -393,7 +416,7 @@ There are several batch queues configured on the cluster:
     copro_g.add_argument(
         '--coprocessor_toolkit',
         default=None,
-        choices=coprocessor_toolkits,
+        choices=coprocessor_toolkit,
         help="Request a specific version of the co-processor software "
         "tools. Will default to the latest version available. "
         "If you wish to use the toolkit defined in your current "
@@ -496,7 +519,7 @@ There are several batch queues configured on the cluster:
             "parallel environment (<pename>) to be configured on the "
             "requested queues. <threads> specifies the number of "
             "threads/hosts required. e.g. '{pe_name},2'.".format(
-                pe_name=parallel_envs[0])
+                pe_name=ll_envs[0])
         )
     if mconf['map_ram']:
         parser.add_argument(
@@ -507,7 +530,7 @@ There are several batch queues configured on the cluster:
         )
     array_g.add_argument(
         '-t', '--paralleltask',
-        default=None,
+        type=argparse.FileType('r'),
         help="Specify a task file of commands to execute in parallel."
     )
     parser.add_argument(
@@ -602,16 +625,16 @@ def main():
     cmd_parser = build_parser(config)
     options = vars(cmd_parser.parse_args())
 
-    if options['taskfile']:
+    if options['paralleltask']:
         command = ''
-        check_command_file(options['taskfile'])
-        options['parallel_task'] = True
-        task_name = os.path.basename(options['taskfile'])
+        check_command_file(options['paralleltask'])
+        options['paralleltask'].close()
+        options['paralleltask'] = options['paralleltask'].name
+        task_name = os.path.basename(options['paralleltask'])
 
     if options['args']:
         command = options['args'][0]
         check_command(command)
-        options['parallel_task'] = False
         task_name = os.path.basename(command)
 
     if options['jobname']:
@@ -622,35 +645,45 @@ def main():
     if options['pe']:
         options['pes'] = process_pe_def(options['pe'], config['queues'])
 
-    logger.info(
-        "METHOD={0} : args={1}".format(
-            config['method'],
-            " ".join(commands)
-        ))
+    if options['args']:
+        logger.info(
+            "METHOD={0} : args={1}".format(
+                config['method'],
+                " ".join(options['args'])
+            ))
+    else:
+        logger.info(
+            "METHOD={0} : parallel task file={1}".format(
+                config['method'],
+                options['paralleltask'])
+            )
 
-    if options.coprocs:
-        # options.coprocs should be a list of tuples
-        #  (coprocessor name, module version, coprocessor class)
-        # or sub-set thereof
-        coprocessors = parse_coprocessors(
-            options.coprocs,
-            config['copro_opts'])
+    coprocessor = {
+        'name': options['coprocessor'],
+        'class': options['coprocessor_class'],
+        'toolkit': options['coprocessor_toolkit'],
+        'multi': options['coprocessor_multi'],
+    }
 
-    queue = getq(
-            job_time=options.jobtime,
-            job_ram=options.jobram,
-            job_threads=options.threads,
-            queues=config['queues'],
-            coprocessors=coprocessors)
+    if options['queue'] is None:
+        options['queue'] = getq(
+                job_time=options.jobtime,
+                job_ram=options.jobram,
+                job_threads=options.threads,
+                queues=config['queues'],
+                coprocessor=coprocessor)
 
-    if not queue:
-        failed("Unable to find a queue with these parameters")
-    if not queue_exists(queue, config['qtest']):
-        failed("Invalid queue name specified!")
+        if options['queue'] is None:
+            cmd_parser.error("Unable to find a queue with these parameters")
 
-    job_ram = split_ram_by_slots(job_ram, queue['slots_required'])
+    if not queue_exists(options['queue'], config['qtest']):
+        cmd_parser.error("Invalid queue name specified!")
 
-    submit_job(config)
+    options['jobram'] = split_ram_by_slots(
+        options['job_ram'],
+        options['queue']['slots_required'])
+
+    submit(config, options)
 
 
 def process_pe_def(pe_list, queues):
@@ -679,14 +712,13 @@ def check_command(cmd):
 
 
 def check_command_file(cmd_file):
-    with open(cmd_file, 'r') as cmds:
-        for line, lineno in enumerate(cmds.readlines()):
-            try:
-                check_command(line[0])
-            except ArgumentError:
-                raise ArgumentError(
-                    "Cannot find script/binary {0} on line {1}"
-                    "of {2}".format(line[0], lineno, cmd_file))
+    for line, lineno in enumerate(cmd_file.readlines()):
+        try:
+            check_command(line[0])
+        except ArgumentError:
+            raise ArgumentError(
+                "Cannot find script/binary {0} on line {1}"
+                "of {2}".format(line[0], lineno, cmd_file.name))
 
 
 class BadCoprocessor(Exception):
@@ -750,7 +782,7 @@ def queue_exists(qname, qtest):
 
 
 def split_ram_by_slots(jram, jslots):
-    return int(ceil(jram / jslots))    
+    return int(ceil(jram / jslots))
 
 
 def affirmative(astring):
@@ -786,7 +818,7 @@ def system_stdout(
 
 def system(
         command, shell=False, cwd=None, timeout=None, check=True):
-    result = subprocess.run(
+    subprocess.run(
             command,
             stderr=subprocess.PIPE,
             shell=shell, cwd=cwd, timeout=timeout,
@@ -799,15 +831,6 @@ class LoadModuleError(Exception):
 
 class NoModule(Exception):
     pass
-
-
-def memoize(f, cache={}):
-    def g(*args, **kwargs):
-        key = (f, tuple(args), frozenset(kwargs.items()))
-        if key not in cache:
-            cache[key] = f(*args, **kwargs)
-        return cache[key]
-    return g
 
 
 @memoize
@@ -847,7 +870,7 @@ def load_module(module_name):
     '''Load a module into the environment of this python process.'''
     environment = module_add(module_name)
     if environment:
-        for k, v in enviroment.items():
+        for k, v in environment.items():
             os.environ[k] = v
         return True
     else:
@@ -955,21 +978,22 @@ def find_qconf():
     return shutil.which('qconf')
 
 
-def getq(queues, job_time=None, job_ram=None, job_threads=1, coprocessors=None):
+def getq(queues, job_time=None, job_ram=None,
+         job_threads=1, coprocessor=None):
     '''Calculate which queue to run the job on
     Still needs job splitting across slots'''
     logger = logging.getLogger('__name__')
 
     if job_time is None:
         queue_list = [
-            q for q in queue_list if 'default' in q and q['default']]
+            q for q in queues if 'default' in q and q['default']]
     else:
         queue_list = copy.deepcopy(queues)
 
-    if coprocessors:
+    if coprocessor:
         queue_list = [
             q for q in queue_list if 'copros' in q and
-            coprocessor in q['copros']]
+            coprocessor['name'] in q['copros']]
 
     # For each queue calculate how many slots would be necessary...
     def calc_slots(job_ram, slot_size, job_threads):
@@ -978,17 +1002,17 @@ def getq(queues, job_time=None, job_ram=None, job_threads=1, coprocessors=None):
         else:
             return max(int(ceil(job_ram / slot_size)), job_threads)
 
-    queue_list = [dict(
-            item, slots_required=calc_slots(job_ram, slot_size)
-            ) for item in queue_list]
+    for queue in queue_list:
+        queue_list[queue]['slots_required'] = calc_slots(
+            job_ram, queue['slot_size'], job_threads)
 
     sql = sorted(
         queue_list,
         key=itemgetter('group', 'priority', 'slots_required'))
 
     ql = [
-        q['name'] for q in sql if q['time'] >= t and
-        q['memory'] >= m and
+        q['name'] for q in sql if q['time'] >= job_time and
+        q['memory'] >= job_ram and
         q['max_slots'] <= job_threads]
 
     logger.info(
@@ -996,7 +1020,11 @@ def getq(queues, job_time=None, job_ram=None, job_threads=1, coprocessors=None):
             job_ram, job_time
         ))
     if coprocessor:
-        logger.info("Co-processor {} was requested".format(coprocessor)
+        logger.info("Co-processor {} was requested".format(coprocessor))
     logger.info(
         "Appropriate queue is {}".format(ql[0]))
     return ql[0]
+
+
+if __name__ == "__main__":
+    main()
