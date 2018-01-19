@@ -38,6 +38,8 @@ method_opts:
         #   threads - set to number of threads required
         #   slots - let GE sort it out automatically (not Univa Grid Engine)
         affinity_control: threads
+        # Enable Emailing end-user about job status
+        mail_support: True
         # When to email user:
         #   a - on abort
         mail_mode: a
@@ -49,6 +51,16 @@ method_opts:
             - h_vmem
         # Units for RAM given....?????
         ram_units: G
+        # Supports job priority setting?
+        job_priorities: True
+        # Supports parallel holds?
+        parallel_holds: True
+        # Supports parallel job limits?
+        parallel_limit: True
+        # Enable architecture selection?
+        architecture: False
+        # Supports job resources?
+        job_resources: True
 # The following defines configuration options for co-processor queues
 # Define queues with a copro key set to the name of the appropriate option
 # set and ensure that your queue method has a way of interpreting this
@@ -67,8 +79,12 @@ copro_opts:
         # text
         class_types:
             G
+                # Queue resource to request
                 resource: TitanX
+                # Documentation about this hardware
                 doc: TitanX. No-ECC, single-precision workloads
+                # Capability level for this hardware, integer value that
+                # allows differentiation between hardware models.
                 capability: 1
             K
                 resource: k80
@@ -76,12 +92,17 @@ copro_opts:
                 capability: 2
             P
                 resource: v100
-                doc: Pascal. ECC, double-, single- and half-precision workloads
+                doc: >
+                    Pascal. ECC, double-, single- and half-precision
+                    workloads
                 capability: 3
             V
                 resource: v100
-                doc: Volta. ECC, double-, single-, half- and quarter-precision workloads"
+                doc: >
+                    Volta. ECC, double-, single-, half-
+                    and quarter-precision workloads
                 capability: 4
+        # If a class is not specified, which class should we use?
         default_class: K
         # Should we also allow running on more capable hardware?
         include_more_capable: True
@@ -229,21 +250,41 @@ def max_coprocessors(config, coprocessor):
 
 @memoize
 def copro_classes(config, coprocessor):
-    '''Return whether a coprocessor supports multiple classes of hardware'''
+    '''Return whether a coprocessor supports multiple classes of hardware.
+    Classes are sorted by capability'''
     classes = defaultdict(lambda: 1)
+    copro_opts = config['copro_opts'][coprocessor]
     for q in config['queues']:
         if 'copros' in q:
             try:
                 for c in q['copros'][coprocessor]['classes']:
-                    classes[c] += 1
+                    classes[c] = copro_opts[c][capability]
             except KeyError:
                 continue
-    return clases.keys()
+    return sorted(classes, key=classes.get)
 
 
-def parse_arguments(config):
+@memoize
+def parallel_envs(queues):
+    '''Return the list of configured parallel environments
+    in the supplied queue definition dict'''
+    ll_envs = []
+    for q in queues:
+        try:
+            ll_envs.extend(q['parallel_envs'])
+        except KeyError:
+            pass
+    return list(set(ll_envs))
+
+
+def build_parser(config):
+    '''Parse the command line, returns a dict keyed on option'''
+
     available_coprocessors = list_coprocessors(config)
     max_coprocessors = {c: max_coprocessors(c) for c in available_coprocessors}
+    coprocessor_classes = {
+        c: copro_classes(config, c) for c in available_coprocessors}
+    parallel_envs = parallel_envs(config['queues'])
 
     # Build the epilog...
     epilog = []
@@ -276,7 +317,7 @@ There are several batch queues configured on the cluster:
                 epilog += (
                     padding + "Supports splitting into multiple slots."
                 )
-
+    mconf = config[config['method']]
     if available_coprocessors:
         cp_versions = []
         for cp in available_coprocessors:
@@ -315,24 +356,57 @@ There are several batch queues configured on the cluster:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='FSL cluster submission.',
         epilog=epilog)
-    parser.add_argument(
-        '-a', '--arch',
-        action='append',
-        default=None,
-        help="Architecture [e.g., lx-amd64].")
-    parser.add_argument(
+    job_mutex = parser.add_mutually_exclusive_group(required=True)
+    advanced_g = parser.add_argument_group(
+        'Advanced',
+        'Advanced queueing options not typically required.')
+    if mconf['mail_support']:
+        email_g = parser.add_argument_group(
+            'Emailing',
+            'Email notification options.')
+    copro_g = parser.add_argument_group(
+        'Co-processors',
+        'Options for requesting co-processors, e.g. GPUs')
+    array_g = job_mutex.add_argument_group(
+        'Array Tasks',
+        'Options for sumitting and controlling array tasks.'
+    )
+    if mconf['architecture']:
+        advanced_g.add_argument(
+            '-a', '--arch',
+            action='append',
+            default=None,
+            help="Architecture [e.g., lx-amd64].")
+    copro_g.add_argument(
         '-c', '--coprocessor',
         action='append',
-        help="Request a co-processor, expects a comma separated list "
-        "of coprocessor name, hardware type, software version, number/"
-        "layout of coprocessors required (see your cluster documentation)."
-        " e.g. cuda,K,9.0,2. Any one of the last three arguments may be "
-        "omitted.")
-    parser.add_argument(
-        '--coprocessor_varient',
+        choices=available_coprocessors,
+        help="Request a co-processor, further details below.")
+    copro_g.add_argument(
+        '--coprocessor_class',
         default=None,
+        choices=coprocessor_classes,
+        help="Request a specific co-processor hardware class. "
+        "Details of which classes are available for each co-processor "
+        "are below."
     )
-    parser.add_argument(
+    copro_g.add_argument(
+        '--coprocessor_toolkit',
+        default=None,
+        choices=coprocessor_toolkits,
+        help="Request a specific version of the co-processor software "
+        "tools. Will default to the latest version available. "
+        "If you wish to use the toolkit defined in your current "
+        " environment, give the value '-1' to this argument."
+    )
+    copro_g.add_argument(
+        '--coprocessor_multi',
+        default=None,
+        help="Request multiple co-processors for a job. This make take "
+        "the form of simple number to a complex definition of devices. "
+        "See your cluster documentation for details."
+    )
+    advanced_g.add_argument(
         '-F', '--usescript',
         action='store_false',
         help="Use flags embedded in scripts to set queuing options."
@@ -343,31 +417,34 @@ There are several batch queues configured on the cluster:
         help="Place a hold on this task until specified job id has "
         "completed."
     )
-    parser.add_argument(
-        '--parallelhold',
-        default=None,
-        help="Place a parallel hold on the specified array task. Each"
-        "sub-task is held until the equivalent sub-task in the"
-        "parent array task completes."
-    )
+    if mconf['parallel_holds']:
+        array_g.add_argument(
+            '--parallelhold',
+            default=None,
+            help="Place a parallel hold on the specified array task. Each"
+            "sub-task is held until the equivalent sub-task in the"
+            "parent array task completes."
+        )
     parser.add_argument(
         '-l', '--logdir',
         default=os.getcwd(),
         help="Where to output logfiles."
     )
-    parser.add_argument(
-        '-m', '--mailoptions',
-        default=None,
-        help="Specify job mail options, see your queuing software for details."
-    )
-    parser.add_argument(
-        '-M', '--mailto',
-        default="{username}@{hostname}.".format(
-                    username=getpass.getuser(),
-                    hostname=socket.gethostname()
-                ),
-        help="Who to email."
-    )
+    if mconf['mail_support']:
+        email_g.add_argument(
+            '-m', '--mailoptions',
+            default=None,
+            help="Specify job mail options, see your queuing software for "
+            "details."
+        )
+        email_g.add_argument(
+            '-M', '--mailto',
+            default="{username}@{hostname}.".format(
+                        username=getpass.getuser(),
+                        hostname=socket.gethostname()
+                    ),
+            help="Who to email."
+        )
     parser.add_argument(
         '-n', '--novalidation',
         action='store_false',
@@ -381,25 +458,27 @@ There are several batch queues configured on the cluster:
         help="Specify jobname as it will appear on queue. If not specified "
         "then the job name will be the name of the script/binary submitted."
     )
-    parser.add_argument(
-        '-p', '--priority',
-        default=0,
-        choices=range(0, -1024),
-        help="Specify a lower job priority (where supported)."
-        "Takes a negative integer."
-    )
+    if mconf['job_priorities']:
+        advanced_g.add_argument(
+            '-p', '--priority',
+            default=0,
+            choices=range(0, -1024),
+            help="Specify a lower job priority (where supported)."
+            "Takes a negative integer."
+        )
     parser.add_argument(
         '-q', '--queue',
         default=None,
         help="Select a particular queue - see below for details. "
         "Instead of choosing a queue try to specify the time required."
     )
-    parser.add_arguemt(
-        '-r', '--resource',
-        default=None,
-        help="Pass a resource request string through to the job scheduler. "
-        "See your scheduler's instructions for details"
-    )
+    if mconf['job_resources']:
+        advanced_g.add_arguemt(
+            '-r', '--resource',
+            default=None,
+            help="Pass a resource request string through to the job "
+            "scheduler. See your scheduler's instructions for details"
+        )
     parser.add_argument(
         '-R', '--jobram',
         default=None,
@@ -408,24 +487,25 @@ There are several batch queues configured on the cluster:
         "than the queue slot memory limit as then you job can be "
         "split over multiple slots automatically - see autoslotsbyram."
     )
-    parser.add_argument(
-        '-s', '--parallelenv',
-        default=None,
-        help="Takes a comma-separated argument <pename>,<threads>."
-        "Submit a multi-threaded (or resource) task - requires a "
-        "parallel environment (<pename>) to be configured on the "
-        "requested queues. <threads> specifies the number of "
-        "threads/hosts required. e.g. '{pe_name},2'.".format(
-            pe_name=config['parallel_envs'][0])
-    )
-    parser.add_argument(
-        '-S', '--autoslotsbyram',
-        action='store_true',
-        help="Use the memory requirement specified by -R|--jobram to "
-        "request a parallel environment with sufficient slots to allow "
-        "your job to run."
-    )
-    parser.add_argument(
+    if parallel_envs:
+        advanced_g.add_argument(
+            '-s', '--parallelenv',
+            default=None,
+            help="Takes a comma-separated argument <pename>,<threads>."
+            "Submit a multi-threaded (or resource) task - requires a "
+            "parallel environment (<pename>) to be configured on the "
+            "requested queues. <threads> specifies the number of "
+            "threads/hosts required. e.g. '{pe_name},2'.".format(
+                pe_name=parallel_envs[0])
+        )
+    if mconf['map_ram']:
+        parser.add_argument(
+            '-S', '--noautoslotsbyram',
+            action='store_true',
+            help="Disable the automatic requesting of a parallel "
+            "environment with sufficient slots to allow your job to run."
+        )
+    array_g.add_argument(
         '-t', '--paralleltask',
         default=None,
         help="Specify a task file of commands to execute in parallel."
@@ -446,19 +526,21 @@ There are several batch queues configured on the cluster:
         action='version',
         version='%(prog)s ' + VERSION
     )
-    parser.add_argument(
-        '-x', '--parallellimit',
-        default=None,
-        help="Specify the maximum number of parallel job sub-tasks to run "
-        "concurrently."
-    )
+    if mconf['parallellimit']:
+        advanced_g.add_argument(
+            '-x', '--parallellimit',
+            default=None,
+            help="Specify the maximum number of parallel job sub-tasks to run "
+            "concurrently."
+        )
     parser.add_argument(
         '-z', '--fileisimage',
         default=None,
         metavar='file',
         help="If the <file> file already exists, do nothing and exit."
     )
-    parser.add_argument('args', nargs=argparse.REMAINDER)
+    job_mutex.add_argument('args', nargs=argparse.REMAINDER)
+    return parser
 
 
 def minutes_to_human(minutes):
@@ -467,6 +549,7 @@ def minutes_to_human(minutes):
     if minutes < 60 * 24:
         return "{:.1f}h".format(minutes/60)
     return "{:.1f}d".format(minutes/(60 * 24))
+
 
 class PluginError(Exception):
     pass
@@ -507,55 +590,37 @@ def main():
             "Failed to load plugin " + grid_module
         )
 
-    if config['method'] == 'SGE':
-        config['qtest'] = find_conf()
-        if config['qtest'] is None:
-            config['method'] == 'None'
-            print(
-                'Warning: fsl_sub configured for Grid Engine but Grid'
-                ' Engine software not found.',
-                file=sys.stderr
-            )
+    config['qtest'] = qfind()
+    if config['qtest'] is None:
+        config['method'] == 'None'
+        print(
+            'Warning: fsl_sub configured for {0} but {0}'
+            ' software not found.'.format(config['method']),
+            file=sys.stderr
+        )
 
-    
+    cmd_parser = build_parser(config)
+    options = vars(cmd_parser.parse_args())
 
-    options, commands = parse_arguments(sys.argv)
-    calc_opts = {}
+    if options['taskfile']:
+        command = ''
+        check_command_file(options['taskfile'])
+        options['parallel_task'] = True
+        task_name = os.path.basename(options['taskfile'])
 
-    if not commands and not options.taskfile:
-        usage()
+    if options['args']:
+        command = options['args'][0]
+        check_command(command)
+        options['parallel_task'] = False
+        task_name = os.path.basename(command)
 
-    if options.taskfile and commands:
-        raise ArgumentError("Can't submit both parallel and serial tasks")
-
-    if options.taskfile:
-        check_command_file(options.taskfile)
-        calc_opts['parallel_task'] = True
-        task_name = os.path.basename(options.taskfile)
-
-    if commands:
-        check_command(commands[0])
-        calc_opts['parallel_task'] = False
-        task_name = os.path.basename(commands[0])
-        if options.parallel_hold:
-            raise ArgumentError(
-                "Cannot apply a parallel job hold on a non-array task")
-
-    if options.jobname:
-        calc_opts['job_name'] = options.jobname
+    if options['jobname']:
+        options['job_name'] = options['jobname']
     else:
-        calc_opts['job_name'] = task_name
+        options['job_name'] = task_name
 
-    if options.pe:
-        calc_opts['pes'] = []
-        for pe in options.pe:
-            try:
-                (pe_name, pe_slots) = pe.split(',')
-                calc_opts['pes'].append((pe_name, pe_slots))
-            except ValueError:
-                raise ArgumentError(
-                    "Parallel environment must be name, slots"
-                )
+    if options['pe']:
+        options['pes'] = process_pe_def(options['pe'], config['queues'])
 
     logger.info(
         "METHOD={0} : args={1}".format(
@@ -588,6 +653,26 @@ def main():
     submit_job(config)
 
 
+def process_pe_def(pe_list, queues):
+    '''Convert specified pe,slots list into list of tuples'''
+    pe_req = []
+    pes_defined = parallel_envs(queues)
+    for pe_def in pe_list:
+        try:
+            (pe_name, pe_slots) = pe_def.split(',')
+        except ValueError:
+            raise ArgumentError(
+                "Parallel environment must be name,slots"
+            )
+        if pe_name not in pes_defined:
+            raise ArgumentError(
+                "Parallel environment name {} "
+                "not recognised".format(pe_name)
+            )
+        pe_req.append({'name': pe_name, 'slots': pe_slots})
+    return pe_req
+
+
 def check_command(cmd):
     if shutil.which(cmd) is None:
         raise ArgumentError("Cannot find script/binary " + cmd)
@@ -598,9 +683,10 @@ def check_command_file(cmd_file):
         for line, lineno in enumerate(cmds.readlines()):
             try:
                 check_command(line[0])
-            except ArgumentError(
-                "Cannot find script/binary {0} on line {1}"
-                "of {2}".format(line[0], lineno, cmd_file))
+            except ArgumentError:
+                raise ArgumentError(
+                    "Cannot find script/binary {0} on line {1}"
+                    "of {2}".format(line[0], lineno, cmd_file))
 
 
 class BadCoprocessor(Exception):
