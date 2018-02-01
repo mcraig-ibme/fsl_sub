@@ -13,6 +13,7 @@ import subprocess
 import sys
 import yaml
 from collections import defaultdict
+from functools import lru_cache
 from operator import itemgetter
 from math import ceil
 
@@ -20,21 +21,35 @@ config_yaml = '''
 # Job submission method to use. Supported values are 'SGE' and 'NONE'
 method: SGE
 
-# Job submission options
-submission_cmd: qsub
-
 # List all parallel environments configured on your cluster here
 parallel_envs:
     - shmem
 # List all shared memory (must run on same node) PEs here
 same_node_pes:
     - shmem
+large_job_split_pe:
+    - shmem
 
+# List all environment variables that control thread usage
+# will set these to parallel environment threads
+thread_control:
+    - OMP_THREADS
+    - MKL_NUM_THREADS
+    - MKL_DOMAIN_NUM_THREADS
+    - OPENBLAS_NUM_THREADS
+    - GOTO_NUM_THREADS
 method_opts:
+    None:
+        map_ram: False
+        job_priorities: True
+        parallel_holds: False
+        parallel_limit: False
+        job_resources: False
     SGE:
         # Replicate user's shell environment to running job
         copy_environment: True
-        # Method used to bind to CPUs
+        # Method used to bind to CPUs - set to None to disable
+        # Supported options, linear and slots
         affinity_type: linear
         # How to configure this affinity options are:
         #   threads - set to number of threads required
@@ -213,16 +228,7 @@ class ArgumentError(Exception):
     pass
 
 
-def memoize(f, cache={}):
-    def g(*args, **kwargs):
-        key = (f, tuple(args), frozenset(kwargs.items()))
-        if key not in cache:
-            cache[key] = f(*args, **kwargs)
-        return cache[key]
-    return g
-
-
-@memoize
+@lru_cache
 def list_coprocessors(config):
     '''Return a list of coprocessors found in the queue definitions'''
 
@@ -237,7 +243,7 @@ def list_coprocessors(config):
     return avail_cops
 
 
-@memoize
+@lru_cache
 def max_coprocessors(config, coprocessor):
     '''Return the maximum number of coprocessors per node from the
     queue definitions'''
@@ -256,7 +262,7 @@ def max_coprocessors(config, coprocessor):
     return num_cops
 
 
-@memoize
+@lru_cache
 def copro_classes(config, coprocessor):
     '''Return whether a coprocessor supports multiple classes of hardware.
     Classes are sorted by capability'''
@@ -272,7 +278,7 @@ def copro_classes(config, coprocessor):
     return sorted(classes, key=classes.get)
 
 
-@memoize
+@lru_cache
 def parallel_envs(queues):
     '''Return the list of configured parallel environments
     in the supplied queue definition dict'''
@@ -285,9 +291,8 @@ def parallel_envs(queues):
     return list(set(ll_envs))
 
 
-def coprocessor_toolkits(config)
+def coprocessor_toolkits(config):
     '''Return list of coprocessor toolkit versions.'''
-    versions = []
     copro_opts = config['copro_opts'][coprocessor]
     for q in config['queues']:
         if 'copros' in q:
@@ -297,6 +302,124 @@ def coprocessor_toolkits(config)
             except KeyError:
                 continue
     return sorted(classes, key=classes.get)
+
+
+class LoadModuleError(Exception):
+    pass
+
+
+class NoModule(Exception):
+    pass
+
+
+@lru_cache
+def find_module_cmd():
+    '''Locate the 'modulecmd' binary'''
+    return shutil.which('modulecmd')
+
+
+def read_module_environment(lines):
+    '''Given output of modulecmd python add ... convert this to a dict'''
+    module_env = {}
+    regex = re.compile(r"os.environ\['(?P<variable>.*)'\] = '(?P<value>.*)'$")
+    for line in lines:
+        matches = regex.match(line.strip())
+        if matches:
+            module_env[matches.group('variable')] = matches.group('value')
+    return module_env
+
+
+def module_add(module_name):
+    '''Returns a dict of variable: value describing the environment variables
+    necessary to load a shell module into the current environment'''
+    module_cmd = find_module_cmd()
+
+    if module_cmd:
+        try:
+            environment = system_stdout(
+                (module_cmd, "python", "add", module_name, ), shell=True)  
+        except subprocess.CalledProcessError as e:
+            raise LoadModuleError from e
+        return read_module_environment(environment)
+    else:
+        return False
+
+
+def load_module(module_name):
+    '''Load a module into the environment of this python process.'''
+    environment = module_add(module_name)
+    if environment:
+        for k, v in environment.items():
+            os.environ[k] = v
+        return True
+    else:
+        return False
+
+
+def unload_module(module_name):
+    '''Remove environment variables associated with module module_name
+     from the environment of python process.'''
+    environment = module_add(module_name)
+    if environment:
+        for k in environment:
+            del os.environ[k]
+        return True
+    else:
+        return False
+
+
+def loaded_modules():
+    '''Get list of loaded ShellModules'''
+    # Modules stored in environment variable LOADEDMODULES
+    try:
+        modules_string = os.environ['LOADEDMODULES']
+    except KeyError:
+        return ()
+    return modules_string.split(':')
+
+
+@lru_cache
+def get_modules(module_parent):
+    '''Returns a list of available Shell Modules that setup the
+    co-processor environment'''
+
+    modules = []
+    try:
+        available_modules = system_stdout(
+            ["module", "-t", "avail", module_parent],
+            shell=True)
+        for line in available_modules:
+            line = line.strip()
+            if ':' in line:
+                continue
+            if '/' in line:
+                modules += line.split('/')[1]
+            else:
+                modules += None
+    except subprocess.CalledProcessError as e:
+        raise NoModule(module_parent)
+    return modules
+
+
+def latest_module(module_parent):
+    '''Return the module string that would load the latest version of a module.
+    Returns False if module is determined to be not versioned and raises
+    NoModule if module is not found.'''
+    try:
+        modules = get_modules(module_parent)
+        if modules is None:
+            return False
+        else:
+            return modules[-1]
+    except NoModule as e:
+        raise
+
+
+def module_string(module_parent, module_version):
+    if module_version:
+        return "/".join((module_parent, module_version))
+    else:
+        return module_parent
 
 
 def build_parser(config):
@@ -403,6 +526,7 @@ There are several batch queues configured on the cluster:
     copro_g.add_argument(
         '-c', '--coprocessor',
         action='append',
+        default=None,
         choices=available_coprocessors,
         help="Request a co-processor, further details below.")
     copro_g.add_argument(
@@ -431,8 +555,9 @@ There are several batch queues configured on the cluster:
     )
     advanced_g.add_argument(
         '-F', '--usescript',
-        action='store_false',
-        help="Use flags embedded in scripts to set queuing options."
+        action='store_true',
+        help="Use flags embedded in scripts to set queuing options - "
+        "all other options ignored."
     )
     parser.add_argument(
         '-j', '--jobhold',
@@ -440,14 +565,13 @@ There are several batch queues configured on the cluster:
         help="Place a hold on this task until specified job id has "
         "completed."
     )
-    if mconf['parallel_holds']:
-        array_g.add_argument(
-            '--parallelhold',
-            default=None,
-            help="Place a parallel hold on the specified array task. Each"
-            "sub-task is held until the equivalent sub-task in the"
-            "parent array task completes."
-        )
+    array_g.add_argument(
+        '--parallel_hold',
+        default=None,
+        help="Place a parallel hold on the specified array task. Each"
+        "sub-task is held until the equivalent sub-task in the"
+        "parent array task completes."
+    )
     parser.add_argument(
         '-l', '--logdir',
         default=os.getcwd(),
@@ -470,7 +594,7 @@ There are several batch queues configured on the cluster:
         )
     parser.add_argument(
         '-n', '--novalidation',
-        action='store_false',
+        action='store_true',
         help="Don't check for presence of script/binary in your search"
         "path (use where the software is only available on the "
         "compute node)."
@@ -481,27 +605,26 @@ There are several batch queues configured on the cluster:
         help="Specify jobname as it will appear on queue. If not specified "
         "then the job name will be the name of the script/binary submitted."
     )
-    if mconf['job_priorities']:
-        advanced_g.add_argument(
-            '-p', '--priority',
-            default=0,
-            choices=range(0, -1024),
-            help="Specify a lower job priority (where supported)."
-            "Takes a negative integer."
-        )
+    advanced_g.add_argument(
+        '-p', '--priority',
+        default=0,
+        choices=range(0, -1024),
+        help="Specify a lower job priority (where supported)."
+        "Takes a negative integer."
+    )
     parser.add_argument(
         '-q', '--queue',
         default=None,
         help="Select a particular queue - see below for details. "
         "Instead of choosing a queue try to specify the time required."
     )
-    if mconf['job_resources']:
-        advanced_g.add_arguemt(
-            '-r', '--resource',
-            default=None,
-            help="Pass a resource request string through to the job "
-            "scheduler. See your scheduler's instructions for details"
-        )
+    advanced_g.add_arguemt(
+        '-r', '--resource',
+        default=None,
+        action='append',
+        help="Pass a resource request string through to the job "
+        "scheduler. See your scheduler's instructions for details"
+    )
     parser.add_argument(
         '-R', '--jobram',
         default=None,
@@ -510,28 +633,32 @@ There are several batch queues configured on the cluster:
         "than the queue slot memory limit as then you job can be "
         "split over multiple slots automatically - see autoslotsbyram."
     )
-    if parallel_envs:
-        advanced_g.add_argument(
-            '-s', '--parallelenv',
-            default=None,
-            help="Takes a comma-separated argument <pename>,<threads>."
-            "Submit a multi-threaded (or resource) task - requires a "
-            "parallel environment (<pename>) to be configured on the "
-            "requested queues. <threads> specifies the number of "
-            "threads/hosts required. e.g. '{pe_name},2'.".format(
-                pe_name=ll_envs[0])
-        )
-    if mconf['map_ram']:
-        parser.add_argument(
-            '-S', '--noautoslotsbyram',
-            action='store_true',
-            help="Disable the automatic requesting of a parallel "
-            "environment with sufficient slots to allow your job to run."
-        )
+    advanced_g.add_argument(
+        '-s', '--parallelenv',
+        default=None,
+        help="Takes a comma-separated argument <pename>,<threads>."
+        "Submit a multi-threaded (or resource) task - requires a "
+        "parallel environment (<pename>) to be configured on the "
+        "requested queues. <threads> specifies the number of "
+        "threads/hosts required. e.g. '{pe_name},2'.".format(
+            pe_name=ll_envs[0])
+    )
+    parser.add_argument(
+        '-S', '--noramsplit',
+        action='store_true',
+        help="Disable the automatic requesting of a parallel "
+        "environment with sufficient slots to allow your job to run."
+    )
     array_g.add_argument(
         '-t', '--paralleltask',
         type=argparse.FileType('r'),
         help="Specify a task file of commands to execute in parallel."
+    )
+    array_g.add_argument(
+        '--parallel_stride',
+        default=1,
+        help="For parallel task files, increment of sub-task ID between "
+        "sub-tasks"
     )
     parser.add_argument(
         '-T', '--jobtime',
@@ -549,13 +676,12 @@ There are several batch queues configured on the cluster:
         action='version',
         version='%(prog)s ' + VERSION
     )
-    if mconf['parallellimit']:
-        advanced_g.add_argument(
-            '-x', '--parallellimit',
-            default=None,
-            help="Specify the maximum number of parallel job sub-tasks to run "
-            "concurrently."
-        )
+    advanced_g.add_argument(
+        '-x', '--parallel_limit',
+        default=None,
+        help="Specify the maximum number of parallel job sub-tasks to run "
+        "concurrently."
+    )
     parser.add_argument(
         '-z', '--fileisimage',
         default=None,
@@ -627,23 +753,25 @@ def main():
 
     if options['paralleltask']:
         command = ''
-        check_command_file(options['paralleltask'])
+        if not options['novalidation']:
+            options['task_numbers'] = check_command_file(options['paralleltask'])
         options['paralleltask'].close()
         options['paralleltask'] = options['paralleltask'].name
         task_name = os.path.basename(options['paralleltask'])
 
     if options['args']:
         command = options['args'][0]
-        check_command(command)
+        if not options['novalidation']:
+            check_command(command)
         task_name = os.path.basename(command)
 
-    if options['jobname']:
-        options['job_name'] = options['jobname']
-    else:
-        options['job_name'] = task_name
+    if not options['jobname']:
+        options['jobname'] = task_name
 
-    if options['pe']:
-        options['pes'] = process_pe_def(options['pe'], config['queues'])
+    if options['parallelenv']:
+        options['pe'] = process_pe_def(options['pe'], config['queues'])
+    else:
+        options['pe'] = None
 
     if options['args']:
         logger.info(
@@ -658,20 +786,18 @@ def main():
                 options['paralleltask'])
             )
 
-    coprocessor = {
-        'name': options['coprocessor'],
-        'class': options['coprocessor_class'],
-        'toolkit': options['coprocessor_toolkit'],
-        'multi': options['coprocessor_multi'],
-    }
+    method_options = options['method_opts'][config['method']]
+
+    split_on_ram = method_options['map_ram'] and not options['noramsplit']
 
     if options['queue'] is None:
-        options['queue'] = getq(
-                job_time=options.jobtime,
-                job_ram=options.jobram,
-                job_threads=options.threads,
+        (options['queue'], slots_required) = getq_and_slots(
+                job_time=options['jobtime'],
+                job_ram=options['jobram'],
+                job_threads=options['threads'],
                 queues=config['queues'],
-                coprocessor=coprocessor)
+                coprocessor=options['coprocessor'],
+                )
 
         if options['queue'] is None:
             cmd_parser.error("Unable to find a queue with these parameters")
@@ -679,31 +805,52 @@ def main():
     if not queue_exists(options['queue'], config['qtest']):
         cmd_parser.error("Invalid queue name specified!")
 
-    options['jobram'] = split_ram_by_slots(
-        options['job_ram'],
-        options['queue']['slots_required'])
+    if split_on_ram:
+        options['jobram'] = split_ram_by_slots(
+            options['jobram'],
+            slots_required)
 
-    submit(config, options)
+    control_threads(
+        config['thread_control'],
+        slots_required)
+
+    if (slots_required > 1 and
+            options['pe'] is None and split_on_ram):
+        options['pe'] = {
+            'name': config['large_job_split_pe'],
+            'slots': slots_required, }
+
+    if options['coprocessor']:
+        coproc_load_module(
+            config['copro_opts'][options['coprocessor']],
+            options['coprocessor_toolkit'])
+
+    job_id = submit(method_options, options)
 
 
-def process_pe_def(pe_list, queues):
-    '''Convert specified pe,slots list into list of tuples'''
-    pe_req = []
+def process_pe_def(pe_def, queues):
+    '''Convert specified pe,slots into a tuples'''
     pes_defined = parallel_envs(queues)
-    for pe_def in pe_list:
-        try:
-            (pe_name, pe_slots) = pe_def.split(',')
-        except ValueError:
-            raise ArgumentError(
-                "Parallel environment must be name,slots"
-            )
-        if pe_name not in pes_defined:
-            raise ArgumentError(
-                "Parallel environment name {} "
-                "not recognised".format(pe_name)
-            )
-        pe_req.append({'name': pe_name, 'slots': pe_slots})
-    return pe_req
+    try:
+        pe = pe_def.split(',')
+    except ValueError:
+        raise ArgumentError(
+            "Parallel environment must be name,slots"
+        )
+    if pe[0] not in pes_defined:
+        raise ArgumentError(
+            "Parallel environment name {} "
+            "not recognised".format(pe[0])
+        )
+    return {'name': pe[0], 'slots': pe[1], }
+
+
+def control_threads(env_vars, threads):
+    '''Set the specified environment variables to the number of
+    threads.'''
+
+    for ev in env_vars:
+        os.environ[ev] = threads
 
 
 def check_command(cmd):
@@ -719,59 +866,11 @@ def check_command_file(cmd_file):
             raise ArgumentError(
                 "Cannot find script/binary {0} on line {1}"
                 "of {2}".format(line[0], lineno, cmd_file.name))
+    return lines
 
 
 class BadCoprocessor(Exception):
     pass
-
-
-def parse_coprocessors(copro_options, coprocessors):
-    '''Takes a list of co-processor configuration options of form:
-    coprocessor name,coprocessor version,coprocessor class
-    returns a list of tuples (name, version, class) or raises BadCoprocessor'''
-    cop_defs = []
-    for cop in copro_options:
-        cop_name = ''
-        cop_version = ''
-        cop_class = ''
-        options = cop.count(',')
-        if options > 2:
-            raise BadCoprocessor(
-                "Too many options passed for co-processor: " + cop)
-        if options == 2:
-            (cop_name, cop_version, cop_class) = cop.split(',')
-        elif options == 1:
-            (cop_name, other) = cop.split(',')
-        else:
-            cop_name = cop
-
-        if cop_name not in coprocessors:
-            raise BadCoprocessor(
-                "{} not recognised as configured co-processor".format(
-                    cop_name))
-
-        copro_def = coprocessors[cop_name]
-        if other:
-            if other in copro_def['class_types']:
-                cop_class = other
-                cop_version = latest_module(
-                    copro_def['module_parent'])
-            else:
-                cop_version = other
-                if cop_version not in get_modules(copro_def['module_parent']):
-                    raise BadCoprocessor(
-                        "{0} not recognised as an "
-                        "available version for {1}".format(
-                            cop_version, cop_name
-                        )
-                    )
-                cop_class = coprocessors[cop_name]['default_class']
-        else:
-            cop_version = latest_module(
-                coprocessors[cop_name]['module_parent'])
-            cop_class = coprocessors[cop_name]['default_class']
-
-        cop_defs.append((cop_name, cop_version, cop_class, ))
 
 
 def queue_exists(qname, qtest):
@@ -825,124 +924,6 @@ def system(
             check=check, universal_newlines=True)
 
 
-class LoadModuleError(Exception):
-    pass
-
-
-class NoModule(Exception):
-    pass
-
-
-@memoize
-def find_module_cmd():
-    '''Locate the 'modulecmd' binary'''
-    return shutil.which('modulecmd')
-
-
-def read_module_environment(lines):
-    '''Given output of modulecmd python add ... convert this to a dict'''
-    module_env = {}
-    regex = re.compile(r"os.environ\['(?P<variable>.*)'\] = '(?P<value>.*)'$")
-    for line in lines:
-        matches = regex.match(line.strip())
-        if matches:
-            module_env[matches.group('variable')] = matches.group('value')
-    return module_env
-
-
-def module_add(module_name):
-    '''Returns a dict of variable: value describing the environment variables
-    necessary to load a shell module into the current environment'''
-    module_cmd = find_module_cmd()
-
-    if module_cmd:
-        try:
-            environment = system_stdout(
-                (module_cmd, "python", "add", module_name, ), shell=True)  
-        except subprocess.CalledProcessError as e:
-            raise LoadModuleError from e
-        return read_module_environment(environment)
-    else:
-        return False
-
-
-def load_module(module_name):
-    '''Load a module into the environment of this python process.'''
-    environment = module_add(module_name)
-    if environment:
-        for k, v in environment.items():
-            os.environ[k] = v
-        return True
-    else:
-        return False
-
-
-def unload_module(module_name):
-    '''Remove environment variables associated with module module_name
-     from the environment of python process.'''
-    environment = module_add(module_name)
-    if environment:
-        for k in environment:
-            del os.environ[k]
-        return True
-    else:
-        return False
-
-
-def loaded_modules():
-    '''Get list of loaded ShellModules'''
-    # Modules stored in environment variable LOADEDMODULES
-    try:
-        modules_string = os.environ['LOADEDMODULES']
-    except KeyError:
-        return ()
-    return modules_string.split(':')
-
-
-@memoize
-def get_modules(module_parent):
-    '''Returns a list of available Shell Modules that setup the
-    co-processor environment'''
-
-    modules = []
-    try:
-        available_modules = system_stdout(
-            ["module", "-t", "avail", module_parent],
-            shell=True)
-        for line in available_modules:
-            line = line.strip()
-            if ':' in line:
-                continue
-            if '/' in line:
-                modules += line.split('/')[1]
-            else:
-                modules += None
-    except subprocess.CalledProcessError as e:
-        raise NoModule(module_parent)
-    return modules
-
-
-def latest_module(module_parent):
-    '''Return the module string that would load the latest version of a module.
-    Returns False if module is determined to be not versioned and raises
-    NoModule if module is not found.'''
-    try:
-        modules = get_modules(module_parent)
-        if modules is None:
-            return False
-        else:
-            return modules[-1]
-    except NoModule as e:
-        raise
-
-
-def module_string(module_parent, module_version):
-    if module_version:
-        return "/".join((module_parent, module_version))
-    else:
-        return module_parent
-
-
 class BadConfiguration(Exception):
     pass
 
@@ -978,8 +959,9 @@ def find_qconf():
     return shutil.which('qconf')
 
 
-def getq(queues, job_time=None, job_ram=None,
-         job_threads=1, coprocessor=None):
+def getq_and_slots(
+        queues, job_time=None, job_ram=None,
+        job_threads=1, coprocessor=None):
     '''Calculate which queue to run the job on
     Still needs job splitting across slots'''
     logger = logging.getLogger('__name__')
@@ -993,7 +975,7 @@ def getq(queues, job_time=None, job_ram=None,
     if coprocessor:
         queue_list = [
             q for q in queue_list if 'copros' in q and
-            coprocessor['name'] in q['copros']]
+            coprocessor in q['copros']]
 
     # For each queue calculate how many slots would be necessary...
     def calc_slots(job_ram, slot_size, job_threads):
@@ -1023,7 +1005,7 @@ def getq(queues, job_time=None, job_ram=None,
         logger.info("Co-processor {} was requested".format(coprocessor))
     logger.info(
         "Appropriate queue is {}".format(ql[0]))
-    return ql[0]
+    return (ql[0], ql[0]['slots_required'])
 
 
 if __name__ == "__main__":
