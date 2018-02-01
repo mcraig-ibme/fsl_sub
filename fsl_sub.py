@@ -581,7 +581,6 @@ def main():
     if not options['jobname']:
         options['jobname'] = task_name
 
-    
     if options['args']:
         logger.info(
             "METHOD={0} : args={1}".format(
@@ -605,7 +604,7 @@ def main():
         slots = options['pe']['slots']
     else:
         if split_on_ram:
-            ll_env = method_config['large_job_split_pe']
+            ll_env = method_options['large_job_split_pe']
             slots = 1
         else:
             ll_env = None
