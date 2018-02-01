@@ -341,7 +341,7 @@ There are several batch queues configured on the cluster:
         '--coprocessor_class_strict',
         action='store_true',
         help="If set will only allow running on this class. "
-        "The default is to use this class and all more capable devices."        
+        "The default is to use this class and all more capable devices."
     )
     copro_g.add_argument(
         '--coprocessor_toolkit',
