@@ -17,206 +17,6 @@ from functools import lru_cache
 from operator import itemgetter
 from math import ceil
 
-config_yaml = '''
-# Job submission method to use. Supported values are 'SGE' and 'NONE'
-method: SGE
-
-# List all parallel environments configured on your cluster here
-parallel_envs:
-    - shmem
-# List all shared memory (must run on same node) PEs here
-same_node_pes:
-    - shmem
-large_job_split_pe:
-    - shmem
-
-# List all environment variables that control thread usage
-# will set these to parallel environment threads
-thread_control:
-    - OMP_THREADS
-    - MKL_NUM_THREADS
-    - MKL_DOMAIN_NUM_THREADS
-    - OPENBLAS_NUM_THREADS
-    - GOTO_NUM_THREADS
-method_opts:
-    None:
-        map_ram: False
-        job_priorities: True
-        parallel_holds: False
-        parallel_limit: False
-        job_resources: False
-    SGE:
-        # Replicate user's shell environment to running job
-        copy_environment: True
-        # Method used to bind to CPUs - set to None to disable
-        # Supported options, linear and slots
-        affinity_type: linear
-        # How to configure this affinity options are:
-        #   threads - set to number of threads required
-        #   slots - let GE sort it out automatically (not Univa Grid Engine)
-        affinity_control: threads
-        # Enable Emailing end-user about job status
-        mail_support: True
-        # When to email user:
-        #   a - on abort
-        mail_mode: a
-        # Whether to split large memory jobs into shared memory PE slots
-        map_ram: True
-        # Queue complexes that specify RAM usage of a job
-        ram_resources:
-            - m_mem_free
-            - h_vmem
-        # Units for RAM given....?????
-        ram_units: G
-        # Supports job priority setting?
-        job_priorities: True
-        # Supports parallel holds?
-        parallel_holds: True
-        # Supports parallel job limits?
-        parallel_limit: True
-        # Enable architecture selection?
-        architecture: False
-        # Supports job resources?
-        job_resources: True
-# The following defines configuration options for co-processor queues
-# Define queues with a copro key set to the name of the appropriate option
-# set and ensure that your queue method has a way of interpreting this
-copro_opts:
-    cuda:
-        # Whether to split large memory jobs into shared memory PE slots
-        map_ram: True
-        # Which scheduler resource requests GPU facilities
-        resource: gpu
-        # Whether there are multiple coprocessor classes/types
-        classes: True
-        # Which scheduler resource requests a coprocessor class
-        class_resource: gputype
-        # This defines the short code for the types and the resource
-        # which will be requested and a documentation string for the help
-        # text
-        class_types:
-            G
-                # Queue resource to request
-                resource: TitanX
-                # Documentation about this hardware
-                doc: TitanX. No-ECC, single-precision workloads
-                # Capability level for this hardware, integer value that
-                # allows differentiation between hardware models.
-                capability: 1
-            K
-                resource: k80
-                doc: Kepler. ECC, double- or single-precision workloads
-                capability: 2
-            P
-                resource: v100
-                doc: >
-                    Pascal. ECC, double-, single- and half-precision
-                    workloads
-                capability: 3
-            V
-                resource: v100
-                doc: >
-                    Volta. ECC, double-, single-, half-
-                    and quarter-precision workloads
-                capability: 4
-        # If a class is not specified, which class should we use?
-        default_class: K
-        # Should we also allow running on more capable hardware?
-        include_more_capable: True
-        # Should we use Shell modules to load the environment settings for
-        # the hardware?
-        uses_modules: True
-        # What is the name of the parent module for this co-processor?
-        module_parent: cuda
-
-queues:
-    gpu.q:
-        time: 18000
-        max_size: 250
-        slot_size: 64
-        max_slots: 20
-        copros:
-            cuda:
-                max_quantity: 4
-                classes:
-                    - K
-                    - P
-                    - V
-        map_ram: true
-        parallel_envs:
-            - shmem
-        priority: 1
-        group: 0
-        default: true
-    short.qf,short.qe,short.qc:
-        time: 1440
-        max_size: 160
-        slot_size: 4
-        max_slots: 16
-        map_ram: true
-        parallel_envs:
-            - shmem
-        priority: 3
-        group: 1
-        default: true
-    short.qe,short.qc:
-        time: 1440
-        max_size: 240
-        slot_size: 16
-        max_slots: 16
-        map_ram: true
-        parallel_envs:
-            - shmem
-        priority: 2
-        group: 1
-        default: true
-    short.qc:
-        time: 1440
-        max_size: 368
-        slot_size: 16
-        max_slots: 24
-        map_ram: true
-        parallel_envs:
-            - shmem
-        priority: 1
-        group: 1
-        default: true
-    long.qf,long.qe,long.qc:
-        time: 10080
-        max_size: 160
-        slot_size: 4
-        max_slots: 16
-        map_ram: true
-        parallel_envs:
-            - shmem
-        priority: 3
-        group: 2
-    long.qe,long.qc:
-        time: 10080
-        max_size: 240
-        slot_size: 16
-        max_slots: 16
-        map_ram: true
-        parallel_envs:
-            - shmem
-        priority: 2
-        group: 2
-    long.qc:
-        time: 10080
-        max_size: 368
-        slot_size: 16
-        max_slots: 24
-        map_ram: true
-        parallel_envs:
-            - shmem
-        priority: 1
-        group: 2
-default_queues:
-    - short.qf,short,qe,short.qc
-    - short.qe,short.qc
-    - short.qc
-'''
-
 # ============================
 # Configuration ends here
 # ============================
@@ -291,9 +91,10 @@ def parallel_envs(queues):
     return list(set(ll_envs))
 
 
-def coprocessor_toolkits(config):
+def coprocessor_toolkits(config, coprocessor):
     '''Return list of coprocessor toolkit versions.'''
     copro_opts = config['copro_opts'][coprocessor]
+    classes = []
     for q in config['queues']:
         if 'copros' in q:
             try:
@@ -337,7 +138,7 @@ def module_add(module_name):
     if module_cmd:
         try:
             environment = system_stdout(
-                (module_cmd, "python", "add", module_name, ), shell=True)  
+                (module_cmd, "python", "add", module_name, ), shell=True)
         except subprocess.CalledProcessError as e:
             raise LoadModuleError from e
         return read_module_environment(environment)
@@ -426,7 +227,6 @@ def build_parser(config):
     '''Parse the command line, returns a dict keyed on option'''
 
     available_coprocessors = list_coprocessors(config)
-    max_coprocessors = {c: max_coprocessors(c) for c in available_coprocessors}
     coprocessor_classes = {
         c: copro_classes(config, c) for c in available_coprocessors}
     coprocessor_toolkit = coprocessor_toolkits(config)
@@ -538,6 +338,12 @@ There are several batch queues configured on the cluster:
         "are below."
     )
     copro_g.add_argument(
+        '--coprocessor_class_strict',
+        action='store_true',
+        help="If set will only allow running on this class. "
+        "The default is to use this class and all more capable devices."        
+    )
+    copro_g.add_argument(
         '--coprocessor_toolkit',
         default=None,
         choices=coprocessor_toolkit,
@@ -548,7 +354,7 @@ There are several batch queues configured on the cluster:
     )
     copro_g.add_argument(
         '--coprocessor_multi',
-        default=None,
+        default=1,
         help="Request multiple co-processors for a job. This make take "
         "the form of simple number to a complex definition of devices. "
         "See your cluster documentation for details."
@@ -706,7 +512,8 @@ class PluginError(Exception):
 
 def main():
     logger = logging.getLogger('__name__')
-    config = read_config(config_yaml)
+
+    config = read_config()
 
     fsl_sub_plugins = {
         name: importlib.import_module(name)
@@ -715,8 +522,12 @@ def main():
         if name.startswith('fsl_sub_')
     }
 
+    try:
+        already_run = os.environ['FSLSUBALREADYRUN']
+    except KeyError:
+        already_run = 'false'
     if config['method'] != 'None':
-        if affirmative(os.environ['FSLSUBALREADYRUN']):
+        if affirmative(already_run):
             config['method'] == 'None'
             print(
                 'Warning: job on queue attempted to submit parallel jobs -'
@@ -734,6 +545,7 @@ def main():
     try:
         submit = fsl_sub_plugins[grid_module].submit
         qfind = fsl_sub_plugins[grid_module].qfind
+        BadSubmission = fsl_sub_plugins[grid_module].BadSubmission
     except AttributeError as e:
         raise BadConfiguration(
             "Failed to load plugin " + grid_module
@@ -754,7 +566,8 @@ def main():
     if options['paralleltask']:
         command = ''
         if not options['novalidation']:
-            options['task_numbers'] = check_command_file(options['paralleltask'])
+            options['task_numbers'] = check_command_file(
+                options['paralleltask'])
         options['paralleltask'].close()
         options['paralleltask'] = options['paralleltask'].name
         task_name = os.path.basename(options['paralleltask'])
@@ -768,11 +581,7 @@ def main():
     if not options['jobname']:
         options['jobname'] = task_name
 
-    if options['parallelenv']:
-        options['pe'] = process_pe_def(options['pe'], config['queues'])
-    else:
-        options['pe'] = None
-
+    
     if options['args']:
         logger.info(
             "METHOD={0} : args={1}".format(
@@ -789,18 +598,33 @@ def main():
     method_options = options['method_opts'][config['method']]
 
     split_on_ram = method_options['map_ram'] and not options['noramsplit']
+    if options['parallelenv']:
+        options['pe'] = process_pe_def(
+            options['parallelenv'], config['queues'])
+        ll_env = options['pe']['name']
+        slots = options['pe']['slots']
+    else:
+        if split_on_ram:
+            ll_env = method_config['large_job_split_pe']
+            slots = 1
+        else:
+            ll_env = None
+            slots = 1
 
     if options['queue'] is None:
         (options['queue'], slots_required) = getq_and_slots(
                 job_time=options['jobtime'],
                 job_ram=options['jobram'],
-                job_threads=options['threads'],
+                job_threads=slots,
                 queues=config['queues'],
                 coprocessor=options['coprocessor'],
+                ll_env=ll_env
                 )
 
         if options['queue'] is None:
             cmd_parser.error("Unable to find a queue with these parameters")
+    else:
+        slots_required = slots
 
     if not queue_exists(options['queue'], config['qtest']):
         cmd_parser.error("Invalid queue name specified!")
@@ -814,18 +638,29 @@ def main():
         config['thread_control'],
         slots_required)
 
-    if (slots_required > 1 and
-            options['pe'] is None and split_on_ram):
-        options['pe'] = {
-            'name': config['large_job_split_pe'],
-            'slots': slots_required, }
+    if slots_required > 1:
+        if options['pe']:
+            if options['pe']['slots'] < slots_required:
+                options['pe']['slots'] = slots_required
+        elif ll_env:
+            options['pe'] = {
+                'name': ll_env,
+                'slots': slots_required, }
+        else:
+            cmd_parser.error(
+                "Job requires {} slots but no parallel envrionment "
+                "available or requested".format(slots_required))
 
     if options['coprocessor']:
         coproc_load_module(
             config['copro_opts'][options['coprocessor']],
             options['coprocessor_toolkit'])
 
-    job_id = submit(method_options, options)
+    try:
+        job_id = submit(method_options, options)
+    except BadSubmission as e:
+        cmd_parser.error("Error submitting job:" + str(e))
+    print(job_id)
 
 
 def process_pe_def(pe_def, queues):
@@ -859,14 +694,14 @@ def check_command(cmd):
 
 
 def check_command_file(cmd_file):
-    for line, lineno in enumerate(cmd_file.readlines()):
+    for lineno, line in enumerate(cmd_file.readlines()):
         try:
             check_command(line[0])
         except ArgumentError:
             raise ArgumentError(
                 "Cannot find script/binary {0} on line {1}"
-                "of {2}".format(line[0], lineno, cmd_file.name))
-    return lines
+                "of {2}".format(line[0], lineno + 1, cmd_file.name))
+    return lineno + 1
 
 
 class BadCoprocessor(Exception):
@@ -900,8 +735,36 @@ def negative(astring):
         return False
 
 
-def read_config(yaml_source):
-    return yaml.load(yaml_source)
+def find_config_file():
+    # Find most appropriate config file
+    user_home = os.path.expanduser("~")
+    personal_config = os.path.join(user_home, '.fsl_sub.yml')
+    if os.path.exists(personal_config):
+        return personal_config
+
+    try:
+        env_config = os.environ['FSLSUB_CONF']
+        return env_config
+    except KeyError:
+        pass
+    try:
+        default_conf = os.path.join(
+                os.environ['FSLDIR'], 'etc',
+                'fslconf', 'fsl_sub.yml')
+        if os.path.exists(default_conf):
+            return default_conf
+    except KeyError:
+        raise BadConfiguration("Unable to find fsl_sub config")
+
+
+def read_config():
+    try:
+        with open(find_config_file(), 'r') as yaml_source:
+            config_dict = yaml.load(yaml_source)
+    except Exception as e:
+        raise BadConfiguration(
+            "Unable to load configuration: " + str(e))
+    return config_dict
 
 
 def system_stdout(
@@ -961,7 +824,8 @@ def find_qconf():
 
 def getq_and_slots(
         queues, job_time=None, job_ram=None,
-        job_threads=1, coprocessor=None):
+        job_threads=1, coprocessor=None,
+        ll_env=None):
     '''Calculate which queue to run the job on
     Still needs job splitting across slots'''
     logger = logging.getLogger('__name__')
@@ -971,14 +835,21 @@ def getq_and_slots(
             q for q in queues if 'default' in q and q['default']]
     else:
         queue_list = copy.deepcopy(queues)
-
+    # Filter on coprocessor availability
     if coprocessor:
         queue_list = [
             q for q in queue_list if 'copros' in q and
             coprocessor in q['copros']]
+    # Filter on parallel environment availability
+    if ll_env:
+        queue_list = [
+            q for q in queue_list if 'parallel_envs' in q and
+            ll_env in q['parallel_envs']
+        ]
 
     # For each queue calculate how many slots would be necessary...
     def calc_slots(job_ram, slot_size, job_threads):
+        # No ram specified
         if job_ram is None:
             return max(1, job_threads)
         else:

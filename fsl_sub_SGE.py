@@ -66,10 +66,12 @@ def check_pe(pe_name, queue, qconf=qconf(), qstat=qstat()):
         )
 
 
-def submit(method_config, options, qsub=qsub()):
+def submit(config, options, qsub=qsub()):
     '''Submits the job to the cluster'''
 
     logger = logging.getLogger("__name__")
+    method_config = config['method_opts'][config['method']]
+
     command_args = [qsub, ]
     if not options['usescript']:
         # Check Parallel Environment is available
@@ -145,7 +147,42 @@ def submit(method_config, options, qsub=qsub()):
             ['-cwd', '-q', options['queue']['name']])
 
         if options['coprocessor']:
-            pass
+            # Setup the coprocessor
+            try:
+                copro_config = config['copro_opts'][options['coprocessor']]
+            except KeyError:
+                raise BadSubmission(
+                    options['coprocessor'] + " not a configured coprocessor.")
+            if copro_config['classes']:
+                available_classes = copro_config['class_types']
+                if (options['coprocessor_class_strict'] or
+                        not copro_config['include_more_capable']):
+                    try:
+                        copro_class = available_classes[
+                                            options['coprocessor_class']][
+                                                'resource']
+                    except KeyError:
+                        raise BadSubmission("Unrecognised coprocessor class")
+                else:
+                    copro_capability = available_classes[
+                                            options['coprocessor_class']][
+                                                'capability'
+                                            ]
+                    copro_class = ','.join(
+                        [a['resource'] for a in
+                            copro_config['class_types'] if
+                            a['capability'] > copro_capability])
+
+                command_args.extend(
+                    ['-l',
+                     '='.join(
+                         (copro_config['class_resource'], copro_class))]
+                         )
+            command_args.extend(
+                ['-l',
+                 '='.join(
+                     (copro_config['resource'], options['coprocessor_multi']))]
+                    )
 
         if options['args']:
             # Submit single script/binary

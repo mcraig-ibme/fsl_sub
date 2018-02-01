@@ -1,0 +1,201 @@
+# Job submission method to use. Supported values are 'SGE' and 'NONE'
+method: SGE
+
+# List all environment variables that control thread usage
+# will set these to parallel environment threads
+thread_control:
+  - OMP_THREADS
+  - MKL_NUM_THREADS
+  - MKL_DOMAIN_NUM_THREADS
+  - OPENBLAS_NUM_THREADS
+  - GOTO_NUM_THREADS
+method_opts:
+  None:
+    parallel_envs: []
+    same_node_pes: []
+    large_job_split_pe: []
+    mail_support: False
+    map_ram: False
+    job_priorities: False
+    parallel_holds: False
+    parallel_limit: False
+    architecture: False
+    job_resources: False
+  SGE:
+    # List all parallel environments configured on your cluster here
+    parallel_envs:
+      - shmem
+    # List all shared memory (must run on same node) PEs here
+    same_node_pes:
+      - shmem
+    # Which PE should be used to break up large memory jobs
+    large_job_split_pe: shmem
+
+    # Replicate user's shell environment to running job
+    copy_environment: True
+    # Method used to bind to CPUs - set to None to disable
+    # Supported options, linear and slots
+    affinity_type: linear
+    # How to configure this affinity options are:
+    #   threads - set to number of threads required
+    #   slots - let GE sort it out automatically (not Univa Grid Engine)
+    affinity_control: threads
+    # Enable Emailing end-user about job status
+    mail_support: True
+    # When to email user:
+    #   a - on abort
+    mail_mode: a
+    # Whether to split large memory jobs into shared memory PE slots
+    map_ram: True
+    # Queue complexes that specify RAM usage of a job
+    ram_resources:
+        - m_mem_free
+        - h_vmem
+    # Units for RAM given....?????
+    ram_units: G
+    # Supports job priority setting?
+    job_priorities: True
+    # Supports parallel holds?
+    parallel_holds: True
+    # Supports parallel job limits?
+    parallel_limit: True
+    # Enable architecture selection?
+    architecture: False
+    # Supports job resources?
+    job_resources: True
+
+# The following defines configuration options for co-processor queues
+# Define queues with a copro key set to the name of the appropriate option
+# set and ensure that your queue method has a way of interpreting this
+copro_opts:
+  cuda:
+    # Which scheduler resource requests GPU facilities
+    resource: gpu
+    # Whether there are multiple coprocessor classes/types
+    classes: True
+    # Which scheduler resource requests a coprocessor class
+    class_resource: gputype
+    # This defines the short code for the types and the resource
+    # which will be requested and a documentation string for the help
+    # text
+    class_types:
+      G
+        # Queue resource to request
+        resource: TitanX
+        # Documentation about this hardware
+        doc: TitanX. No-ECC, single-precision workloads
+        # Capability level for this hardware, integer value that
+        # allows differentiation between hardware models.
+        capability: 1
+      K
+        resource: k80
+        doc: Kepler. ECC, double- or single-precision workloads
+        capability: 2
+      P
+        resource: v100
+        doc: >
+          Pascal. ECC, double-, single- and half-precision
+          workloads
+        capability: 3
+      V
+        resource: v100
+        doc: >
+          Volta. ECC, double-, single-, half-
+          and quarter-precision workloads
+        capability: 4
+    # If a class is not specified, which class should we use?
+    default_class: K
+    # Should we also allow running on more capable hardware?
+    include_more_capable: True
+    # Should we use Shell modules to load the environment settings for
+    # the hardware?
+    uses_modules: True
+    # What is the name of the parent module for this co-processor?
+    module_parent: cuda
+
+queues:
+  gpu.q:
+    time: 18000
+    max_size: 250
+    slot_size: 64
+    max_slots: 20
+    copros:
+      cuda:
+        max_quantity: 4
+        classes:
+          - K
+          - P
+          - V
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 1
+    group: 0
+    default: true
+  short.qf,short.qe,short.qc:
+    time: 1440
+    max_size: 160
+    slot_size: 4
+    max_slots: 16
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 3
+    group: 1
+    default: true
+  short.qe,short.qc:
+    time: 1440
+    max_size: 240
+    slot_size: 16
+    max_slots: 16
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 2
+    group: 1
+    default: true
+  short.qc:
+    time: 1440
+    max_size: 368
+    slot_size: 16
+    max_slots: 24
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 1
+    group: 1
+    default: true
+  long.qf,long.qe,long.qc:
+    time: 10080
+    max_size: 160
+    slot_size: 4
+    max_slots: 16
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 3
+    group: 2
+  long.qe,long.qc:
+    time: 10080
+    max_size: 240
+    slot_size: 16
+    max_slots: 16
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 2
+    group: 2
+  long.qc:
+    time: 10080
+    max_size: 368
+    slot_size: 16
+    max_slots: 24
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 1
+    group: 2
+default_queues:
+  - short.qf,short,qe,short.qc
+  - short.qe,short.qc
+  - short.qc
