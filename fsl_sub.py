@@ -24,7 +24,32 @@ from math import ceil
 VERSION = '2.0'
 
 
+# Custom Exceptions
 class ArgumentError(Exception):
+    pass
+
+
+class LoadModuleError(Exception):
+    pass
+
+
+class NoModule(Exception):
+    pass
+
+
+class PluginError(Exception):
+    pass
+
+
+class BadCoprocessor(Exception):
+    pass
+
+
+class BadConfiguration(Exception):
+    pass
+
+
+class UnrecognisedModule(Exception):
     pass
 
 
@@ -75,7 +100,28 @@ def copro_classes(config, coprocessor):
                     classes[c] = copro_opts[c]['capability']
             except KeyError:
                 continue
-    return sorted(classes, key=classes.get)
+    if not classes:
+        return None
+    return sorted(classes.keys(), key=classes.get)
+
+
+def coprocessor_toolkits(config, coprocessor):
+    '''Return list of coprocessor toolkit versions.'''
+    if coprocessor not in config['copro_opts']:
+        raise BadConfiguration(
+            "Coprocessor {} not configured".format(coprocessor))
+    # Check that we have queues configured for this coproceesor
+    if not all([q for q in config['queues'] if (
+            'copros' in q and coprocessor in q['copros'])]):
+        raise BadConfiguration(
+            "Coprocessor {} not available in any queues".format(
+                coprocessor
+            )
+        )
+    copro_conf = config['copro_opts'][coprocessor]
+    if not copro_conf['uses_modules']:
+        return None
+    return get_modules(copro_conf['module_parent']).sort
 
 
 @lru_cache
@@ -89,28 +135,6 @@ def parallel_envs(queues):
         except KeyError:
             pass
     return list(set(ll_envs))
-
-
-def coprocessor_toolkits(config, coprocessor):
-    '''Return list of coprocessor toolkit versions.'''
-    copro_opts = config['copro_opts'][coprocessor]
-    classes = []
-    for q in config['queues']:
-        if 'copros' in q:
-            try:
-                for c in q['copros'][coprocessor]['classes']:
-                    classes[c] = copro_opts[c]['capability']
-            except KeyError:
-                continue
-    return sorted(classes, key=classes.get)
-
-
-class LoadModuleError(Exception):
-    pass
-
-
-class NoModule(Exception):
-    pass
 
 
 @lru_cache
@@ -175,7 +199,7 @@ def loaded_modules():
     try:
         modules_string = os.environ['LOADEDMODULES']
     except KeyError:
-        return ()
+        return []
     return modules_string.split(':')
 
 
@@ -199,7 +223,7 @@ def get_modules(module_parent):
                 modules += None
     except subprocess.CalledProcessError as e:
         raise NoModule(module_parent)
-    return modules
+    return modules.sort()
 
 
 def latest_module(module_parent):
@@ -506,10 +530,6 @@ def minutes_to_human(minutes):
     return "{:.1f}d".format(minutes/(60 * 24))
 
 
-class PluginError(Exception):
-    pass
-
-
 def main():
     logger = logging.getLogger('__name__')
 
@@ -703,10 +723,6 @@ def check_command_file(cmd_file):
     return lineno + 1
 
 
-class BadCoprocessor(Exception):
-    pass
-
-
 def queue_exists(qname, qtest):
     try:
         system([qtest, '-sq', qname])
@@ -786,10 +802,6 @@ def system(
             check=check, universal_newlines=True)
 
 
-class BadConfiguration(Exception):
-    pass
-
-
 def coproc_class(coproc_class, coproc_classes):
     try:
         for c, i in enumerate(coproc_classes):
@@ -802,10 +814,6 @@ def coproc_class(coproc_class, coproc_classes):
     return coproc_classes[:i]
 
 
-class UnrecognisedModule(Exception):
-    pass
-
-
 def coproc_load_module(coproc, module_version):
     if coproc['uses_modules']:
         modules_avail = get_modules(coproc['module_parent'])
@@ -815,10 +823,6 @@ def coproc_load_module(coproc, module_version):
             else:
                 load_module("/".join(
                     (coproc['module_parent'], module_version)))
-
-
-def find_qconf():
-    return shutil.which('qconf')
 
 
 def getq_and_slots(

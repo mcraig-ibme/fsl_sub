@@ -79,7 +79,7 @@ copro_opts:
     # which will be requested and a documentation string for the help
     # text
     class_types:
-      G
+      G:
         # Queue resource to request
         resource: TitanX
         # Documentation about this hardware
@@ -87,17 +87,17 @@ copro_opts:
         # Capability level for this hardware, integer value that
         # allows differentiation between hardware models.
         capability: 1
-      K
+      K:
         resource: k80
         doc: Kepler. ECC, double- or single-precision workloads
         capability: 2
-      P
+      P:
         resource: v100
         doc: >
           Pascal. ECC, double-, single- and half-precision
           workloads
         capability: 3
-      V
+      V:
         resource: v100
         doc: >
           Volta. ECC, double-, single-, half-
