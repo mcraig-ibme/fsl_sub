@@ -43,6 +43,17 @@ def qsub():
     return qsub
 
 
+def queue_exists(qname, qtest=qtest()):
+    try:
+        sp.run(
+            [qtest, '-sq', qname],
+            stderr=sp.PIPE,
+            check=True, universal_newlines=True)
+    except sp.CalledProcessError:
+        return False
+    return True
+
+
 def check_pe(pe_name, queue, qconf=qconf(), qstat=qstat()):
     # Check for configured PE of pe_name
     cmd = sp.run([qconf, '-sp', pe_name])
@@ -66,11 +77,12 @@ def check_pe(pe_name, queue, qconf=qconf(), qstat=qstat()):
         )
 
 
-def submit(config, options, qsub=qsub()):
+def submit(
+        method_config, options, 
+        copro_config=None, qsub=qsub()):
     '''Submits the job to the cluster'''
 
     logger = logging.getLogger("__name__")
-    method_config = config['method_opts'][config['method']]
 
     command_args = [qsub, ]
     if not options['usescript']:
@@ -146,13 +158,8 @@ def submit(config, options, qsub=qsub()):
         command_args.extend(
             ['-cwd', '-q', options['queue']['name']])
 
-        if options['coprocessor']:
+        if copro_config:
             # Setup the coprocessor
-            try:
-                copro_config = config['copro_opts'][options['coprocessor']]
-            except KeyError:
-                raise BadSubmission(
-                    options['coprocessor'] + " not a configured coprocessor.")
             if copro_config['classes']:
                 available_classes = copro_config['class_types']
                 if (options['coprocessor_class_strict'] or

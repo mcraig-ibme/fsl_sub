@@ -42,7 +42,6 @@ queues:
             - shmem
         priority: 1
         group: 1
-    default: true
 copro_opts:
     cuda:
         resource: gpu
@@ -60,14 +59,14 @@ copro_opts:
         P:
             resource: v100
             doc: >
-            Pascal. ECC, double-, single- and half-precision
-            workloads
+                Pascal. ECC, double-, single- and half-precision
+                workloads
             capability: 3
         V:
             resource: v100
             doc: >
-            Volta. ECC, double-, single-, half-
-            and quarter-precision workloads
+                Volta. ECC, double-, single-, half-
+                and quarter-precision workloads
             capability: 4
         default_class: K
         include_more_capable: True
@@ -101,31 +100,32 @@ copro_opts:
                 2
             )
 
-    def test_copro_classes(self):
+    def test_coproc_classes(self):
         with self.subTest("CUDA classes"):
             self.assertListEqual(
-                fsl_sub.copro_classes(
+                fsl_sub.coproc_classes(
                     self.config,
                     'cuda'),
-                ['G', 'K', 'P', 'V', ]
+                ['K', 'P', 'V', ]
             )
         with self.subTest("Phi classes"):
             self.assertIsNone(
-                fsl_sub.copro_classes(
+                fsl_sub.coproc_classes(
                     self.config,
                     'phi'))
 
     @patch('fsl_sub.get_modules', auto_spec=True)
-    def test_coprocessor_toolkits(self, mock_get_modules):
+    def test_coproc_toolkits(self, mock_get_modules):
         with self.subTest("CUDA toolkits"):
-            mock_get_modules.return_value = ['6.5', '7.5', '7.0', ]
+            mock_get_modules.return_value = ['6.5', '7.0', '7.5', ]
             self.assertEqual(
-                fsl_sub.coprocessor_toolkits(
+                fsl_sub.coproc_toolkits(
                         self.config,
                         'cuda'),
                 ['6.5', '7.0', '7.5', ]
                 )
             mock_get_modules.assert_called_once_with('cuda')
+####  This isn't really a useful test!
 
 
 class TestParallelEnvs(unittest.TestCase):
@@ -154,7 +154,6 @@ method_opts:
     same_node_pes:
       - shmem
     large_job_split_pe: shmem
-
 queues:
   short.q:
     time: 1440
@@ -182,25 +181,67 @@ queues:
     def test_parallel_envs(self):
         with self.subTest('Test 1'):
             self.assertListEqual(
-                fsl_sub.parallel_envs(self.conf['queues']),
+                fsl_sub.parallel_envs(self.config['queues']),
                 ['shmem', ]
             )
         with self.subTest('Test 2'):
-            self.conf['queues']['long.q']['parallel_envs'] = ['make', ]
-            self.assertListEqual(
-                fsl_sub.parallel_envs(self.conf['queues']),
+            self.config['queues']['long.q']['parallel_envs'] = ['make', ]
+            self.assertCountEqual(
+                fsl_sub.parallel_envs(self.config['queues']),
                 ['shmem', 'make', ]
             )
         with self.subTest('Test 3'):
-            self.conf['queues']['long.q']['parallel_envs'] = ['make', 'shmem', ]
-            self.assertListEqual(
-                fsl_sub.parallel_envs(self.conf['queues']),
+            self.config['queues']['long.q']['parallel_envs'] = [
+                'make', 'shmem', ]
+            self.assertCountEqual(
+                fsl_sub.parallel_envs(self.config['queues']),
                 ['shmem', 'make', ]
+            )
+
+    @patch('fsl_sub.parallel_envs')
+    def test_process_pe_def(self, mock_parallel_envs):
+        mock_parallel_envs.return_value = ['openmp', ]
+        queues = self.config['queues']
+        with self.subTest('Success'):
+            self.assertEqual(
+                {'name': 'openmp', 'slots': 2},
+                fsl_sub.process_pe_def(
+                    'openmp,2',
+                    queues
+                )
+            )
+        with self.subTest('Bad input'):
+            self.assertRaises(
+                fsl_sub.ArgumentError,
+                fsl_sub.process_pe_def,
+                'openmp.2',
+                queues
+            )
+        with self.subTest("No PE"):
+            self.assertRaises(
+                fsl_sub.ArgumentError,
+                fsl_sub.process_pe_def,
+                'mpi,2',
+                queues
+            )
+        with self.subTest("No PE"):
+            self.assertRaises(
+                fsl_sub.ArgumentError,
+                fsl_sub.process_pe_def,
+                'mpi,A',
+                queues
+            )
+        with self.subTest("No PE"):
+            self.assertRaises(
+                fsl_sub.ArgumentError,
+                fsl_sub.process_pe_def,
+                'mpi,2.2',
+                queues
             )
 
 
 class TestModuleSupport(unittest.TestCase):
-    @patch('fsl_sub.shutil.which')
+    @patch('fsl_sub.shutil.which', auto_spec=True)
     def test_find_module_cmd(self, mock_which):
         mock_which.return_value = '/usr/bin/modulecmd'
         self.assertEqual(
@@ -219,9 +260,9 @@ os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
              'LD_LIBRARY_PATH': '/usr/lib64:/usr/local/lib64', }
         )
 
-    @patch('fsl_sub.find_module_cmd')
-    @patch('fsl_sub.system_stdout')
-    @patch('fsl_sub.read_module_environment')
+    @patch('fsl_sub.find_module_cmd', auto_spec=True)
+    @patch('fsl_sub.system_stdout', auto_spec=True)
+    @patch('fsl_sub.read_module_environment', auto_spec=True)
     def test_module_add(
             self,
             mock_read_module_environment,
@@ -250,10 +291,11 @@ os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
                 mcmd, "python", "add", 'amodule')
         with self.subTest('Test 2'):
             mock_system_stdout.side_effect(
-                subprocess.CalledProcessError('An Error'))
+                subprocess.CalledProcessError)
             self.assertRaises(
                 fsl_sub.LoadModuleError,
-                fsl_sub.module_add('amodule'))
+                fsl_sub.module_add,
+                'amodule')
 
         with self.subTest('Test 3'):
             mock_find_module_cmd.return_value = ''
@@ -261,16 +303,15 @@ os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
                 fsl_sub.module_add('amodule')
             )
 
-    @patch('fsl_sub.module_add')
-    @patch.dict('fsl_sub.os.environ')
-    def test_load_module(self, mock_environ, mock_module_add):
-        mock_environ = {}
+    @patch('fsl_sub.module_add', auto_spec=True)
+    @patch.dict('fsl_sub.os.environ', {}, clear=True)
+    def test_load_module(self, mock_module_add):
         mock_module_add.return_value = {'VAR': 'VAL', 'VAR2': 'VAL2', }
         with self.subTest('Test 1'):
             self.assertTrue(
                 fsl_sub.load_module('amodule'))
             self.assertDictEqual(
-                mock_environ,
+                dict(fsl_sub.os.environ),
                 {'VAR': 'VAL', 'VAR2': 'VAL2', }
             )
         with self.subTest('Test 2'):
@@ -278,16 +319,18 @@ os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
             self.assertFalse(
                 fsl_sub.load_module('amodule'))
 
-    @patch('fsl_sub.module_add')
-    @patch.dict('fsl_sub.os.environ')
-    def test_unload_module(self, mock_environ, mock_module_add):
-        mock_environ = {'VAR': 'VAL', 'VAR2': 'VAL2', 'EXISTING': 'VALUE', }
+    @patch('fsl_sub.module_add', auto_spec=True)
+    @patch.dict(
+        'fsl_sub.os.environ',
+        {'VAR': 'VAL', 'VAR2': 'VAL2', 'EXISTING': 'VALUE', },
+        clear=True)
+    def test_unload_module(self, mock_module_add):
         mock_module_add.return_value = {'VAR': 'VAL', 'VAR2': 'VAL2', }
         with self.subTest('Test 1'):
             self.assertTrue(
                 fsl_sub.unload_module('amodule'))
             self.assertDictEqual(
-                mock_environ,
+                dict(fsl_sub.os.environ),
                 {'EXISTING': 'VALUE', }
             )
         with self.subTest('Test 2'):
@@ -295,22 +338,27 @@ os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
             self.assertFalse(
                 fsl_sub.unload_module('amodule'))
 
-    @patch.dict('fsl_sub.os.environ')
-    def test_unload_module(self, mock_environ, mock_module_add):
-        mock_environ = {'LOADEDMODULES': 'mod1:mod2:mod3', 'EXISTING': 'VALUE', }
+    @patch.dict(
+        'fsl_sub.os.environ',
+        {'LOADEDMODULES': 'mod1:mod2:mod3', 'EXISTING': 'VALUE', },
+        clear=True)
+    def test_loaded_modules(self):
         with self.subTest('Test 1'):
             self.assertListEqual(
                 fsl_sub.loaded_modules(),
                 ['mod1', 'mod2', 'mod3', ])
         with self.subTest('Test 2'):
-            mock_environ = {'EXISTING': 'VALUE', }
-            self.assertListEqual(
-                fsl_sub.loaded_modules(),
-                [])
+            with patch.dict(
+                    'fsl_sub.os.environ',
+                    {'EXISTING': 'VALUE', },
+                    clear=True):
+                self.assertListEqual(
+                    fsl_sub.loaded_modules(),
+                    [])
 
-    @patch.dict('fsl_sub.system_stdout')
+    @patch('fsl_sub.system_stdout', auto_spec=True)
     def test_get_modules(self, mock_system_stdout):
-        mock_system_stdout = '''
+        mock_system_stdout.return_value = '''
 /usr/local/etc/ShellModules:
 amodule/5.0
 amodule/5.5
@@ -318,17 +366,19 @@ amodule/5.5
 /etc/modulefiles:
 '''
         with self.subTest('Test 1'):
+            print(fsl_sub.get_modules('amodule'))
             self.assertListEqual(
                 fsl_sub.get_modules('amodule'),
                 ['5.0', '5.5', ])
         with self.subTest('Test 2'):
             mock_system_stdout.side_effect = subprocess.CalledProcessError(
-                'An Error')
+                'acmd', 1
+            )
             self.assertRaises(
                 fsl_sub.NoModule,
-                fsl_sub.get_modules('amodule'))
+                fsl_sub.get_modules, 'amodule')
 
-    @patch.dict('fsl_sub.get_modules')
+    @patch('fsl_sub.get_modules', auto_spec=True)
     def test_latest_module(self, mock_get_modules):
         mock_get_modules.return_value = ['5.5', '5.0', ]
         with self.subTest('Test 1'):
@@ -349,7 +399,7 @@ amodule/5.5
             mock_get_modules.side_effect = fsl_sub.NoModule('amodule')
             self.assertRaises(
                 fsl_sub.NoModule,
-                fsl_sub.latest_module('amodule')
+                fsl_sub.latest_module, 'amodule'
             )
 
     def test_module_string(self):
@@ -369,39 +419,272 @@ class TestUtils(unittest.TestCase):
     def test_minutes_to_human(self):
         with self.subTest('Test 1'):
             self.assertEqual(
-                fsl_sub.minutes_to_human(
-                    10,
-                    '10m'
-                )
+                fsl_sub.minutes_to_human(10),
+                '10m'
             )
         with self.subTest('Test 2'):
             self.assertEqual(
-                fsl_sub.minutes_to_human(
-                    23 * 60,
-                    '23h'
-                )
+                fsl_sub.minutes_to_human(23 * 60),
+                '23h'
             )
         with self.subTest('Test 3'):
             self.assertEqual(
-                fsl_sub.minutes_to_human(
-                    48 * 60,
-                    '2d'
-                )
+                fsl_sub.minutes_to_human(48 * 60),
+                '2d'
             )
         with self.subTest('Test 4'):
             self.assertEqual(
-                fsl_sub.minutes_to_human(
-                    23 * 59,
-                    '22.6h'
-                )
+                fsl_sub.minutes_to_human(23 * 59),
+                '22.6h'
             )
         with self.subTest('Test 5'):
             self.assertEqual(
-                fsl_sub.minutes_to_human(
-                    48 * 58,
-                    '1.9d'
-                )
+                fsl_sub.minutes_to_human(48 * 58),
+                '1.9d'
             )
+
+    @patch.dict(
+        'fsl_sub.os.environ',
+        {},
+        clear=True)
+    def test_control_threads(self):
+        fsl_sub.control_threads(
+                ['THREADS', 'MORETHREADS', ],
+                1)
+        self.assertDictEqual(
+            dict(fsl_sub.os.environ),
+            {'THREADS': '1', 'MORETHREADS': '1'}
+        )
+
+    @patch('fsl_sub.shutil.which')
+    def test_check_command(self, mock_which):
+        mock_which.return_value = None
+        self.assertRaises(
+            fsl_sub.ArgumentError,
+            fsl_sub.check_command, 'acommand'
+        )
+
+    @patch('fsl_sub.check_command')
+    def test_check_command_file(
+            self, mock_check_command):
+
+        with patch(
+            '__main__.open', unittest.mock_open(
+                read_data='''
+1
+2
+''')) as m:
+            self.assertEqual(
+                fsl_sub.check_command_file(m),
+                2
+            )
+        mock_check_command.side_effect(
+            fsl_sub.ArgumentError())
+        self.assertRaises(
+            fsl_sub.ArgumentError,
+            fsl_sub.check_command_file,
+            m
+        )
+
+    def test_split_ram_by_slots(self):
+        self.assertEqual(
+            fsl_sub.split_ram_by_slots(10, 5),
+            2
+        )
+        self.assertEqual(
+            fsl_sub.split_ram_by_slots(10, 3),
+            4
+        )
+
+    def test_affirmative(self):
+        with self.subTest('yes'):
+            self.assertTrue(fsl_sub.affirmative('yes'))
+        with self.subTest('Yes'):
+            self.assertTrue(fsl_sub.affirmative('Yes'))
+        with self.subTest('YES'):
+            self.assertTrue(fsl_sub.affirmative('YES'))
+        with self.subTest('YEs'):
+            self.assertTrue(fsl_sub.affirmative('YEs'))
+        with self.subTest('y'):
+            self.assertTrue(fsl_sub.affirmative('y'))
+        with self.subTest('Y'):
+            self.assertTrue(fsl_sub.affirmative('Y'))
+        with self.subTest('true'):
+            self.assertTrue(fsl_sub.affirmative('true'))
+        with self.subTest('True'):
+            self.assertTrue(fsl_sub.affirmative('True'))
+        with self.subTest('TRUE'):
+            self.assertTrue(fsl_sub.affirmative('TRUE'))
+        with self.subTest('TRue'):
+            self.assertTrue(fsl_sub.affirmative('TRue'))
+        with self.subTest('TRUe'):
+            self.assertTrue(fsl_sub.affirmative('TRUe'))
+        with self.subTest('no'):
+            self.assertFalse(fsl_sub.affirmative('no'))
+        with self.subTest('No'):
+            self.assertFalse(fsl_sub.affirmative('No'))
+        with self.subTest('NO'):
+            self.assertFalse(fsl_sub.affirmative('NO'))
+        with self.subTest('n'):
+            self.assertFalse(fsl_sub.affirmative('n'))
+        with self.subTest('N'):
+            self.assertFalse(fsl_sub.affirmative('N'))
+        with self.subTest('false'):
+            self.assertFalse(fsl_sub.affirmative('false'))
+        with self.subTest('False'):
+            self.assertFalse(fsl_sub.affirmative('False'))
+        with self.subTest('FALSE'):
+            self.assertFalse(fsl_sub.affirmative('FALSE'))
+        with self.subTest('FAlse'):
+            self.assertFalse(fsl_sub.affirmative('FAlse'))
+        with self.subTest('FALse'):
+            self.assertFalse(fsl_sub.affirmative('FALse'))
+        with self.subTest('FALSe'):
+            self.assertFalse(fsl_sub.affirmative('FALSe'))
+
+    def test_negative(self):
+        with self.subTest('no'):
+            self.assertTrue(fsl_sub.negative('no'))
+        with self.subTest('No'):
+            self.assertTrue(fsl_sub.negative('No'))
+        with self.subTest('NO'):
+            self.assertTrue(fsl_sub.negative('NO'))
+        with self.subTest('n'):
+            self.assertTrue(fsl_sub.negative('n'))
+        with self.subTest('N'):
+            self.assertTrue(fsl_sub.negative('N'))
+        with self.subTest('false'):
+            self.assertTrue(fsl_sub.negative('false'))
+        with self.subTest('False'):
+            self.assertTrue(fsl_sub.negative('False'))
+        with self.subTest('FALSE'):
+            self.assertTrue(fsl_sub.negative('FALSE'))
+        with self.subTest('FAlse'):
+            self.assertTrue(fsl_sub.negative('FAlse'))
+        with self.subTest('FALse'):
+            self.assertTrue(fsl_sub.negative('FALse'))
+        with self.subTest('FALSe'):
+            self.assertTrue(fsl_sub.negative('FALSe'))
+        with self.subTest('yes'):
+            self.assertFalse(fsl_sub.negative('yes'))
+        with self.subTest('Yes'):
+            self.assertFalse(fsl_sub.negative('Yes'))
+        with self.subTest('YES'):
+            self.assertFalse(fsl_sub.negative('YES'))
+        with self.subTest('YEs'):
+            self.assertFalse(fsl_sub.negative('YEs'))
+        with self.subTest('y'):
+            self.assertFalse(fsl_sub.negative('y'))
+        with self.subTest('Y'):
+            self.assertFalse(fsl_sub.negative('Y'))
+        with self.subTest('true'):
+            self.assertFalse(fsl_sub.negative('true'))
+        with self.subTest('True'):
+            self.assertFalse(fsl_sub.negative('True'))
+        with self.subTest('TRUE'):
+            self.assertFalse(fsl_sub.negative('TRUE'))
+        with self.subTest('TRue'):
+            self.assertFalse(fsl_sub.negative('TRue'))
+        with self.subTest('TRUe'):
+            self.assertFalse(fsl_sub.negative('TRUe'))
+
+
+class TestConfig(unittest.TestCase):
+    @patch('fsl_sub.os.path.expanduser')
+    @patch('fsl_sub.os.path.exists')
+    def test_find_config_file(
+            self, mock_exists, mock_expanduser):
+        with self.subTest('Expand user'):
+            mock_exists.side_effect = [True]
+            mock_expanduser.return_value = '/home/auser'
+            self.assertEqual(
+                fsl_sub.find_config_file(),
+                '/home/auser/.fsl_sub.yml'
+            )
+        mock_exists.reset_mock()
+        with patch.dict(
+                'fsl_sub.os.environ',
+                {'FSLDIR': '/usr/local/fsl', },
+                clear=True):
+            with self.subTest('FSLDIR'):
+                mock_exists.side_effect = [False, True]
+                self.assertEqual(
+                    fsl_sub.find_config_file(),
+                    '/usr/local/fsl/etc/fslconf/fsl_sub.yml'
+                )
+        mock_exists.reset_mock()
+        with self.subTest('Missing configuration'):
+            mock_exists.side_effect = [False, False]
+            self.assertRaises(
+                fsl_sub.BadConfiguration,
+                fsl_sub.find_config_file
+            )
+        mock_exists.reset_mock()
+        mock_exists.side_effect = [False, False]
+        with self.subTest('Environment variable'):
+            with patch.dict(
+                    'fsl_sub.os.environ',
+                    {'FSLSUB_CONF': '/etc/fsl_sub.yml', },
+                    clear=True):
+                self.assertEqual(
+                    fsl_sub.find_config_file(),
+                    '/etc/fsl_sub.yml'
+                )
+
+    @patch('fsl_sub.find_config_file')
+    def test_read_config(self, mock_find_config_file):
+        example_yaml = '''
+adict:
+    alist:
+        - 1
+        - 2
+    astring: hello
+'''
+        mock_find_config_file.return_value = '/etc/fsl_sub.conf'
+        with patch(
+                'fsl_sub.open',
+                self.mock_open(read_data=example_yaml)) as m:
+            self.assert_dict_equal(
+                fsl_sub.read_config(),
+                {'adict': {
+                    'alist': [1, 2],
+                    'astring': 'hello',
+                }}
+            )
+            m.called_once_with('/etc/fsl_sub.conf', 'r')
+            bad_yaml = '''
+adict:
+    alist
+        - 1
+        - 2
+'''
+        with patch(
+                'fsl_sub.open',
+                self.mock_open(read_data=bad_yaml)) as m:
+            self.assertRaises(
+                fsl_sub.BadConfiguration,
+                fsl_sub.read_config())
+
+
+class TestPlugins(unittest.TestCase):
+    @patch('fsl_sub.pkiutil.iter_modules', auto_spec=True)
+    @patch('fsl_sub.importlib.import_module', auto_spec=True)
+    def test_load_plugins(
+            self, mock_import_module, mock_iter_modules):
+        mock_import_module.return_value = [
+            'finder1', 'finder2',
+        ]
+        mock_iter_modules.return_value = [
+            ('finder1', 'fsl_sub_1', True, ),
+            ('finder2', 'fsl_sub_2', True, ),
+            ('nothing', 'notfsl', True, ),
+            ('finder3', 'fsl_sub_3', False, ),
+            ]
+        self.assertDictEqual(
+            fsl_sub.load_plugins(),
+            {'fsl_sub1': 'finder1', 
+             'fsl_sub2': 'finder2', }
+        )
 
 
 if __name__ == '__main__':

@@ -13,7 +13,14 @@ def qtest():
     return True
 
 
-def submit(method_config, options, qsub=None):
+def queue_exists(qname, qtest=qtest()):
+    '''Command that confirms a queue is available'''
+    return True
+
+
+def submit(
+        method_config, options,
+        copro_config=None, qsub=None):
     '''Submits the job'''
     logger = logging.getLogger('__name__')
 

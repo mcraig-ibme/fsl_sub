@@ -13,7 +13,6 @@ import subprocess
 import sys
 import yaml
 from collections import defaultdict
-from functools import lru_cache
 from operator import itemgetter
 from math import ceil
 
@@ -53,12 +52,11 @@ class UnrecognisedModule(Exception):
     pass
 
 
-@lru_cache
 def parallel_envs(queues):
     '''Return the list of configured parallel environments
     in the supplied queue definition dict'''
     ll_envs = []
-    for q in queues:
+    for q in queues.values():
         try:
             ll_envs.extend(q['parallel_envs'])
         except KeyError:
@@ -66,7 +64,6 @@ def parallel_envs(queues):
     return list(set(ll_envs))
 
 
-@lru_cache
 def find_module_cmd():
     '''Locate the 'modulecmd' binary'''
     return shutil.which('modulecmd')
@@ -132,7 +129,6 @@ def loaded_modules():
     return modules_string.split(':')
 
 
-@lru_cache
 def get_modules(module_parent):
     '''Returns a list of available Shell Modules that setup the
     co-processor environment'''
@@ -142,17 +138,19 @@ def get_modules(module_parent):
         available_modules = system_stdout(
             ["module", "-t", "avail", module_parent],
             shell=True)
-        for line in available_modules:
+        for line in available_modules.splitlines():
             line = line.strip()
+            if not line:
+                continue
             if ':' in line:
                 continue
             if '/' in line:
-                modules += line.split('/')[1]
+                modules.append(line.split('/')[1])
             else:
-                modules += None
+                modules.append(line)
     except subprocess.CalledProcessError as e:
         raise NoModule(module_parent)
-    return modules.sort()
+    return sorted(modules)
 
 
 def latest_module(module_parent):
@@ -176,13 +174,12 @@ def module_string(module_parent, module_version):
         return module_parent
 
 
-@lru_cache
 def list_coprocessors(config):
     '''Return a list of coprocessors found in the queue definitions'''
 
     avail_cops = []
 
-    for q in config['queues']:
+    for q in config['queues'].values():
         try:
             avail_cops.extend(q['copros'].keys())
         except KeyError:
@@ -191,14 +188,13 @@ def list_coprocessors(config):
     return avail_cops
 
 
-@lru_cache
 def max_coprocessors(config, coprocessor):
     '''Return the maximum number of coprocessors per node from the
     queue definitions'''
 
     num_cops = 0
 
-    for q in config['queues']:
+    for q in config['queues'].values():
         if 'copros' in q:
             try:
                 num_cops = max(
@@ -210,13 +206,12 @@ def max_coprocessors(config, coprocessor):
     return num_cops
 
 
-@lru_cache
-def copro_classes(config, coprocessor):
+def coproc_classes(config, coprocessor):
     '''Return whether a coprocessor supports multiple classes of hardware.
     Classes are sorted by capability'''
     classes = defaultdict(lambda: 1)
     copro_opts = config['copro_opts'][coprocessor]
-    for q in config['queues']:
+    for q in config['queues'].values():
         if 'copros' in q:
             try:
                 for c in q['copros'][coprocessor]['classes']:
@@ -228,7 +223,7 @@ def copro_classes(config, coprocessor):
     return sorted(classes.keys(), key=classes.get)
 
 
-def coprocessor_toolkits(config, coprocessor):
+def coproc_toolkits(config, coprocessor):
     '''Return list of coprocessor toolkit versions.'''
     if coprocessor not in config['copro_opts']:
         raise BadConfiguration(
@@ -244,7 +239,8 @@ def coprocessor_toolkits(config, coprocessor):
     copro_conf = config['copro_opts'][coprocessor]
     if not copro_conf['uses_modules']:
         return None
-    return get_modules(copro_conf['module_parent']).sort
+    return get_modules(copro_conf['module_parent'])
+
 
 def coproc_class(coproc_class, coproc_classes):
     try:
@@ -269,14 +265,13 @@ def coproc_load_module(coproc, module_version):
                     (coproc['module_parent'], module_version)))
 
 
-
 def build_parser(config):
     '''Parse the command line, returns a dict keyed on option'''
 
     available_coprocessors = list_coprocessors(config)
     coprocessor_classes = {
-        c: copro_classes(config, c) for c in available_coprocessors}
-    coprocessor_toolkit = coprocessor_toolkits(config)
+        c: coproc_classes(config, c) for c in available_coprocessors}
+    coprocessor_toolkit = coproc_toolkits(config)
     ll_envs = parallel_envs(config['queues'])
 
     # Build the epilog...
@@ -332,7 +327,7 @@ There are several batch queues configured on the cluster:
                 epilog += (
                     "Co-processor toolkit versions available: "
                     "; ".join(cp))
-            cp_classes = copro_classes(config, cp)
+            cp_classes = coproc_classes(config, cp)
             if cp_classes:
                 epilog += (
                     "Co-processor classes available: "
@@ -547,10 +542,29 @@ There are several batch queues configured on the cluster:
 
 def minutes_to_human(minutes):
     if minutes < 60:
-        return "{}m".format(minutes)
-    if minutes < 60 * 24:
-        return "{:.1f}h".format(minutes/60)
-    return "{:.1f}d".format(minutes/(60 * 24))
+        result = "{}m".format(minutes)
+    elif minutes < 60 * 24:
+        result = "{:.1f}".format(minutes/60)
+        (a, b) = result.split('.')
+        if b == '0':
+            result = a
+        result += 'h'
+    else:
+        result = "{:.1f}".format(minutes/(60 * 24))
+        (a, b) = result.split('.')
+        if b == '0':
+            result = a
+        result += 'd'
+    return result
+
+
+def load_plugins():
+    return {
+        name: importlib.import_module(name)
+        for finder, name, ispkg
+        in pkgutil.iter_modules()
+        if name.startswith('fsl_sub_')
+    }
 
 
 def main():
@@ -558,12 +572,7 @@ def main():
 
     config = read_config()
 
-    fsl_sub_plugins = {
-        name: importlib.import_module(name)
-        for finder, name, ispkg
-        in pkgutil.iter_modules()
-        if name.startswith('fsl_sub_')
-    }
+    fsl_sub_plugins = load_plugins()
 
     try:
         already_run = os.environ['FSLSUBALREADYRUN']
@@ -588,6 +597,7 @@ def main():
     try:
         submit = fsl_sub_plugins[grid_module].submit
         qfind = fsl_sub_plugins[grid_module].qfind
+        queue_exists = fsl_sub_plugins[grid_module].queue_exists
         BadSubmission = fsl_sub_plugins[grid_module].BadSubmission
     except AttributeError as e:
         raise BadConfiguration(
@@ -637,9 +647,9 @@ def main():
                 options['paralleltask'])
             )
 
-    method_options = options['method_opts'][config['method']]
+    method_config = options['method_opts'][config['method']]
 
-    split_on_ram = method_options['map_ram'] and not options['noramsplit']
+    split_on_ram = method_config['map_ram'] and not options['noramsplit']
     if options['parallelenv']:
         options['pe'] = process_pe_def(
             options['parallelenv'], config['queues'])
@@ -647,7 +657,7 @@ def main():
         slots = options['pe']['slots']
     else:
         if split_on_ram:
-            ll_env = method_options['large_job_split_pe']
+            ll_env = method_config['large_job_split_pe']
             slots = 1
         else:
             ll_env = None
@@ -694,12 +704,18 @@ def main():
                 "available or requested".format(slots_required))
 
     if options['coprocessor']:
+        copro_config = config['copro_opts'][options['coprocessor']]
         coproc_load_module(
-            config['copro_opts'][options['coprocessor']],
+            copro_config,
             options['coprocessor_toolkit'])
-
+    else:
+        copro_config = None
     try:
-        job_id = submit(method_options, options)
+        job_id = submit(
+            method_config=method_config,
+            options=options,
+            copro_config=copro_config
+            )
     except BadSubmission as e:
         cmd_parser.error("Error submitting job:" + str(e))
     print(job_id)
@@ -719,7 +735,13 @@ def process_pe_def(pe_def, queues):
             "Parallel environment name {} "
             "not recognised".format(pe[0])
         )
-    return {'name': pe[0], 'slots': pe[1], }
+    try:
+        slots = int(pe[1])
+    except TypeError:
+        raise ArgumentError(
+            "Slots requested not an integer"
+        )
+    return {'name': pe[0], 'slots': slots, }
 
 
 def control_threads(env_vars, threads):
@@ -727,7 +749,7 @@ def control_threads(env_vars, threads):
     threads.'''
 
     for ev in env_vars:
-        os.environ[ev] = threads
+        os.environ[ev] = str(threads)
 
 
 def check_command(cmd):
@@ -738,7 +760,7 @@ def check_command(cmd):
 def check_command_file(cmd_file):
     for lineno, line in enumerate(cmd_file.readlines()):
         try:
-            check_command(line[0])
+            check_command(line.split()[0])
         except ArgumentError:
             raise ArgumentError(
                 "Cannot find script/binary {0} on line {1}"
@@ -746,18 +768,12 @@ def check_command_file(cmd_file):
     return lineno + 1
 
 
-def queue_exists(qname, qtest):
-    try:
-        system([qtest, '-sq', qname])
-    except subprocess.CalledProcessError:
-        return False
-
-
 def split_ram_by_slots(jram, jslots):
     return int(ceil(jram / jslots))
 
 
 def affirmative(astring):
+    '''Is the given string a pseudonym for yes'''
     answer = astring.lower()
     if answer == 'yes' or answer == 'y' or answer == 'true':
         return True
@@ -766,6 +782,7 @@ def affirmative(astring):
 
 
 def negative(astring):
+    '''Is the given string a pseudonym for no'''
     answer = astring.lower()
     if answer == 'no' or answer == 'n' or answer == 'false':
         return True
@@ -785,13 +802,13 @@ def find_config_file():
         return env_config
     except KeyError:
         pass
-    try:
-        default_conf = os.path.join(
-                os.environ['FSLDIR'], 'etc',
-                'fslconf', 'fsl_sub.yml')
-        if os.path.exists(default_conf):
-            return default_conf
-    except KeyError:
+
+    default_conf = os.path.join(
+        os.environ['FSLDIR'], 'etc',
+        'fslconf', 'fsl_sub.yml')
+    if os.path.exists(default_conf):
+        return default_conf
+    else:
         raise BadConfiguration("Unable to find fsl_sub config")
 
 
@@ -823,8 +840,6 @@ def system(
             stderr=subprocess.PIPE,
             shell=shell, cwd=cwd, timeout=timeout,
             check=check, universal_newlines=True)
-
-
 
 
 def getq_and_slots(
