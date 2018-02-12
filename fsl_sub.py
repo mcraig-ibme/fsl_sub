@@ -72,7 +72,7 @@ def find_module_cmd():
 def read_module_environment(lines):
     '''Given output of modulecmd python add ... convert this to a dict'''
     module_env = {}
-    regex = re.compile(r"os.environ\['(?P<variable>.*)'\] = '(?P<value>.*)'$")
+    regex = re.compile(r"os.environ\['(?P<variable>.*)'\] ?= ?'(?P<value>.*)'$")
     for line in lines:
         matches = regex.match(line.strip())
         if matches:
@@ -759,12 +759,13 @@ def check_command(cmd):
 
 def check_command_file(cmd_file):
     for lineno, line in enumerate(cmd_file.readlines()):
+        cmd = line.split()[0]
         try:
-            check_command(line.split()[0])
+            check_command(cmd)
         except ArgumentError:
             raise ArgumentError(
                 "Cannot find script/binary {0} on line {1}"
-                "of {2}".format(line[0], lineno + 1, cmd_file.name))
+                "of {2}".format(cmd, lineno + 1, cmd_file.name))
     return lineno + 1
 
 

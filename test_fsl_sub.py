@@ -3,7 +3,7 @@ import unittest
 import yaml
 import fsl_sub
 import subprocess
-from unittest.mock import patch
+from unittest.mock import (patch, mock_open)
 
 
 class TestCoprocessors(unittest.TestCase):
@@ -250,10 +250,10 @@ class TestModuleSupport(unittest.TestCase):
         mock_which.assert_called_once_with('modulecmd')
 
     def test_read_module_environment(self):
-        lines = '''
-os.environ['PATH']='/usr/bin:/usr/sbin:/usr/local/bin'
-os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
-'''
+        lines = [
+            "os.environ['PATH']='/usr/bin:/usr/sbin:/usr/local/bin'",
+            "os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'",
+        ]
         self.assertDictEqual(
             fsl_sub.read_module_environment(lines),
             {'PATH': '/usr/bin:/usr/sbin:/usr/local/bin',
@@ -283,15 +283,15 @@ os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
             mock_find_module_cmd.assert_called_once_with()
             mock_read_module_environment.assert_called_once_with(
                 '''
-    os.environ['PATH']='/usr/bin:/usr/sbin:/usr/local/bin'
-    os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
-    '''
+os.environ['PATH']='/usr/bin:/usr/sbin:/usr/local/bin'
+os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
+'''
             )
             mock_system_stdout.assert_called_once_with(
-                mcmd, "python", "add", 'amodule')
+                (mcmd, "python", "add", 'amodule', ), shell=True)
         with self.subTest('Test 2'):
-            mock_system_stdout.side_effect(
-                subprocess.CalledProcessError)
+            mock_system_stdout.side_effect = subprocess.CalledProcessError(
+                'acmd', 1)
             self.assertRaises(
                 fsl_sub.LoadModuleError,
                 fsl_sub.module_add,
@@ -366,7 +366,6 @@ amodule/5.5
 /etc/modulefiles:
 '''
         with self.subTest('Test 1'):
-            print(fsl_sub.get_modules('amodule'))
             self.assertListEqual(
                 fsl_sub.get_modules('amodule'),
                 ['5.0', '5.5', ])
@@ -380,22 +379,17 @@ amodule/5.5
 
     @patch('fsl_sub.get_modules', auto_spec=True)
     def test_latest_module(self, mock_get_modules):
-        mock_get_modules.return_value = ['5.5', '5.0', ]
         with self.subTest('Test 1'):
-            self.assertEqual(
-                fsl_sub.latest_module('amodule'),
-                '5.5')
-        with self.subTest('Test 2'):
             mock_get_modules.return_value = ['5.0', '5.5', ]
             self.assertEqual(
                 fsl_sub.latest_module('amodule'),
                 '5.5')
-        with self.subTest('Test 3'):
+        with self.subTest('Test 2'):
             mock_get_modules.return_value = None
             self.assertFalse(
                 fsl_sub.latest_module('amodule')
             )
-        with self.subTest('Test 4'):
+        with self.subTest('Test 3'):
             mock_get_modules.side_effect = fsl_sub.NoModule('amodule')
             self.assertRaises(
                 fsl_sub.NoModule,
@@ -467,24 +461,25 @@ class TestUtils(unittest.TestCase):
     @patch('fsl_sub.check_command')
     def test_check_command_file(
             self, mock_check_command):
-
         with patch(
-            '__main__.open', unittest.mock_open(
-                read_data='''
-1
-2
-''')) as m:
-            self.assertEqual(
-                fsl_sub.check_command_file(m),
-                2
-            )
-        mock_check_command.side_effect(
-            fsl_sub.ArgumentError())
-        self.assertRaises(
-            fsl_sub.ArgumentError,
-            fsl_sub.check_command_file,
-            m
-        )
+                '__main__.open',
+                mock_open(read_data='A')) as m:
+            with open('foo') as cmdf:
+                self.assertEqual(
+                    fsl_sub.check_command_file(cmdf),
+                    1
+                )
+        with patch(
+                '__main__.open',
+                mock_open(read_data='A')) as m:
+            with open('foo') as cmdf:
+                cmdf.seek(0)
+                mock_check_command.side_effect = fsl_sub.ArgumentError()
+                self.assertRaises(
+                    fsl_sub.ArgumentError,
+                    fsl_sub.check_command_file,
+                    cmdf
+                )
 
     def test_split_ram_by_slots(self):
         self.assertEqual(
@@ -643,47 +638,41 @@ adict:
         mock_find_config_file.return_value = '/etc/fsl_sub.conf'
         with patch(
                 'fsl_sub.open',
-                self.mock_open(read_data=example_yaml)) as m:
-            self.assert_dict_equal(
+                unittest.mock.mock_open(read_data=example_yaml)) as m:
+            self.assertDictEqual(
                 fsl_sub.read_config(),
                 {'adict': {
                     'alist': [1, 2],
                     'astring': 'hello',
                 }}
             )
-            m.called_once_with('/etc/fsl_sub.conf', 'r')
-            bad_yaml = '''
-adict:
-    alist
-        - 1
-        - 2
-'''
+            m.assert_called_once_with('/etc/fsl_sub.conf', 'r')
+            bad_yaml = "unbalanced: ]["
         with patch(
                 'fsl_sub.open',
-                self.mock_open(read_data=bad_yaml)) as m:
+                unittest.mock.mock_open(read_data=bad_yaml)) as m:
             self.assertRaises(
                 fsl_sub.BadConfiguration,
-                fsl_sub.read_config())
+                fsl_sub.read_config)
 
 
 class TestPlugins(unittest.TestCase):
-    @patch('fsl_sub.pkiutil.iter_modules', auto_spec=True)
+    @patch('fsl_sub.pkgutil.iter_modules', auto_spec=True)
     @patch('fsl_sub.importlib.import_module', auto_spec=True)
     def test_load_plugins(
             self, mock_import_module, mock_iter_modules):
-        mock_import_module.return_value = [
+        mock_import_module.side_effect = [
             'finder1', 'finder2',
         ]
         mock_iter_modules.return_value = [
             ('finder1', 'fsl_sub_1', True, ),
             ('finder2', 'fsl_sub_2', True, ),
             ('nothing', 'notfsl', True, ),
-            ('finder3', 'fsl_sub_3', False, ),
             ]
         self.assertDictEqual(
             fsl_sub.load_plugins(),
-            {'fsl_sub1': 'finder1', 
-             'fsl_sub2': 'finder2', }
+            {'fsl_sub_1': 'finder1',
+             'fsl_sub_2': 'finder2', }
         )
 
 
