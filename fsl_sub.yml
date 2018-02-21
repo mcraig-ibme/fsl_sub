@@ -42,6 +42,13 @@ method_opts:
     affinity_control: threads
     # Enable Emailing end-user about job status
     mail_support: True
+    # What mail modes are allowed
+    mail_modes:
+      - b
+      - e
+      - a
+      - s
+      - n
     # When to email user:
     #   a - on abort
     mail_mode: a

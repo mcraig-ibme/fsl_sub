@@ -2,42 +2,63 @@
 import argparse
 import copy
 import getpass
-import importlib
 import logging
 import os
-import pkgutil
-import re
-import shutil
+import shlex
 import socket
 import subprocess
 import sys
-from collections import defaultdict
+import warnings
 from operator import itemgetter
 from math import ceil
 
-from fsl_sub.exceptions import (
+from exceptions import (
     ArgumentError,
     LoadModuleError,
     NoModule,
-    PluginError,
-    BadCoprocessor,
     BadConfiguration,
-    UnrecognisedModule
+    BadSubmission,
 )
 
-from fsl_sub.config import (
-    find_config_file,
+from config import (
     read_config,
-    method_config
+    method_config,
+    coprocessor_config,
 )
-# ============================
-# Configuration ends here
-# ============================
 
+from coprocessors import (
+    coproc_load_module,
+    list_coprocessors,
+    coproc_classes,
+    coproc_toolkits,
+)
+
+from modules import (
+    get_modules,
+    find_module_cmd
+)
+from utils import (
+    load_plugins,
+    minutes_to_human,
+    affirmative,
+    check_command,
+    check_command_file,
+    control_threads
+)
+from system import (
+    system_stdout,
+)
 VERSION = '2.0'
+PLUGINS = load_plugins()
 
 
-# Custom Exceptions
+def fsl_sub_warnings_formatter(
+        message, category, filename, lineno, file=None, line=None):
+    return str(message)
+
+
+warnings.formatwarning = fsl_sub_warnings_formatter
+warnings.simplefilter('always', UserWarning)
 
 
 def parallel_envs(queues):
@@ -50,239 +71,6 @@ def parallel_envs(queues):
         except KeyError:
             pass
     return list(set(ll_envs))
-
-
-def find_module_cmd():
-    '''Locate the 'modulecmd' binary'''
-    return shutil.which('modulecmd')
-
-
-def read_module_environment(lines):
-    '''Given output of modulecmd python add ... convert this to a dict'''
-    module_env = {}
-    regex = re.compile(r"os.environ\['(?P<variable>.*)'\] ?= ?'(?P<value>.*)'$")
-    for line in lines:
-        matches = regex.match(line.strip())
-        if matches:
-            module_env[matches.group('variable')] = matches.group('value')
-    return module_env
-
-
-def module_add(module_name):
-    '''Returns a dict of variable: value describing the environment variables
-    necessary to load a shell module into the current environment'''
-    module_cmd = find_module_cmd()
-
-    if module_cmd:
-        try:
-            environment = system_stdout(
-                (module_cmd, "python", "add", module_name, ), shell=True)
-        except subprocess.CalledProcessError as e:
-            raise LoadModuleError from e
-        return read_module_environment(environment)
-    else:
-        return False
-
-
-def load_module(module_name):
-    '''Load a module into the environment of this python process.'''
-    environment = module_add(module_name)
-    if environment:
-        for k, v in environment.items():
-            os.environ[k] = v
-        return True
-    else:
-        return False
-
-
-def unload_module(module_name):
-    '''Remove environment variables associated with module module_name
-     from the environment of python process.'''
-    environment = module_add(module_name)
-    if environment:
-        for k in environment:
-            del os.environ[k]
-        return True
-    else:
-        return False
-
-
-def loaded_modules():
-    '''Get list of loaded ShellModules'''
-    # Modules stored in environment variable LOADEDMODULES
-    try:
-        modules_string = os.environ['LOADEDMODULES']
-    except KeyError:
-        return []
-    return modules_string.split(':')
-
-
-def get_modules(module_parent):
-    '''Returns a list of available Shell Modules that setup the
-    co-processor environment'''
-
-    modules = []
-    try:
-        available_modules = system_stdout(
-            ["module", "-t", "avail", module_parent],
-            shell=True)
-        for line in available_modules.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            if ':' in line:
-                continue
-            if '/' in line:
-                modules.append(line.split('/')[1])
-            else:
-                modules.append(line)
-    except subprocess.CalledProcessError as e:
-        raise NoModule(module_parent)
-    return sorted(modules)
-
-
-def latest_module(module_parent):
-    '''Return the module string that would load the latest version of a module.
-    Returns False if module is determined to be not versioned and raises
-    NoModule if module is not found.'''
-    try:
-        modules = get_modules(module_parent)
-        if modules is None:
-            return False
-        else:
-            return modules[-1]
-    except NoModule as e:
-        raise
-
-
-def module_string(module_parent, module_version):
-    if module_version:
-        return "/".join((module_parent, module_version))
-    else:
-        return module_parent
-
-
-def list_coprocessors(config):
-    '''Return a list of coprocessors found in the queue definitions'''
-
-    avail_cops = []
-
-    for q in config['queues'].values():
-        try:
-            avail_cops.extend(q['copros'].keys())
-        except KeyError:
-            pass
-
-    return avail_cops
-
-
-def max_coprocessors(config, coprocessor):
-    '''Return the maximum number of coprocessors per node from the
-    queue definitions'''
-
-    num_cops = 0
-
-    for q in config['queues'].values():
-        if 'copros' in q:
-            try:
-                num_cops = max(
-                    num_cops,
-                    q['copros'][coprocessor]['max_quantity'])
-            except KeyError:
-                pass
-
-    return num_cops
-
-
-def coproc_classes(config, coprocessor):
-    '''Return whether a coprocessor supports multiple classes of hardware.
-    Classes are sorted by capability'''
-    classes = defaultdict(lambda: 1)
-    copro_opts = config['copro_opts'][coprocessor]
-    for q in config['queues'].values():
-        if 'copros' in q:
-            try:
-                for c in q['copros'][coprocessor]['classes']:
-                    classes[c] = copro_opts[c]['capability']
-            except KeyError:
-                continue
-    if not classes:
-        return None
-    return sorted(classes.keys(), key=classes.get)
-
-
-def coproc_toolkits(config, coprocessor):
-    '''Return list of coprocessor toolkit versions.'''
-    if coprocessor not in config['copro_opts']:
-        raise BadConfiguration(
-            "Coprocessor {} not configured".format(coprocessor))
-    # Check that we have queues configured for this coproceesor
-    if not all([q for q in config['queues'] if (
-            'copros' in q and coprocessor in q['copros'])]):
-        raise BadConfiguration(
-            "Coprocessor {} not available in any queues".format(
-                coprocessor
-            )
-        )
-    copro_conf = config['copro_opts'][coprocessor]
-    if not copro_conf['uses_modules']:
-        return None
-    return get_modules(copro_conf['module_parent'])
-
-
-def coproc_class(coproc_class, coproc_classes):
-    try:
-        for c, i in enumerate(coproc_classes):
-            if c['shortcut'] == coproc_class:
-                break
-    except KeyError:
-        raise BadConfiguration(
-            "Co-processor class {} not configured".format(coproc_class),
-            file=sys.stderr)
-    return coproc_classes[:i]
-
-
-def coproc_load_module(coproc, module_version):
-    if coproc['uses_modules']:
-        modules_avail = get_modules(coproc['module_parent'])
-        if modules_avail:
-            if module_version not in modules_avail:
-                raise UnrecognisedModule(module_version)
-            else:
-                load_module("/".join(
-                    (coproc['module_parent'], module_version)))
-
-
-def submit(
-        fileisimage=None,
-        parallel_limit=None,
-        jobtime=None,
-        parallel_stride=1,
-        paralleltask=None,
-        noramsplit=False,
-        parallelenv=None,
-        jobram=None,
-        resources=None,
-        queue=None,
-        priority=0,
-        name=None,
-        novalidation=False,
-        mailoptions=None,
-        mailto="{username}@{hostname}.".format(
-                            username=getpass.getuser(),
-                            hostname=socket.gethostname()),
-        logdir=os.getcwd(),
-        parallel_hold=None,
-        jobhold=None,
-        usescript=False,
-        coprocessor_multi=1,
-        coprocessor_toolkit=None,
-        coprocessor_class_strict=False,
-        comprocessor_class=None,
-        coprocessor=None,
-        architecture=None
-        ):
-    pass
 
 
 def build_parser(config):
@@ -519,7 +307,6 @@ There are several batch queues configured on the cluster:
     )
     array_g.add_argument(
         '-t', '--paralleltask',
-        type=argparse.FileType('r'),
         help="Specify a task file of commands to execute in parallel."
     )
     array_g.add_argument(
@@ -560,65 +347,66 @@ There are several batch queues configured on the cluster:
     return parser
 
 
-def minutes_to_human(minutes):
-    if minutes < 60:
-        result = "{}m".format(minutes)
-    elif minutes < 60 * 24:
-        result = "{:.1f}".format(minutes/60)
-        (a, b) = result.split('.')
-        if b == '0':
-            result = a
-        result += 'h'
-    else:
-        result = "{:.1f}".format(minutes/(60 * 24))
-        (a, b) = result.split('.')
-        if b == '0':
-            result = a
-        result += 'd'
-    return result
-
-
-def load_plugins():
-    return {
-        name: importlib.import_module(name)
-        for finder, name, ispkg
-        in pkgutil.iter_modules()
-        if name.startswith('fsl_sub_')
-    }
-
-
-def main():
+def submit(
+    command,
+    name=None,
+    threads=1,
+    queue=None,
+    jobhold=None,
+    array_task=False,
+    parallel_hold=None,
+    parallel_limit=None,
+    parallel_stride=1,
+    parallel_env=None,
+    jobram=None,
+    jobtime=None,
+    resources=None,
+    ramsplit=True,
+    priority=None,
+    validate_command=True,
+    mail_on=None,
+    mailto="{username}@{hostname}.".format(
+                            username=getpass.getuser(),
+                            hostname=socket.gethostname()),
+    logdir=os.getcwd(),
+    coprocessor=None,
+    coprocessor_toolkit=None,
+    coprocessor_class=None,
+    coprocessor_class_strict=False,
+    coprocessor_multi="1",
+    usesscript=False,
+    architecture=None,
+):
+    '''Submit job(s) to a queue'''
     logger = logging.getLogger('__name__')
+    global PLUGINS
 
     config = read_config()
-
-    fsl_sub_plugins = load_plugins()
 
     try:
         already_run = os.environ['FSLSUBALREADYRUN']
     except KeyError:
         already_run = 'false'
+    os.environ['FSLSUBALREADYRUN'] = 'true'
+
     if config['method'] != 'None':
         if affirmative(already_run):
             config['method'] == 'None'
-            print(
+            warnings.warn(
                 'Warning: job on queue attempted to submit parallel jobs -'
-                'running jobs serially instead.',
-                file=sys.stderr
+                'running jobs serially instead.'
             )
 
-    os.environ['FSLSUBALREADYRUN'] = 'true'
-
     grid_module = 'fsl_sub_' + config['method']
-    if grid_module not in fsl_sub_plugins:
+    if grid_module not in PLUGINS:
         raise BadConfiguration(
             "{} not a supported method".format(config['method']))
 
     try:
-        submit = fsl_sub_plugins[grid_module].submit
-        qfind = fsl_sub_plugins[grid_module].qfind
-        queue_exists = fsl_sub_plugins[grid_module].queue_exists
-        BadSubmission = fsl_sub_plugins[grid_module].BadSubmission
+        queue_submit = PLUGINS[grid_module].submit
+        qfind = PLUGINS[grid_module].qfind
+        queue_exists = PLUGINS[grid_module].queue_exists
+        BadSubmission = PLUGINS[grid_module].BadSubmission
     except AttributeError as e:
         raise BadConfiguration(
             "Failed to load plugin " + grid_module
@@ -627,117 +415,195 @@ def main():
     config['qtest'] = qfind()
     if config['qtest'] is None:
         config['method'] == 'None'
-        print(
-            'Warning: fsl_sub configured for {0} but {0}'
-            ' software not found.'.format(config['method']),
-            file=sys.stderr
+        warnings.warn(
+            'Warning: fsl_sub configured for {} but {}'
+            ' software not found.'.format(config['method'])
         )
+
+    if method_config['mail_support'] is True:
+        if mail_on is None:
+            try:
+                mail_on = method_config['mail_mode']
+            except KeyError:
+                warnings.warn(
+                    "Mail not configured but enabled in configuration for " +
+                    config['method'])
+        else:
+            for m_opt in method_config['mail_modes'].split(','):
+                if m_opt not in method_config['mail_modes']:
+                    raise BadSubmission(
+                        "Unrecognised mail mode " + mail_on)
+
+    if array_task is False:
+        if isinstance(command, list):
+            # command is the command line to run as a list
+            job_type = 'single'
+        elif isinstance(command, str):
+            # command is a basic string
+            command = shlex.split(command)
+            job_type = 'single'
+        else:
+            raise BadSubmission("Command should be a list or string")
+        if validate_command:
+            check_command(command[0])
+    else:
+        job_type = 'array'
+        if validate_command:
+            task_numbers = check_command_file(command)
+        if name is None:
+            name = os.path.basename(command)
+    logger.info(
+        "METHOD={0} : TYPE={1} : args={2}".format(
+            config['method'],
+            job_type,
+            " ".join(command)
+        ))
+    task_name = os.path.basename(command)
+
+    m_config = method_config(config['method'])
+
+    split_on_ram = m_config['map_ram'] and ramsplit
+
+    if (split_on_ram and
+            parallel_env is None and
+            'large_job_split_pe' in m_config):
+        parallel_env = m_config['large_job_split_pe']
+
+    if queue is None:
+        (queue, slots_required) = getq_and_slots(
+                job_time=jobtime,
+                job_ram=jobram,
+                job_threads=threads,
+                queues=config['queues'],
+                coprocessor=coprocessor,
+                ll_env=parallel_env
+                )
+
+    if queue is None:
+        raise BadSubmission("Unable to find a queue with these parameters")
+
+    if not queue_exists(queue):
+        raise BadSubmission("Unrecognised queue " + queue)
+
+    threads = max(slots_required, threads)
+
+    control_threads(config['thread_control'], threads)
+
+    if threads == 1 and parallel_env is not None:
+        parallel_env = None
+    if threads > 1 and parallel_env is None:
+        raise BadSubmission(
+                "Job requires {} slots but no parallel envrionment "
+                "available or requested".format(threads))
+
+    if coprocessor:
+        try:
+            coproc_load_module(
+                coprocessor_config(coprocessor),
+                coprocessor_toolkit)
+        except LoadModuleError:
+            raise BadSubmission(
+                "Unable to load requested coprocessor toolkit"
+            )
+    job_id = queue_submit(
+        command,
+        job_name=task_name,
+        threads=threads,
+        queue=queue,
+        jobhold=jobhold,
+        array_task=array_task,
+        array_slots=task_numbers,
+        parallel_hold=parallel_hold,
+        parallel_limit=parallel_limit,
+        parallel_stride=parallel_stride,
+        parallel_env=parallel_env,
+        jobram=jobram,
+        jobtime=jobtime,
+        resources=resources,
+        ramsplit=split_on_ram,
+        prority=priority,
+        mail_on=mail_on,
+        mailto=mailto,
+        logdir=logdir,
+        coprocessor=coprocessor,
+        coprocessor_toolkit=coprocessor_toolkit,
+        coprocessor_class=coprocessor_class,
+        coprocessor_class_strict=coprocessor_class_strict,
+        coprocessor_multi=coprocessor_multi,
+        usesscript=usesscript,
+        architecture=architecture)
+
+    return job_id
+
+
+def main():
+    logger = logging.getLogger('__name__')
+
+    config = read_config()
 
     cmd_parser = build_parser(config)
     options = vars(cmd_parser.parse_args())
 
-    if options['paralleltask']:
-        command = ''
-        if not options['novalidation']:
-            options['task_numbers'] = check_command_file(
-                options['paralleltask'])
-        options['paralleltask'].close()
-        options['paralleltask'] = options['paralleltask'].name
-        task_name = os.path.basename(options['paralleltask'])
+    if options['verbose']:
+        logger.set_level(logging.INFO)
 
-    if options['args']:
-        command = options['args'][0]
-        if not options['novalidation']:
-            check_command(command)
-        task_name = os.path.basename(command)
+    if options['file-is-image']:
+        logger.debug("Check file is image requested")
+        if os.path.isfile(options['file-is-image']):
+            try:
+                if system_stdout(
+                    command=[
+                        os.path.join(
+                            os.environ['FSLDIR'],
+                            'bin',
+                            'imtest'),
+                        options['file-is-image']
+                        ]) == '1':
+                    logger.info("File is an image")
+                    sys.exit(0)
+            except subprocess.CalledProcessError as e:
+                cmd_parser.error(
+                    "Error trying to check image file - " +
+                    str(e))
 
-    if not options['jobname']:
-        options['jobname'] = task_name
-
-    if options['args']:
-        logger.info(
-            "METHOD={0} : args={1}".format(
-                config['method'],
-                " ".join(options['args'])
-            ))
-    else:
-        logger.info(
-            "METHOD={0} : parallel task file={1}".format(
-                config['method'],
-                options['paralleltask'])
-            )
-
-    method_config = options['method_opts'][config['method']]
-
-    split_on_ram = method_config['map_ram'] and not options['noramsplit']
     if options['parallelenv']:
-        options['pe'] = process_pe_def(
-            options['parallelenv'], config['queues'])
-        ll_env = options['pe']['name']
-        slots = options['pe']['slots']
-    else:
-        if split_on_ram:
-            ll_env = method_config['large_job_split_pe']
-            slots = 1
-        else:
-            ll_env = None
-            slots = 1
+        try:
+            pe_name, threads = process_pe_def(
+                options['parallelenv'], config['queues'])
+        except ArgumentError as e:
+            cmd_parser.error(str(e))
 
-    if options['queue'] is None:
-        (options['queue'], slots_required) = getq_and_slots(
-                job_time=options['jobtime'],
-                job_ram=options['jobram'],
-                job_threads=slots,
-                queues=config['queues'],
-                coprocessor=options['coprocessor'],
-                ll_env=ll_env
-                )
+    array_task = True
+    if options['paralleltask'] is None:
+        array_task = False
 
-        if options['queue'] is None:
-            cmd_parser.error("Unable to find a queue with these parameters")
-    else:
-        slots_required = slots
+    if 'mailoptions' not in options:
+        options['mailoptions'] = None
+    if 'mailto' not in options:
+        options['mailto'] = None
 
-    if not queue_exists(options['queue'], config['qtest']):
-        cmd_parser.error("Invalid queue name specified!")
-
-    if split_on_ram:
-        options['jobram'] = split_ram_by_slots(
-            options['jobram'],
-            slots_required)
-
-    control_threads(
-        config['thread_control'],
-        slots_required)
-
-    if slots_required > 1:
-        if options['pe']:
-            if options['pe']['slots'] < slots_required:
-                options['pe']['slots'] = slots_required
-        elif ll_env:
-            options['pe'] = {
-                'name': ll_env,
-                'slots': slots_required, }
-        else:
-            cmd_parser.error(
-                "Job requires {} slots but no parallel envrionment "
-                "available or requested".format(slots_required))
-
-    if options['coprocessor']:
-        copro_config = config['copro_opts'][options['coprocessor']]
-        coproc_load_module(
-            copro_config,
-            options['coprocessor_toolkit'])
-    else:
-        copro_config = None
     try:
         job_id = submit(
-            method_config=method_config,
-            options=options,
-            copro_config=copro_config
-            )
+            name=options['name'],
+            queue=options['queue'],
+            parallel_env=pe_name,
+            threads=threads,
+            jobhold=options['jobhold'],
+            jobram=options['jobram'],
+            jobtime=options['jobtime'],
+            logdir=options['logdir'],
+            mail_on=options['mailoptions'],
+            mailto=options['mailto'],
+            parallel_hold=options['parallel_hold'],
+            parallel_limit=options['parallel_limit'],
+            parallel_stride=options['parallel_stride'],
+            array_task=array_task,
+
+        )
     except BadSubmission as e:
         cmd_parser.error("Error submitting job:" + str(e))
+    except Exception as e:
+        cmd_parser.error("Unexpected error: " + str(e))
     print(job_id)
 
 
@@ -761,74 +627,11 @@ def process_pe_def(pe_def, queues):
         raise ArgumentError(
             "Slots requested not an integer"
         )
-    return {'name': pe[0], 'slots': slots, }
-
-
-def control_threads(env_vars, threads):
-    '''Set the specified environment variables to the number of
-    threads.'''
-
-    for ev in env_vars:
-        os.environ[ev] = str(threads)
-
-
-def check_command(cmd):
-    if shutil.which(cmd) is None:
-        raise ArgumentError("Cannot find script/binary " + cmd)
-
-
-def check_command_file(cmd_file):
-    for lineno, line in enumerate(cmd_file.readlines()):
-        cmd = line.split()[0]
-        try:
-            check_command(cmd)
-        except ArgumentError:
-            raise ArgumentError(
-                "Cannot find script/binary {0} on line {1}"
-                "of {2}".format(cmd, lineno + 1, cmd_file.name))
-    return lineno + 1
+    return (pe[0], slots, )
 
 
 def split_ram_by_slots(jram, jslots):
     return int(ceil(jram / jslots))
-
-
-def affirmative(astring):
-    '''Is the given string a pseudonym for yes'''
-    answer = astring.lower()
-    if answer == 'yes' or answer == 'y' or answer == 'true':
-        return True
-    else:
-        return False
-
-
-def negative(astring):
-    '''Is the given string a pseudonym for no'''
-    answer = astring.lower()
-    if answer == 'no' or answer == 'n' or answer == 'false':
-        return True
-    else:
-        return False
-
-
-def system_stdout(
-        command, shell=False, cwd=None, timeout=None, check=True):
-    result = subprocess.run(
-            command,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            shell=shell, cwd=cwd, timeout=timeout,
-            check=check, universal_newlines=True)
-
-    return result.stdout
-
-
-def system(
-        command, shell=False, cwd=None, timeout=None, check=True):
-    subprocess.run(
-            command,
-            stderr=subprocess.PIPE,
-            shell=shell, cwd=cwd, timeout=timeout,
-            check=check, universal_newlines=True)
 
 
 def getq_and_slots(

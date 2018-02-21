@@ -3,9 +3,7 @@ import logging
 import os
 import subprocess as sp
 
-
-class BadSubmission(Exception):
-    pass
+from ..exceptions import BadSubmission
 
 
 def qtest():
@@ -19,49 +17,50 @@ def queue_exists(qname, qtest=qtest()):
 
 
 def submit(
-        method_config, options,
-        copro_config=None, qsub=None):
+        command,
+        job_name,
+        threads,
+        queue,
+        array_task=False,
+        array_slots=1,
+        logdir=os.getcwd(),
+        **kwargs):
     '''Submits the job'''
     logger = logging.getLogger('__name__')
 
     pid = os.getpid()
-    logfile_base = os.path.join(options['logdir'], options['jobname'])
-    logfiles = "{path}.{type}{pid}"
-    stdout = logfiles.format(
-        {'type': 'o',
-         'path': logfile_base,
-         'pid': pid, }
-    )
-    stderr = logfiles.format(
-        {'type': 'e',
-         'path': logfile_base,
-         'pid': pid, }
-    )
-    commands = []
-    if options['args']:
-        commands.append(options['args'])
-    elif options['paralleltask']:
+    logfile_base = os.path.join(logdir, job_name)
+    stdout = "{0}.{1}{2}".format('o', logfile_base, pid)
+    stderr = "{0}.{1}{2}".format('e', logfile_base, pid)
+    command_lines = []
+    if array_task is True:
         try:
-            with open(options['paralleltask'].name, 'r') as ll_tasks:
-                commands.extend(ll_tasks.read().splitlines())
+            with open(command, 'r') as ll_tasks:
+                command_lines.extend(ll_tasks.readlines())
         except Exception as e:
-            raise BadSubmission from e
+            raise BadSubmission(
+                "Unable to read array task file " +
+                command) from e
+        logger.info(
+            "Running commands in: " + command)
+        for line in range(0, array_slots):
+            logger.info(
+                "{line}: {command}".format(
+                    line=line,
+                    command=command_lines[line]
+                )
+            )
     else:
-        raise BadSubmission("We shouldn't get here")
+        command_lines.append(command)
+        logger.info("executing: " + " ".join(command_lines))
 
-    if options['args']:
-        logger.warning("executing: " + " ".join(options['args']))
-    elif options['paralleltask']:
-        logger.warning(
-            "Running commands in: " + options['paralleltask'].name)
-
-    for (line, command) in enumerate(commands):
-        if len(commands) > 1:
+    for (line, cmd) in enumerate(command_lines):
+        if len(command_lines) > 1:
             stdout_f = "{0}.{1}".format(
-                stdout, line)
+                stdout, line + 1)
             stderr_f = "{0}.{1}".format(
-                stderr, line)
-            logger.warning("executing: " + str(line))
+                stderr, line + 1)
+            logger.info("executing: " + str(line + 1))
         else:
             (stdout_f, stderr_f) = (stdout, stderr)
         try:
