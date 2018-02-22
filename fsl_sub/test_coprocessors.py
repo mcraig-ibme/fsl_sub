@@ -5,11 +5,7 @@ import coprocessors
 
 from unittest.mock import patch
 
-
-class TestCoprocessors(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.config = yaml.load('''
+test_config = yaml.load('''
 queues:
     cuda.q:
         time: 18000
@@ -42,7 +38,7 @@ queues:
             - shmem
         priority: 1
         group: 1
-copro_opts:
+coproc_opts:
     cuda:
         resource: gpu
         classes: True
@@ -79,23 +75,30 @@ copro_opts:
         module_parent: phi
 ''')
 
+
+class TestCoprocessors(unittest.TestCase):
+    def setUp(self):
+        global test_config
+        patcher = patch('config.read_config', autospec=True)
+        self.addCleanup(patcher.stop)
+        self.mock_read_config = patcher.start()
+        self.mock_read_config.return_value = test_config
+
     def test_list_coprocessors(self):
         self.assertCountEqual(
-            coprocessors.list_coprocessors(self.config),
+            coprocessors.list_coprocessors(),
             ['cuda', 'phi', ])
 
     def test_max_coprocessors(self):
         with self.subTest("Max CUDA"):
             self.assertEqual(
                 coprocessors.max_coprocessors(
-                    self.config,
                     'cuda'),
                 4
             )
         with self.subTest("Max Phi"):
             self.assertEqual(
                 coprocessors.max_coprocessors(
-                    self.config,
                     'phi'),
                 2
             )
@@ -104,14 +107,12 @@ copro_opts:
         with self.subTest("CUDA classes"):
             self.assertListEqual(
                 coprocessors.coproc_classes(
-                    self.config,
                     'cuda'),
                 ['K', 'P', 'V', ]
             )
         with self.subTest("Phi classes"):
             self.assertIsNone(
                 coprocessors.coproc_classes(
-                    self.config,
                     'phi'))
 
     @patch('coprocessors.get_modules', auto_spec=True)
@@ -120,7 +121,6 @@ copro_opts:
             mock_get_modules.return_value = ['6.5', '7.0', '7.5', ]
             self.assertEqual(
                 coprocessors.coproc_toolkits(
-                        self.config,
                         'cuda'),
                 ['6.5', '7.0', '7.5', ]
                 )

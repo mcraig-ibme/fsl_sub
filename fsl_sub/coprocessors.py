@@ -50,7 +50,7 @@ def coproc_classes(coprocessor):
     '''Return whether a coprocessor supports multiple classes of hardware.
     Classes are sorted by capability'''
     classes = defaultdict(lambda: 1)
-    copro_opts = coprocessor_config()[coprocessor]
+    copro_opts = coprocessor_config(coprocessor)
     for q in queue_config().values():
         if 'copros' in q:
             try:
@@ -65,9 +65,7 @@ def coproc_classes(coprocessor):
 
 def coproc_toolkits(coprocessor):
     '''Return list of coprocessor toolkit versions.'''
-    if coprocessor not in coprocessor_config():
-        raise BadConfiguration(
-            "Coprocessor {} not configured".format(coprocessor))
+    copro_conf = coprocessor_config(coprocessor)
     # Check that we have queues configured for this coproceesor
     if not all([q for q in queue_config() if (
             'copros' in q and coprocessor in q['copros'])]):
@@ -76,7 +74,6 @@ def coproc_toolkits(coprocessor):
                 coprocessor
             )
         )
-    copro_conf = coprocessor_config()[coprocessor]
     if not copro_conf['uses_modules']:
         return None
     return get_modules(copro_conf['module_parent'])
