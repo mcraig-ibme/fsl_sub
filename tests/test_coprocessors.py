@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import unittest
 import yaml
-import coprocessors
+import fsl_sub.coprocessors
 
 from unittest.mock import patch
 
@@ -79,26 +79,27 @@ coproc_opts:
 class TestCoprocessors(unittest.TestCase):
     def setUp(self):
         global test_config
-        patcher = patch('config.read_config', autospec=True)
+        patcher = patch(
+            'fsl_sub.config.read_config', autospec=True)
         self.addCleanup(patcher.stop)
         self.mock_read_config = patcher.start()
         self.mock_read_config.return_value = test_config
 
     def test_list_coprocessors(self):
         self.assertCountEqual(
-            coprocessors.list_coprocessors(),
+            fsl_sub.coprocessors.list_coprocessors(),
             ['cuda', 'phi', ])
 
     def test_max_coprocessors(self):
         with self.subTest("Max CUDA"):
             self.assertEqual(
-                coprocessors.max_coprocessors(
+                fsl_sub.coprocessors.max_coprocessors(
                     'cuda'),
                 4
             )
         with self.subTest("Max Phi"):
             self.assertEqual(
-                coprocessors.max_coprocessors(
+                fsl_sub.coprocessors.max_coprocessors(
                     'phi'),
                 2
             )
@@ -106,21 +107,21 @@ class TestCoprocessors(unittest.TestCase):
     def test_coproc_classes(self):
         with self.subTest("CUDA classes"):
             self.assertListEqual(
-                coprocessors.coproc_classes(
+                fsl_sub.coprocessors.coproc_classes(
                     'cuda'),
                 ['K', 'P', 'V', ]
             )
         with self.subTest("Phi classes"):
             self.assertIsNone(
-                coprocessors.coproc_classes(
+                fsl_sub.coprocessors.coproc_classes(
                     'phi'))
 
-    @patch('coprocessors.get_modules', auto_spec=True)
+    @patch('fsl_sub.coprocessors.get_modules', auto_spec=True)
     def test_coproc_toolkits(self, mock_get_modules):
         with self.subTest("CUDA toolkits"):
             mock_get_modules.return_value = ['6.5', '7.0', '7.5', ]
             self.assertEqual(
-                coprocessors.coproc_toolkits(
+                fsl_sub.coprocessors.coproc_toolkits(
                         'cuda'),
                 ['6.5', '7.0', '7.5', ]
                 )

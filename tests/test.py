@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import unittest
 import yaml
+import fsl_sub
+
+from unittest.mock import patch
 
 
 class TestParallelEnvs(unittest.TestCase):
@@ -78,8 +81,8 @@ queues:
         mock_parallel_envs.return_value = ['openmp', ]
         queues = self.config['queues']
         with self.subTest('Success'):
-            self.assertEqual(
-                {'name': 'openmp', 'slots': 2},
+            self.assertTupleEqual(
+                ('openmp', 2, ),
                 fsl_sub.process_pe_def(
                     'openmp,2',
                     queues

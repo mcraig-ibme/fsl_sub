@@ -10,14 +10,14 @@ import tempfile
 import xml.etree.ElementTree as ET
 from shutil import which
 
-from ..exceptions import (
+from fsl_sub.exceptions import (
     BadSubmission,
 )
-from ..config import (
+from fsl_sub.config import (
     method_config,
     copro_conf,
 )
-from ..utils import (
+from fsl_sub.utils import (
     split_ram_by_slots,
 )
 
@@ -94,8 +94,8 @@ def check_pe(pe_name, queue, qconf=qconf(), qstat=qstat()):
 def submit(
         command,
         job_name,
-        threads,
         queue,
+        threads=1,
         array_task=False,
         array_slots=1,
         jobhold=None,
