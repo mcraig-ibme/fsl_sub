@@ -97,7 +97,6 @@ def submit(
         queue,
         threads=1,
         array_task=False,
-        array_slots=1,
         jobhold=None,
         parallel_hold=None,
         parallel_limit=None,
@@ -129,7 +128,6 @@ def submit(
 
     Optional:
     array_task - is the command is an array task (defaults to False)
-    array_slots - total number of slots in the array task
     jobhold - id(s) of jobs to hold for (string or list)
     parallel_hold - complex hold string
     parallel_limit - limit concurrently scheduled parallel
@@ -274,6 +272,8 @@ def submit(
 
         if array_task:
             # Submit parallel task file
+            with open(command, 'r') as cmd_f:
+                array_slots = len(cmd_f.readlines())
             command_args.extend(
                 ['-t', "1-{0}:{1}".format(
                     array_slots * parallel_stride,
