@@ -32,8 +32,8 @@ class TestNone(unittest.TestCase):
                 logdir=logdir)
             mock_sprun.assert_called_once_with(
                 args,
-                stdout=mock_writer,
-                stderr=mock_writer,
+                stdout=mock_writer.return_value,
+                stderr=mock_writer.return_value,
                 shell=True
                 )
 
@@ -69,43 +69,53 @@ mycommand2 arg3 arg4
 '''
 
         self.maxDiff = None
+
         with patch(
                 'fsl_sub.plugins.fsl_sub_None.open',
-                unittest.mock.mock_open(read_data=ll_tests)) as m:
+                new_callable=mock_open, read_data=ll_tests) as m:
             m.return_value.__iter__.return_value = ll_tests.splitlines()
+            writers = [
+                mock_open(), mock_open(),
+                mock_open(), mock_open()]
+            handlers = [
+                m.return_value,
+            ]
+            for w in writers:
+                handlers.append(w.return_value)
+            m.side_effect = handlers
             command = 'anyfile'
             arraytask = True
 
-            mock_writer = unittest.mock.mock_open()
-            with patch('fsl_sub.plugins.fsl_sub_None.open', mock_writer):
-                mock_sprun.return_value = 0
-                job_id = fsl_sub.plugins.fsl_sub_None.submit(
-                    command=command,
-                    job_name=command,
-                    queue='myq',
-                    array_task=arraytask,
-                    array_slots=len(ll_tests.splitlines()),)
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                'acmd', 0, "")
+            job_id = fsl_sub.plugins.fsl_sub_None.submit(
+                command=command,
+                job_name=jobname,
+                queue='myq',
+                logdir=logdir,
+                array_task=arraytask,
+            )
             self.assertEqual(job_id, mock_pid)
             expected_calls = [
+                call(command, 'r'),
+                call().__enter__(),
+                call().readlines(),
+                call().__exit__(None, None, None),
                 call(logfile_stdout + '.1', 'w'),
-                call().__enter__(),
                 call(logfile_stderr + '.1', 'w'),
-                call().__enter__(),
-                call().__exit__(None, None, None),
-                call().__exit__(None, None, None),
                 call(logfile_stdout + '.2', 'w'),
-                call().__enter__(),
                 call(logfile_stderr + '.2', 'w'),
-                call().__enter__(),
-                call().__exit__(None, None, None),
-                call().__exit__(None, None, None),
             ]
             self.assertEqual(
                 expected_calls,
-                mock_writer.mock_calls
+                m.mock_calls
             )
             read_calls = [
-                call(command, 'r')
+                call(command, 'r'),
+                call(logfile_stdout + '.1', 'w'),
+                call(logfile_stderr + '.1', 'w'),
+                call(logfile_stdout + '.2', 'w'),
+                call(logfile_stderr + '.2', 'w'),
             ]
             self.assertEqual(read_calls, m.call_args_list)
 
