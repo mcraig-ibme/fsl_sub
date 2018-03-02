@@ -5,6 +5,7 @@
 #  * Univa Grid Engine
 import logging
 import os
+import shlex
 import subprocess as sp
 import tempfile
 import xml.etree.ElementTree as ET
@@ -12,6 +13,7 @@ from shutil import which
 
 from fsl_sub.exceptions import (
     BadSubmission,
+    BadConfiguration,
 )
 from fsl_sub.config import (
     method_config,
@@ -22,15 +24,9 @@ from fsl_sub.utils import (
 )
 
 
-class Config(object):
-    '''Configuration for this runner'''
-    def __init__(config_file, config_name='sge'):
-        '''Read configuration from config file'''
-
-
 def qtest():
     '''Command that confirms method is available'''
-    return which('qconf')
+    return qconf()
 
 
 def qconf():
@@ -57,7 +53,10 @@ def qsub():
     return qsub
 
 
-def queue_exists(qname, qtest=qtest()):
+def queue_exists(qname, qtest=None):
+    '''Does qname exist'''
+    if qtest is None:
+        qtest = qconf()
     try:
         sp.run(
             [qtest, '-sq', qname],
@@ -98,9 +97,9 @@ def submit(
         threads=1,
         array_task=False,
         jobhold=None,
-        parallel_hold=None,
-        parallel_limit=None,
-        parallel_stride=1,
+        array_hold=None,
+        array_limit=None,
+        array_stride=1,
         parallel_env=None,
         jobram=None,
         jobtime=None,
@@ -114,7 +113,7 @@ def submit(
         coprocessor_toolkit=None,
         coprocessor_class=None,
         coprocessor_class_strict=False,
-        coprocessor_multi=None,
+        coprocessor_multi=1,
         usescript=False,
         architecture=None
         ):
@@ -162,7 +161,7 @@ def submit(
 
     mconf = method_config('sge')
 
-    command_args = [qsub, ]
+    command_args = [qsub(), ]
     if not usescript:
         # Check Parallel Environment is available
         if parallel_env:
@@ -182,38 +181,40 @@ def submit(
                 affinity_spec = ':'.join(
                     (mconf['affinity_type'], 'slots'))
             else:
-                raise BadSubmission(
+                raise BadConfiguration(
                     ("Unrecognised affinity_control setting " +
                      mconf['affinity_control']))
             command_args.extend(['-binding', affinity_spec])
 
         if (mconf['job_priorities'] and
                 priority is not None):
+            if 'max_priority' in mconf:
+                priority = min(mconf['max_priority'], priority)
             command_args.extend(['-p', priority, ])
 
         if resources:
             command_args.extend(
                 ['-l', ','.join(resources), ])
 
-        if logdir:
-            command_args.extend(
-                ['-o', logdir, '-e', logdir]
-            )
+        command_args.extend(
+            ['-o', logdir, '-e', logdir]
+        )
 
         if jobhold:
             command_args.extend(
                 ['-hold_jid', jobhold, ]
             )
 
-        if mconf['parallel_hold'] and parallel_hold:
-            command_args.extend(
-                ['-hold_jid_ad', parallel_hold, ]
-            )
+        if array_task is not None:
+            if mconf['array_hold'] and array_hold:
+                command_args.extend(
+                    ['-hold_jid_ad', array_hold, ]
+                )
 
-        if mconf['parallel_limit'] and parallel_limit:
-            command_args.extend(
-                ['-tc', parallel_limit, ]
-            )
+            if mconf['array_limit'] and array_limit:
+                command_args.extend(
+                    ['-tc', array_limit, ]
+                )
 
         if jobram:
             if ramsplit:
@@ -230,7 +231,11 @@ def submit(
             if mailto:
                 command_args.extend(['-M', mailto, ])
                 if mail_on:
+                    if mail_on not in mconf['mail_modes']:
+                        raise BadSubmission("Unrecognised mail mode")
                     command_args.extend(['-m', mail_on, ])
+                else:
+                    command_args.extend(['-m', mconf['mail_mode'], ])
 
         command_args.extend(['-N', job_name, ])
         command_args.extend(
@@ -241,6 +246,8 @@ def submit(
             cpconf = copro_conf(coprocessor)
             if cpconf['classes']:
                 available_classes = cpconf['class_types']
+                if coprocessor_class is None:
+                    coprocessor_class = cpconf['default_class']
                 if (coprocessor_class_strict or
                         not cpconf['include_more_capable']):
                     try:
@@ -276,13 +283,15 @@ def submit(
                 array_slots = len(cmd_f.readlines())
             command_args.extend(
                 ['-t', "1-{0}:{1}".format(
-                    array_slots * parallel_stride,
-                    parallel_stride)])
+                    array_slots * array_stride,
+                    array_stride)])
         else:
             # Submit single script/binary
             command_args.extend(
                 ['-shell', 'n',
-                 '-b', 'y', 'r', 'y', ])
+                 '-b', 'y', '-r', 'y', ])
+            if isinstance(command, str):
+                command = shlex.split(command)
             command_args.extend(command)
 
     logger.info("sge_args: " + " ".join(
@@ -290,8 +299,7 @@ def submit(
 
     if array_task:
         logger.info("control file: " + command)
-        scriptcontents = '''
-#!/bin/sh
+        scriptcontents = b'''#!/bin/sh
 
 #$ -S /bin/sh
 
@@ -311,7 +319,8 @@ exec /bin/sh -c "$the_command"
         logger.info("executing: " + " ".join(command_args))
 
     result = sp.run(command_args, stdout=sp.PIPE, stderr=sp.PIPE)
-    os.remove(script.name)
+    if array_task:
+        os.remove(script.name)
     if result.returncode != 0:
         raise BadSubmission(result.stderr)
 
