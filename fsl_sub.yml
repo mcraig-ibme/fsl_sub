@@ -62,6 +62,8 @@ method_opts:
     ram_units: G
     # Supports job priority setting?
     job_priorities: True
+    # Highest priority
+    max_priority: 1023
     # Supports parallel holds?
     parallel_holds: True
     # Supports parallel job limits?
@@ -99,7 +101,7 @@ copro_opts:
         doc: Kepler. ECC, double- or single-precision workloads
         capability: 2
       P:
-        resource: v100
+        resource: p100
         doc: >
           Pascal. ECC, double-, single- and half-precision
           workloads

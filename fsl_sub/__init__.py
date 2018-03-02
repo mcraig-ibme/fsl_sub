@@ -76,9 +76,9 @@ def submit(
     queue=None,
     jobhold=None,
     array_task=False,
-    parallel_hold=None,
-    parallel_limit=None,
-    parallel_stride=1,
+    array_hold=None,
+    array_limit=None,
+    array_stride=1,
     parallel_env=None,
     jobram=None,
     jobtime=None,
@@ -170,6 +170,12 @@ def submit(
             check_command(command[0])
     else:
         job_type = 'array'
+        if (
+                array_hold is not None or
+                array_limit is not None or
+                array_stride is not None):
+            raise BadSubmission(
+                "Array controls not applicable to non-array tasks")
         if validate_command:
             check_command_file(command)
         if name is None:
@@ -234,9 +240,9 @@ def submit(
         queue=queue,
         jobhold=jobhold,
         array_task=array_task,
-        parallel_hold=parallel_hold,
-        parallel_limit=parallel_limit,
-        parallel_stride=parallel_stride,
+        array_hold=array_hold,
+        array_limit=array_limit,
+        array_stride=array_stride,
         parallel_env=parallel_env,
         jobram=jobram,
         jobtime=jobtime,
@@ -467,7 +473,7 @@ There are several batch queues configured on the cluster:
         "completed."
     )
     array_g.add_argument(
-        '--parallel_hold',
+        '--array_hold',
         default=None,
         help="Place a parallel hold on the specified array task. Each"
         "sub-task is held until the equivalent sub-task in the"
@@ -551,11 +557,11 @@ There are several batch queues configured on the cluster:
         "environment with sufficient slots to allow your job to run."
     )
     array_g.add_argument(
-        '-t', '--paralleltask',
+        '-t', '--array_task',
         help="Specify a task file of commands to execute in parallel."
     )
     array_g.add_argument(
-        '--parallel_stride',
+        '--array_stride',
         default=1,
         help="For parallel task files, increment of sub-task ID between "
         "sub-tasks"
@@ -577,7 +583,7 @@ There are several batch queues configured on the cluster:
         version='%(prog)s ' + VERSION
     )
     advanced_g.add_argument(
-        '-x', '--parallel_limit',
+        '-x', '--array_limit',
         default=None,
         help="Specify the maximum number of parallel job sub-tasks to run "
         "concurrently."
@@ -630,9 +636,14 @@ def main():
             cmd_parser.error(str(e))
 
     array_task = True
-    if options['paralleltask'] is None:
+    if options['array_task'] is None:
         array_task = False
-
+        if (
+                options['array_hold'] is not None or
+                options['array_limit'] is not None or
+                options['array_stride'] is not None):
+            cmd_parser.error(
+                "Array controls not applicable to non-array tasks")
     if 'mailoptions' not in options:
         options['mailoptions'] = None
     if 'mailto' not in options:
@@ -650,9 +661,9 @@ def main():
             logdir=options['logdir'],
             mail_on=options['mailoptions'],
             mailto=options['mailto'],
-            parallel_hold=options['parallel_hold'],
-            parallel_limit=options['parallel_limit'],
-            parallel_stride=options['parallel_stride'],
+            array_hold=options['array_hold'],
+            array_limit=options['array_limit'],
+            array_stride=options['array_stride'],
             array_task=array_task,
 
         )
