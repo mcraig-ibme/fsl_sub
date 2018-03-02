@@ -321,7 +321,11 @@ def getq_and_slots(
         logger.info("Co-processor {} was requested".format(coprocessor))
     logger.info(
         "Appropriate queue is {}".format(ql[0]))
-    return (ql[0], ql[0]['slots_required'])
+    try:
+        q_tuple = (ql[0], ql[0]['slots_required'])
+    except IndexError:
+        raise BadSubmission("No matching queues found")
+    return q_tuple
 
 
 def build_parser(config):
