@@ -2,6 +2,7 @@ import importlib
 import os
 import pkgutil
 import shutil
+from math import ceil
 from fsl_sub.exceptions import (
     CommandError,
 )
@@ -87,3 +88,7 @@ def control_threads(env_vars, threads):
 
     for ev in env_vars:
         os.environ[ev] = str(threads)
+
+
+def split_ram_by_slots(jram, jslots):
+    return int(ceil(jram / jslots))

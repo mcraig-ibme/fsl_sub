@@ -41,7 +41,7 @@ def read_config():
 @lru_cache()
 def method_config(method):
     '''Returns the configuration dict for the requested submission
-    method, e.g. sge'''
+    method, e.g. SGE'''
     try:
         m_opts = read_config()['method_opts']
     except KeyError:

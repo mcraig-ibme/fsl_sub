@@ -30,5 +30,9 @@ class BadSubmission(Exception):
     pass
 
 
+class GridOutputError(Exception):
+    pass
+
+
 class CommandError(Exception):
     pass

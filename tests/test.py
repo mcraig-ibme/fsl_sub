@@ -288,7 +288,7 @@ default_queues:
             )
         with self.subTest("More RAM"):
             self.assertTupleEqual(
-                ('a.qa,a.qc', 1, ),
+                ('a.qa,a.qc', 13, ),
                 fsl_sub.getq_and_slots(
                     self.conf_dict['queues'],
                     job_time=1000,
@@ -296,14 +296,14 @@ default_queues:
             )
         with self.subTest("No time"):
             self.assertTupleEqual(
-                ('a.qa,a.qc', 1, ),
+                ('a.qa,a.qc', 13, ),
                 fsl_sub.getq_and_slots(
                     self.conf_dict['queues'],
                     job_ram=200)
             )
         with self.subTest("More RAM"):
             self.assertTupleEqual(
-                ('a.qc', 1, ),
+                ('a.qc', 19, ),
                 fsl_sub.getq_and_slots(
                     self.conf_dict['queues'],
                     job_ram=300)
@@ -323,18 +323,10 @@ default_queues:
                     job_time=200000)
             )
         with self.subTest("2x RAM"):
-            self.assertTupleEqual(
-                ('a.qc', 2, ),
+            self.assertIsNone(
                 fsl_sub.getq_and_slots(
                     self.conf_dict['queues'],
                     job_ram=600)
-            )
-        with self.subTest("1.3x RAM"):
-            self.assertTupleEqual(
-                ('a.qa,a.qc', 2, ),
-                fsl_sub.getq_and_slots(
-                    self.conf_dict['queues'],
-                    job_ram=400)
             )
         with self.subTest('PE'):
             self.assertTupleEqual(
@@ -342,6 +334,12 @@ default_queues:
                 fsl_sub.getq_and_slots(
                     self.conf_dict['queues'],
                     ll_env="specialpe")
+            )
+        with self.subTest('PE missing'):
+            self.assertIsNone(
+                fsl_sub.getq_and_slots(
+                    self.conf_dict['queues'],
+                    ll_env="unknownpe")
             )
         with self.subTest('GPU'):
             self.assertTupleEqual(

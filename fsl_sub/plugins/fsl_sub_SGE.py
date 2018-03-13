@@ -9,15 +9,17 @@ import shlex
 import subprocess as sp
 import tempfile
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 from shutil import which
 
 from fsl_sub.exceptions import (
     BadSubmission,
     BadConfiguration,
+    GridOutputError,
 )
 from fsl_sub.config import (
     method_config,
-    copro_conf,
+    coprocessor_config,
 )
 from fsl_sub.utils import (
     split_ram_by_slots,
@@ -26,10 +28,10 @@ from fsl_sub.utils import (
 
 def qtest():
     '''Command that confirms method is available'''
-    return qconf()
+    return qconf_cmd()
 
 
-def qconf():
+def qconf_cmd():
     '''Command that queries queue configuration'''
     qconf = which('qconf')
     if qconf is None:
@@ -37,7 +39,7 @@ def qconf():
     return qconf
 
 
-def qstat():
+def qstat_cmd():
     '''Command that queries queue state'''
     qstat = which('qstat')
     if qstat is None:
@@ -45,7 +47,7 @@ def qstat():
     return qstat
 
 
-def qsub():
+def qsub_cmd():
     '''Command that submits a job'''
     qsub = which('qsub')
     if qsub is None:
@@ -56,7 +58,7 @@ def qsub():
 def queue_exists(qname, qtest=None):
     '''Does qname exist'''
     if qtest is None:
-        qtest = qconf()
+        qtest = qconf_cmd()
     try:
         sp.run(
             [qtest, '-sq', qname],
@@ -67,7 +69,11 @@ def queue_exists(qname, qtest=None):
     return True
 
 
-def check_pe(pe_name, queue, qconf=qconf(), qstat=qstat()):
+def check_pe(pe_name, queue, qconf=None, qstat=None):
+    if qconf is None:
+        qconf = qconf_cmd()
+    if qstat is None:
+        qstat = qstat_cmd()
     # Check for configured PE of pe_name
     cmd = sp.run([qconf, '-sp', pe_name])
     if cmd.returncode != 0:
@@ -77,8 +83,9 @@ def check_pe(pe_name, queue, qconf=qconf(), qstat=qstat()):
     cmd = sp.run(
         [qstat, '-g', 'c', '-pe', pe_name, '-xml'],
         stdout=sp.PIPE, stderr=sp.PIPE)
-    if (cmd.returncode != 0 or
-            "error: no such parallel environment" in cmd.stderr):
+    if (cmd.returncode != 0 or (
+            cmd.stderr is not None and
+            "error: no such parallel environment" in cmd.stderr)):
         raise BadSubmission(
             "No instances of {} configured".format(pe_name))
 
@@ -106,9 +113,9 @@ def submit(
         resources=None,
         ramsplit=False,
         priority=None,
-        mail_on=None,
+        mailon=None,
         mailto=None,
-        logdir=os.getcwd(),
+        logdir=None,
         coprocessor=None,
         coprocessor_toolkit=None,
         coprocessor_class=None,
@@ -128,10 +135,10 @@ def submit(
     Optional:
     array_task - is the command is an array task (defaults to False)
     jobhold - id(s) of jobs to hold for (string or list)
-    parallel_hold - complex hold string
-    parallel_limit - limit concurrently scheduled parallel
+    array_hold - complex hold string
+    array_limit - limit concurrently scheduled array
             tasks to specified number
-    parallel_stride - each subtask should be X slots on,
+    array_stride - each subtask should be X slots on,
             defaults to 1
     parallelenv - parallel environment name
     jobram - RAM required by job (total of all threads)
@@ -139,7 +146,7 @@ def submit(
     resources - list of resource request strings
     ramsplit - break tasks into multiple slots to meet RAM constraints
     priority - job priority (0-1023)
-    mail_on - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
+    mailon - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
             's'uspended, 'n'o mail
     mailto - email address to receive job info
     logdir - directory to put log files in
@@ -157,11 +164,16 @@ def submit(
 
     if command is None:
         raise BadSubmission(
-            "Must provide command line or parallel task file name")
+            "Must provide command line or array task file name")
 
-    mconf = method_config('sge')
+    mconf = defaultdict(lambda: False, method_config('SGE'))
+    qsub = qsub_cmd()
+    command_args = [qsub, ]
+    if logdir is None:
+        logdir = os.getcwd()
+    if isinstance(resources, str):
+        resources = [resources, ]
 
-    command_args = [qsub(), ]
     if not usescript:
         # Check Parallel Environment is available
         if parallel_env:
@@ -169,14 +181,62 @@ def submit(
 
             command_args.extend(
                 ['-pe', parallel_env, threads, '-w', 'e'])
-
         if mconf['copy_environment']:
             command_args.append('-V')
 
-        if mconf['affinity_type']:
+        binding = mconf['affinity_type']
+
+        if coprocessor is not None:
+            # Setup the coprocessor
+            cpconf = coprocessor_config(coprocessor)
+            if cpconf['no_binding'] is True:
+                binding = None
+            if cpconf['classes']:
+                available_classes = cpconf['class_types']
+                if coprocessor_class is None:
+                    coprocessor_class = cpconf['default_class']
+                if (coprocessor_class_strict or
+                        not cpconf['include_more_capable']):
+                    try:
+                        copro_class = available_classes[
+                                            coprocessor_class][
+                                                'resource']
+                    except KeyError:
+                        raise BadSubmission("Unrecognised coprocessor class")
+                else:
+                    copro_capability = available_classes[
+                                            coprocessor_class][
+                                                'capability'
+                                            ]
+                    base_list = [
+                        a for a in cpconf['class_types'].keys() if
+                        cpconf['class_types'][a]['capability'] >=
+                        copro_capability]
+                    copro_class = '|'.join(
+                        [
+                            cpconf['class_types'][a]['resource'] for a in
+                            sorted(
+                                    base_list,
+                                    key=lambda x:
+                                    cpconf['class_types'][x]['capability'])
+                        ]
+                    )
+
+                command_args.extend(
+                    ['-l',
+                     '='.join(
+                          (cpconf['class_resource'], copro_class))]
+                         )
+            command_args.extend(
+                ['-l',
+                 '='.join(
+                      (cpconf['resource'], str(coprocessor_multi)))]
+                    )
+
+        if binding is not None:
             if mconf['affinity_control'] == 'threads':
                 affinity_spec = ':'.join(
-                    (mconf['affinity_type'], threads))
+                    (mconf['affinity_type'], str(threads)))
             elif mconf['affinity_control'] == 'slots':
                 affinity_spec = ':'.join(
                     (mconf['affinity_type'], 'slots'))
@@ -206,12 +266,12 @@ def submit(
             )
 
         if array_task is not None:
-            if mconf['array_hold'] and array_hold:
+            if mconf['array_holds'] and array_hold:
                 command_args.extend(
                     ['-hold_jid_ad', array_hold, ]
                 )
 
-            if mconf['array_limit'] and array_limit:
+            if mconf['array_limits'] and array_limit:
                 command_args.extend(
                     ['-tc', array_limit, ]
                 )
@@ -230,10 +290,10 @@ def submit(
         if mconf['mail_support']:
             if mailto:
                 command_args.extend(['-M', mailto, ])
-                if mail_on:
-                    if mail_on not in mconf['mail_modes']:
+                if mailon:
+                    if mailon not in mconf['mail_modes']:
                         raise BadSubmission("Unrecognised mail mode")
-                    command_args.extend(['-m', mail_on, ])
+                    command_args.extend(['-m', mailon, ])
                 else:
                     command_args.extend(['-m', mconf['mail_mode'], ])
 
@@ -241,44 +301,8 @@ def submit(
         command_args.extend(
             ['-cwd', '-q', queue, ])
 
-        if coprocessor is not None:
-            # Setup the coprocessor
-            cpconf = copro_conf(coprocessor)
-            if cpconf['classes']:
-                available_classes = cpconf['class_types']
-                if coprocessor_class is None:
-                    coprocessor_class = cpconf['default_class']
-                if (coprocessor_class_strict or
-                        not cpconf['include_more_capable']):
-                    try:
-                        copro_class = available_classes[
-                                            coprocessor_class][
-                                                'resource']
-                    except KeyError:
-                        raise BadSubmission("Unrecognised coprocessor class")
-                else:
-                    copro_capability = available_classes[
-                                            coprocessor_class][
-                                                'capability'
-                                            ]
-                    copro_class = ','.join(
-                        [a['resource'] for a in
-                         cpconf['class_types'] if
-                            a['capability'] > copro_capability])
-
-                command_args.extend(
-                    ['-l',
-                     '='.join(
-                          cpconf['class_resource'], copro_class)]
-                         )
-            command_args.extend(
-                ['-l',
-                 '='.join(
-                      cpconf['resource'], coprocessor_multi)]
-                    )
-
         if array_task:
-            # Submit parallel task file
+            # Submit array task file
             with open(command, 'r') as cmd_f:
                 array_slots = len(cmd_f.readlines())
             command_args.extend(
@@ -295,11 +319,11 @@ def submit(
             command_args.extend(command)
 
     logger.info("sge_args: " + " ".join(
-        [a for a in command_args if a != qsub]))
+        [str(a) for a in command_args if a != qsub]))
 
     if array_task:
         logger.info("control file: " + command)
-        scriptcontents = b'''#!/bin/sh
+        scriptcontents = '''#!/bin/sh
 
 #$ -S /bin/sh
 
@@ -313,18 +337,19 @@ exec /bin/sh -c "$the_command"
         logger.debug(script.name)
         command_args.append(script.name)
         logger.info(
-            "executing parallel task: " +
-            " ".join(command_args))
+            "executing srray task: " +
+            " ".join([str(a) for a in command_args]))
     else:
-        logger.info("executing: " + " ".join(command_args))
+        logger.info("executing: " + " ".join([str(a) for a in command_args]))
 
     result = sp.run(command_args, stdout=sp.PIPE, stderr=sp.PIPE)
     if array_task:
         os.remove(script.name)
     if result.returncode != 0:
         raise BadSubmission(result.stderr)
-
-    (_, _, job_id) = result.stdout.split(' ')
-    job_id = job_id.split('.')[0]
-
+    job_words = result.stdout.split(' ')
+    try:
+        job_id = int(job_words[2].split('.')[0])
+    except ValueError:
+        raise GridOutputError("Grid output was " + result.stdout)
     return job_id

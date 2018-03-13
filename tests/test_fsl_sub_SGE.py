@@ -5,11 +5,11 @@ import xml.etree.ElementTree as ET
 import yaml
 import fsl_sub.plugins.fsl_sub_SGE
 
-from unittest.mock import (patch, mock_open, call)
+from unittest.mock import (patch, mock_open)
 
 
 class TestSgeFinders(unittest.TestCase):
-    @patch('fsl_sub.plugins.fsl_sub_SGE.qconf', autospec=True)
+    @patch('fsl_sub.plugins.fsl_sub_SGE.qconf_cmd', autospec=True)
     def test_qtest(self, mock_qconf):
         bin_path = '/opt/sge/bin/qconf'
         mock_qconf.return_value = bin_path
@@ -26,14 +26,14 @@ class TestSgeFinders(unittest.TestCase):
             mock_which.return_value = bin_path
             self.assertEqual(
                 bin_path,
-                fsl_sub.plugins.fsl_sub_SGE.qconf()
+                fsl_sub.plugins.fsl_sub_SGE.qconf_cmd()
             )
-        mock_which.reset()
+        mock_which.reset_mock()
         with self.subTest("Test 2"):
             mock_which.return_value = None
             self.assertRaises(
                 fsl_sub.plugins.fsl_sub_SGE.BadSubmission,
-                fsl_sub.plugins.fsl_sub_SGE.qconf
+                fsl_sub.plugins.fsl_sub_SGE.qconf_cmd
             )
 
     @patch('fsl_sub.plugins.fsl_sub_SGE.which', autospec=True)
@@ -43,14 +43,14 @@ class TestSgeFinders(unittest.TestCase):
             mock_which.return_value = bin_path
             self.assertEqual(
                 bin_path,
-                fsl_sub.plugins.fsl_sub_SGE.qstat()
+                fsl_sub.plugins.fsl_sub_SGE.qstat_cmd()
             )
-        mock_which.reset()
+        mock_which.reset_mock()
         with self.subTest("Test 2"):
             mock_which.return_value = None
             self.assertRaises(
                 fsl_sub.plugins.fsl_sub_SGE.BadSubmission,
-                fsl_sub.plugins.fsl_sub_SGE.qstat
+                fsl_sub.plugins.fsl_sub_SGE.qstat_cmd
             )
 
     @patch('fsl_sub.plugins.fsl_sub_SGE.which', autospec=True)
@@ -60,17 +60,17 @@ class TestSgeFinders(unittest.TestCase):
             mock_which.return_value = bin_path
             self.assertEqual(
                 bin_path,
-                fsl_sub.plugins.fsl_sub_SGE.qsub()
+                fsl_sub.plugins.fsl_sub_SGE.qsub_cmd()
             )
-        mock_which.reset()
+        mock_which.reset_mock()
         with self.subTest("Test 2"):
             mock_which.return_value = None
             self.assertRaises(
                 fsl_sub.plugins.fsl_sub_SGE.BadSubmission,
-                fsl_sub.plugins.fsl_sub_SGE.qsub
+                fsl_sub.plugins.fsl_sub_SGE.qsub_cmd
             )
 
-    @patch('fsl_sub.plugins.fsl_sub_SGE.qconf', autospec=True)
+    @patch('fsl_sub.plugins.fsl_sub_SGE.qconf_cmd', autospec=True)
     @patch('fsl_sub.plugins.fsl_sub_SGE.sp.run', autospec=True)
     def queue_exists(self, mock_spr, mock_qconf):
         bin_path = '/opt/sge/bin/qtest'
@@ -90,7 +90,7 @@ class TestSgeFinders(unittest.TestCase):
                 stderr=subprocess.PIPE,
                 check=True,
                 universal_newlines=True)
-        mock_qconf.reset()
+        mock_qconf.reset_mock()
         with self.subTest("Test 2"):
             mock_qconf.side_effect = fsl_sub.plugins.fsl_sub_SGE.BadSubmission(
                 "Bad")
@@ -99,13 +99,13 @@ class TestSgeFinders(unittest.TestCase):
                 fsl_sub.plugins.fsl_sub_SGE.queue_exists,
                 qname
             )
-        mock_qconf.reset()
+        mock_qconf.reset_mock()
         with self.subTest("Test 3"):
             self.assertTrue(
                 fsl_sub.plugins.fsl_sub_SGE.queue_exists(qname, bin_path)
             )
             self.assertFalse(mock_qconf.called)
-        mock_spr.reset()
+        mock_spr.reset_mock()
         with self.subTest("Test 4"):
             mock_spr.side_effect = subprocess.CalledProcess_error()
             self.assertFalse(
@@ -114,10 +114,10 @@ class TestSgeFinders(unittest.TestCase):
 
 
 @patch(
-    'fsl_sub.plugins.fsl_sub_SGE.qconf',
+    'fsl_sub.plugins.fsl_sub_SGE.qconf_cmd',
     autospec=True, return_value="/usr/bin/qconf")
 @patch(
-    'fsl_sub.plugins.fsl_sub_SGE.qstat',
+    'fsl_sub.plugins.fsl_sub_SGE.qstat_cmd',
     autospec=True, return_value="/usr/bin/qstat")
 @patch('fsl_sub.plugins.fsl_sub_SGE.sp.run', autospec=True)
 class TestCheckPE(unittest.TestCase):
@@ -159,10 +159,7 @@ class TestCheckPE(unittest.TestCase):
             )
 
     def test_pe_available(self, mock_spr, mock_qstat, mock_qconf):
-        with patch(
-                'fsl_sub.plugins.fsl_sub_SGE.ET.fromstring',
-                autospec=True) as me:
-            example_pe_xml = '''<?xml version='1.0'?>
+        example_pe_xml = '''<?xml version='1.0'?>
 <job_info  xmlns:xsd="http://a.web.server.com/qstat.xsd">
   <cluster_queue_summary>
     <name>a.q</name>
@@ -176,36 +173,51 @@ class TestCheckPE(unittest.TestCase):
   </cluster_queue_summary>
 </job_info>
 '''
-            me.return_value = ET.fromstring(example_pe_xml)
-            mock_spr.side_effect = [
-                subprocess.CompletedProcess('a', 0),
-                subprocess.CompletedProcess(
-                    'a', 0,
-                    stdout=example_pe_xml),
-            ]
-            self.assertRaises(
-                fsl_sub.plugins.fsl_sub_SGE.BadSubmission,
-                fsl_sub.plugins.fsl_sub_SGE.check_pe,
-                "ape", "b.q"
-            )
-            mock_spr.reset()
-            me.reset()
-            self.assertRaises(
-                fsl_sub.plugins.fsl_sub_SGE.BadSubmission,
-                fsl_sub.plugins.fsl_sub_SGE.check_pe,
-                "ape", "ba.q"
-            )
-            mock_spr.reset()
-            me.reset()
-            self.assertRaises(
-                fsl_sub.plugins.fsl_sub_SGE.BadSubmission,
-                fsl_sub.plugins.fsl_sub_SGE.check_pe,
-                "ape", "a.q1"
-            )
-            mock_spr.reset()
-            me.reset()
-            fsl_sub.plugins.fsl_sub_SGE.check_pe("ape", "a.q")
-            me.assert_called_once_with(example_pe_xml)
+        mock_qstat.return_value = 'a'
+        mock_qconf.return_value = 'a'
+        mock_spr.side_effect = [
+            subprocess.CompletedProcess('a', 0),
+            subprocess.CompletedProcess(
+                'a', 0,
+                stdout=example_pe_xml),
+        ]
+        self.assertRaises(
+            fsl_sub.plugins.fsl_sub_SGE.BadSubmission,
+            fsl_sub.plugins.fsl_sub_SGE.check_pe,
+            "ape", "b.q"
+        )
+        mock_spr.reset_mock()
+        mock_spr.side_effect = [
+            subprocess.CompletedProcess('a', 0),
+            subprocess.CompletedProcess(
+                'a', 0,
+                stdout=example_pe_xml),
+        ]
+        self.assertRaises(
+            fsl_sub.plugins.fsl_sub_SGE.BadSubmission,
+            fsl_sub.plugins.fsl_sub_SGE.check_pe,
+            "ape", "ba.q"
+        )
+        mock_spr.reset_mock()
+        mock_spr.side_effect = [
+            subprocess.CompletedProcess('a', 0),
+            subprocess.CompletedProcess(
+                'a', 0,
+                stdout=example_pe_xml),
+        ]
+        self.assertRaises(
+            fsl_sub.plugins.fsl_sub_SGE.BadSubmission,
+            fsl_sub.plugins.fsl_sub_SGE.check_pe,
+            "ape", "a.q1"
+        )
+        mock_spr.reset_mock()
+        mock_spr.side_effect = [
+            subprocess.CompletedProcess('a', 0),
+            subprocess.CompletedProcess(
+                'a', 0,
+                stdout=example_pe_xml),
+        ]
+        fsl_sub.plugins.fsl_sub_SGE.check_pe("ape", "a.q")
 
 
 @patch(
@@ -219,67 +231,70 @@ class TestCheckPE(unittest.TestCase):
     'fsl_sub.plugins.fsl_sub_SGE.os.getcwd',
     autospec=True, return_value='/Users/testuser')
 @patch(
-    'fsl_sub.plugins.fsl_sub_SGE.qsub',
+    'fsl_sub.plugins.fsl_sub_SGE.qsub_cmd',
     autospec=True, return_value='/usr/bin/qsub'
 )
 @patch('fsl_sub.plugins.fsl_sub_SGE.method_config', autospec=True)
 @patch('fsl_sub.plugins.fsl_sub_SGE.split_ram_by_slots', autospec=True)
-@patch('fsl_sub.plugins.fsl_sub_SGE.copro_conf', autospec=True)
+@patch('fsl_sub.plugins.fsl_sub_SGE.coprocessor_config', autospec=True)
 @patch(
     'fsl_sub.plugins.fsl_sub_SGE.tempfile.NamedTemporaryFile',
     autospec=True)
 @patch('fsl_sub.plugins.fsl_sub_SGE.sp.run', autospec=True)
 class TestSubmit(unittest.TestCase):
-    mconf_dict = yaml.load('''---
-SGE:
-    parallel_envs:
-      - shmem
-    same_node_pes:
-      - shmem
-    large_job_split_pe: shmem
-    copy_environment: True
-    affinity_type: linear
-    affinity_control: threads
-    mail_support: True
-    mail_modes:
-      - b
-      - e
-      - a
-      - s
-      - n
-    mail_mode: a
-    map_ram: True
-    ram_resources:
-        - m_mem_free
-        - h_vmem
-    ram_units: G
-    job_priorities: True
-    max_priority: 1023
-    parallel_holds: True
-    parallel_limit: True
-    architecture: False
-    job_resources: True
+    conf_dict = yaml.load('''---
+method_opts:
+    SGE:
+        parallel_envs:
+            - shmem
+        same_node_pes:
+            - shmem
+        large_job_split_pe: shmem
+        copy_environment: True
+        affinity_type: linear
+        affinity_control: threads
+        mail_support: True
+        mail_modes:
+            - b
+            - e
+            - a
+            - s
+            - n
+        mail_mode: a
+        map_ram: True
+        ram_resources:
+            - m_mem_free
+            - h_vmem
+        ram_units: G
+        job_priorities: True
+        max_priority: 1023
+        array_holds: True
+        array_limits: True
+        architecture: False
+        job_resources: True
 copro_opts:
-  cuda:
-    resource: gpu
-    classes: True
-    class_resource: gputype
-    class_types:
-      K:
-        resource: k80
-        doc: Kepler. ECC, double- or single-precision workloads
-        capability: 2
-      P:
-        resource: p100
-        doc: >
-          Pascal. ECC, double-, single- and half-precision
-          workloads
-        capability: 3
-    default_class: K
-    include_more_capable: True
-    uses_modules: True
-    module_parent: cuda
+    cuda:
+        resource: gpu
+        classes: True
+        class_resource: gputype
+        class_types:
+            K:
+                resource: k80
+                doc: Kepler. ECC, double- or single-precision workloads
+                capability: 2
+            P:
+                resource: p100
+                doc: >
+                    Pascal. ECC, double-, single- and half-precision
+                    workloads
+                capability: 3
+        default_class: K
+        include_more_capable: True
+        uses_modules: True
+        module_parent: cuda
+        no_binding: True
 ''')
+    mconf_dict = conf_dict['method_opts']['SGE']
     plugin = fsl_sub.plugins.fsl_sub_SGE
 
     def test_empty_submit(
@@ -302,7 +317,7 @@ copro_opts:
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         jid = 12345
-        qsub_out = 'Your job ' + jid + ' ("acmd") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         with self.subTest("Univa"):
             expected_cmd = [
                 '/usr/bin/qsub',
@@ -318,7 +333,7 @@ copro_opts:
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -328,12 +343,12 @@ copro_opts:
                     queue=queue
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-        self.mock_sprun.reset()
+        mock_sprun.reset_mock()
         with self.subTest("SGE"):
             sge_dict = dict(self.mconf_dict)
             sge_dict['affinity_control'] = 'slots'
@@ -352,7 +367,7 @@ copro_opts:
                     '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -362,12 +377,12 @@ copro_opts:
                     queue=queue
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-        self.mock_sprun.reset()
+        mock_sprun.reset_mock()
         with self.subTest("Bad affinity type"):
             sge_dict['affinity_control'] = 'nonsense'
             mock_mconf.return_value = sge_dict
@@ -391,7 +406,7 @@ copro_opts:
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         jid = 12345
-        qsub_out = 'Your job ' + jid + ' ("acmd") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         expected_cmd = [
             '/usr/bin/qsub',
             '-binding',
@@ -405,7 +420,7 @@ copro_opts:
             '-r', 'y',
             'acmd', 'arg1', 'arg2'
         ]
-        self.mock_sprun.return_value = subprocess.CompletedProcess(
+        mock_sprun.return_value = subprocess.CompletedProcess(
             expected_cmd, 0, stdout=qsub_out, stderr=None)
         self.assertEqual(
             jid,
@@ -415,7 +430,7 @@ copro_opts:
                 queue=queue,
                 )
         )
-        self.mock_sprun.assert_called_once_with(
+        mock_sprun.assert_called_once_with(
             expected_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -433,7 +448,7 @@ copro_opts:
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         jid = 12345
-        qsub_out = 'Your job ' + jid + ' ("acmd") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
@@ -446,7 +461,7 @@ copro_opts:
             '-r', 'y',
             'acmd', 'arg1', 'arg2'
         ]
-        self.mock_sprun.return_value = subprocess.CompletedProcess(
+        mock_sprun.return_value = subprocess.CompletedProcess(
             expected_cmd, 0, stdout=qsub_out, stderr=None)
         self.assertEqual(
             jid,
@@ -456,7 +471,7 @@ copro_opts:
                 queue=queue,
                 )
         )
-        self.mock_sprun.assert_called_once_with(
+        mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
@@ -471,7 +486,7 @@ copro_opts:
             cmd = ['acmd', 'arg1', 'arg2', ]
 
             jid = 12345
-            qsub_out = 'Your job ' + jid + ' ("acmd") has been submitted'
+            qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
             with self.subTest("No priorities"):
                 test_dict = dict(self.mconf_dict)
                 test_dict['job_priorities'] = False
@@ -490,7 +505,7 @@ copro_opts:
                     '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
-                self.mock_sprun.return_value = subprocess.CompletedProcess(
+                mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0, stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
@@ -501,17 +516,15 @@ copro_opts:
                         priority=1000
                         )
                 )
-                self.mock_sprun.assert_called_once_with(
+                mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE
                 )
-            self.mock_sprun.reset()
+            mock_sprun.reset_mock()
             mock_mconf.return_value = self.mconf_dict
             with self.subTest("With priorities"):
-                test_dict = dict(self.mconf_dict)
-                test_dict['job_priorities'] = False
-                mock_mconf.return_value = test_dict
+                mock_mconf.return_value = self.mconf_dict
                 expected_cmd = [
                     '/usr/bin/qsub',
                     '-V',
@@ -527,7 +540,7 @@ copro_opts:
                     '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
-                self.mock_sprun.return_value = subprocess.CompletedProcess(
+                mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0, stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
@@ -538,17 +551,15 @@ copro_opts:
                         priority=1000
                         )
                 )
-                self.mock_sprun.assert_called_once_with(
+                mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE
                 )
-            self.mock_sprun.reset()
+            mock_sprun.reset_mock()
             mock_mconf.return_value = self.mconf_dict
             with self.subTest("With priorities (limited)"):
-                test_dict = dict(self.mconf_dict)
-                test_dict['job_priorities'] = False
-                mock_mconf.return_value = test_dict
+                mock_mconf.return_value = self.mconf_dict
                 expected_cmd = [
                     '/usr/bin/qsub',
                     '-V',
@@ -564,7 +575,7 @@ copro_opts:
                     '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
-                self.mock_sprun.return_value = subprocess.CompletedProcess(
+                mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0, stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
@@ -575,7 +586,7 @@ copro_opts:
                         priority=2000
                         )
                 )
-                self.mock_sprun.assert_called_once_with(
+                mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE
@@ -590,7 +601,7 @@ copro_opts:
             cmd = ['acmd', 'arg1', 'arg2', ]
 
             jid = 12345
-            qsub_out = 'Your job ' + jid + ' ("acmd") has been submitted'
+            qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
             mock_mconf.return_value = self.mconf_dict
             with self.subTest("With single resource"):
                 expected_cmd = [
@@ -608,7 +619,7 @@ copro_opts:
                     '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
-                self.mock_sprun.return_value = subprocess.CompletedProcess(
+                mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0, stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
@@ -619,12 +630,12 @@ copro_opts:
                         resources='ramlimit=1000'
                         )
                 )
-                self.mock_sprun.assert_called_once_with(
+                mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE
                 )
-            self.mock_sprun.reset()
+            mock_sprun.reset_mock()
             with self.subTest("With multiple resources"):
                 expected_cmd = [
                     '/usr/bin/qsub',
@@ -641,7 +652,7 @@ copro_opts:
                     '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
-                self.mock_sprun.return_value = subprocess.CompletedProcess(
+                mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0, stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
@@ -652,7 +663,7 @@ copro_opts:
                         resources=['resource1=1', 'resource2=2', ]
                         )
                 )
-                self.mock_sprun.assert_called_once_with(
+                mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE
@@ -668,7 +679,7 @@ copro_opts:
 
         jid = 12345
         hjid = 12344
-        qsub_out = 'Your job ' + jid + ' ("acmd") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
@@ -685,7 +696,7 @@ copro_opts:
             '-r', 'y',
             'acmd', 'arg1', 'arg2'
         ]
-        self.mock_sprun.return_value = subprocess.CompletedProcess(
+        mock_sprun.return_value = subprocess.CompletedProcess(
             expected_cmd, 0, stdout=qsub_out, stderr=None)
         self.assertEqual(
             jid,
@@ -696,7 +707,7 @@ copro_opts:
                 jobhold=hjid
                 )
         )
-        self.mock_sprun.assert_called_once_with(
+        mock_sprun.assert_called_once_with(
             expected_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -711,7 +722,7 @@ copro_opts:
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         mock_mconf.return_value = self.mconf_dict
-        self.assertRases(
+        self.assertRaises(
             self.plugin.BadSubmission,
             self.plugin.submit,
             command=cmd,
@@ -729,7 +740,7 @@ copro_opts:
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         mock_mconf.return_value = self.mconf_dict
-        self.assertRases(
+        self.assertRaises(
             self.plugin.BadSubmission,
             self.plugin.submit,
             command=cmd,
@@ -749,7 +760,7 @@ copro_opts:
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         mock_mconf.return_value = self.mconf_dict
-        qsub_out = 'Your job ' + jid + ' ("acmd") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
@@ -757,7 +768,7 @@ copro_opts:
             'linear:1',
             '-o', '/Users/testuser',
             '-e', '/Users/testuser',
-            '-l', "m_mem_free={}G,h_vmem={}G".format(jobram),
+            '-l', "m_mem_free={0}G,h_vmem={0}G".format(jobram),
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-shell', 'n',
@@ -765,7 +776,7 @@ copro_opts:
             '-r', 'y',
             'acmd', 'arg1', 'arg2'
         ]
-        self.mock_sprun.return_value = subprocess.CompletedProcess(
+        mock_sprun.return_value = subprocess.CompletedProcess(
             expected_cmd, 0, stdout=qsub_out, stderr=None)
         self.assertEqual(
             jid,
@@ -776,7 +787,7 @@ copro_opts:
                 jobram=jobram
                 )
         )
-        self.mock_sprun.assert_called_once_with(
+        mock_sprun.assert_called_once_with(
             expected_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -794,7 +805,7 @@ copro_opts:
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         mock_mconf.return_value = self.mconf_dict
-        qsub_out = 'Your job ' + jid + ' ("acmd") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         with self.subTest("Test mail settings"):
             expected_cmd = [
                 '/usr/bin/qsub',
@@ -812,7 +823,7 @@ copro_opts:
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -824,12 +835,12 @@ copro_opts:
                     mailon=mailon
                     )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-        self.mock_sprun.reset()
+        mock_sprun.reset_mock()
         with self.subTest("Test for auto set of mail mode"):
             expected_cmd = [
                 '/usr/bin/qsub',
@@ -839,7 +850,7 @@ copro_opts:
                 '-o', '/Users/testuser',
                 '-e', '/Users/testuser',
                 '-M', mailto,
-                '-m', self.mconf['mail_mode'],
+                '-m', self.mconf_dict['mail_mode'],
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
@@ -847,7 +858,7 @@ copro_opts:
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -858,7 +869,7 @@ copro_opts:
                     mailto=mailto,
                     )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
@@ -884,29 +895,29 @@ copro_opts:
         jid = 123456
         cmd = ['acmd', 'arg1', 'arg2', ]
         copro_type = 'cuda'
-        copro_opts = self.mconf_dict['copro_opts'][copro_type]
-        gpuclass = copro_opts['P']
-        gputype = copro_opts['class_types'][gpuclass]['resource']
+        cp_opts = self.conf_dict['copro_opts'][copro_type]
+        mock_cpconf.return_value = cp_opts
+        gpuclass = 'P'
+        gputype = cp_opts['class_types'][gpuclass]['resource']
+        second_gtype = cp_opts['class_types']['K']['resource']
         mock_mconf.return_value = self.mconf_dict
-        qsub_out = 'Your job ' + jid + ' ("acmd") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         with self.subTest("Test basic GPU"):
             expected_cmd = [
                 '/usr/bin/qsub',
                 '-V',
-                '-binding',
-                'linear:1',
+                '-l', 'gputype=' + '|'.join((second_gtype, gputype)),
+                '-l', 'gpu=1',
                 '-o', '/Users/testuser',
                 '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
-                '-l', 'gputype=' + gputype,
-                '-l', 'gpu=1',
                 '-shell', 'n',
                 '-b', 'y',
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -917,32 +928,30 @@ copro_opts:
                     coprocessor=copro_type,
                     )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-        self.mock_sprun.reset()
+        mock_sprun.reset_mock()
         with self.subTest("Test specific class of GPU"):
             gpuclass = 'K'
-            gputype = copro_opts['class_types'][gpuclass]['resource']
+            gputype = cp_opts['class_types'][gpuclass]['resource']
             expected_cmd = [
                 '/usr/bin/qsub',
                 '-V',
-                '-binding',
-                'linear:1',
+                '-l', 'gputype=' + gputype,
+                '-l', 'gpu=1',
                 '-o', '/Users/testuser',
                 '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
-                '-l', 'gputype=' + gputype,
-                '-l', 'gpu=1',
                 '-shell', 'n',
                 '-b', 'y',
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -954,33 +963,31 @@ copro_opts:
                     coprocessor_class_strict=True
                     )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-        self.mock_sprun.reset()
+        mock_sprun.reset_mock()
         with self.subTest("Test more capable classes of GPU"):
             gpuclass = 'K'
-            gputype = copro_opts['class_types'][gpuclass]['resource']
-            second_gtype = copro_opts['class_types']['P']['resource']
+            gputype = cp_opts['class_types'][gpuclass]['resource']
+            second_gtype = cp_opts['class_types']['P']['resource']
             expected_cmd = [
                 '/usr/bin/qsub',
                 '-V',
-                '-binding',
-                'linear:1',
+                '-l', 'gputype={0}|{1}'.format(gputype, second_gtype),
+                '-l', 'gpu=1',
                 '-o', '/Users/testuser',
                 '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
-                '-l', 'gputype={0},{1}'.format(gputype, second_gtype),
-                '-l', 'gpu=1',
                 '-shell', 'n',
                 '-b', 'y',
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -991,36 +998,35 @@ copro_opts:
                     coprocessor=copro_type,
                     )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-        self.mock_sprun.reset()
+        mock_sprun.reset_mock()
         with self.subTest("Test more capable classes of GPU (configuration)"):
             test_mconf = dict(self.mconf_dict)
-            test_mconf['include_mode_capable'] = False
+            copro_opts = dict(cp_opts)
+            copro_opts['include_more_capable'] = False
             gpuclass = 'K'
-            gputype = copro_opts['class_types'][gpuclass]['resource']
-            second_gtype = copro_opts['class_types']['P']['resource']
+            gputype = cp_opts['class_types'][gpuclass]['resource']
+            mock_cpconf.return_value = copro_opts
             expected_cmd = [
                 '/usr/bin/qsub',
                 '-V',
-                '-binding',
-                'linear:1',
+                '-l', 'gputype=' + gputype,
+                '-l', 'gpu=1',
                 '-o', '/Users/testuser',
                 '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
-                '-l', 'gputype=' + gputype,
-                '-l', 'gpu=1',
                 '-shell', 'n',
                 '-b', 'y',
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_mconf.return_value = test_mconf
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1031,33 +1037,32 @@ copro_opts:
                     coprocessor=copro_type,
                     )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-        self.mock_sprun.reset()
+        mock_sprun.reset_mock()
+        mock_cpconf.return_value = cp_opts
         with self.subTest("Test multi-GPU"):
             multi_gpu = 2
-            gpuclass = copro_opts['default_class']
-            gputype = copro_opts['class_types'][gpuclass]['resource']
+            gpuclass = cp_opts['default_class']
+            gputype = 'k80|p100'
             expected_cmd = [
                 '/usr/bin/qsub',
                 '-V',
-                '-binding',
-                'linear:1',
+                '-l', 'gputype=' + gputype,
+                '-l', 'gpu=' + str(multi_gpu),
                 '-o', '/Users/testuser',
                 '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
-                '-l', 'gputype=' + gputype,
-                '-l', 'gpu=' + multi_gpu,
                 '-shell', 'n',
                 '-b', 'y',
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1069,23 +1074,25 @@ copro_opts:
                     coprocessor_multi=2
                     )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
 
+    @patch('fsl_sub.plugins.fsl_sub_SGE.qconf_cmd', autospec=True)
     def test_parallel_env_submit(
-            self, mock_sprun, mock_ntf, mock_cpconf,
+            self, mock_qconf, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
             mock_getcwd, mock_check_pe, mock_shlex):
         mock_mconf.return_value = self.mconf_dict
+        mock_qconf.return_value = '/usr/bin/qconf'
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         jid = 12345
-        qsub_out = 'Your job ' + jid + '("acmd") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         with self.subTest("One thread"):
             expected_cmd = [
                 '/usr/bin/qsub',
@@ -1102,7 +1109,7 @@ copro_opts:
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1113,18 +1120,19 @@ copro_opts:
                     parallel_env='openmp',
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
+        mock_sprun.reset_mock()
         with self.subTest("Two threads"):
             expected_cmd = [
                 '/usr/bin/qsub',
                 '-pe', 'openmp', 2, '-w', 'e',
                 '-V',
                 '-binding',
-                'linear:1',
+                'linear:2',
                 '-o', '/Users/testuser',
                 '-e', '/Users/testuser',
                 '-N', 'test_job',
@@ -1134,7 +1142,7 @@ copro_opts:
                 '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1146,7 +1154,7 @@ copro_opts:
                     threads=2
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
@@ -1189,7 +1197,7 @@ copro_opts:
             '-r', 'y',
             'acmd', 'arg1', 'arg2'
         ]
-        self.assertRases(
+        self.assertRaises(
             self.plugin.BadSubmission,
             self.plugin.submit,
             command=cmd,
@@ -1198,7 +1206,7 @@ copro_opts:
             array_hold=hjid
         )
 
-        self.mock_sprun.assert_called_once_with(
+        mock_sprun.assert_called_once_with(
             expected_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -1219,7 +1227,7 @@ acmd 6 7 8
         job_file_name = 'll_job'
         tmp_file = 'atmpfile'
         jid = 12344
-        qsub_out = 'Your job ' + jid + ' ("test_job") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
         mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
@@ -1231,16 +1239,16 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",
-            'll_job'
+            tmp_file
         ]
-        self.mock_ntf.return_value.__enter__.return_value.name = tmp_file
-        mock_filehandle = self.mock_ntf.return_value
-        mock_write = mock_filehandle.write
+        mock_tmpfile = mock_ntf.return_value.__enter__.return_value
+        mock_tmpfile.name = tmp_file
+        mock_write = mock_tmpfile.write
         with patch(
                 'fsl_sub.plugins.fsl_sub_SGE.open',
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1251,16 +1259,16 @@ acmd 6 7 8
                     array_task=True
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            self.mock_ntp.assert_called_once_with(
+            mock_ntf.assert_called_once_with(
                 delete=False
             )
             mock_write.assert_called_once_with(
-                b'''#!/bin/sh
+                '''#!/bin/sh
 
 #$ -S /bin/sh
 
@@ -1286,7 +1294,7 @@ acmd 6 7 8
         job_file_name = 'll_job'
         tmp_file = 'atmpfile'
         jid = 12344
-        qsub_out = 'Your job ' + jid + ' ("test_job") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
         mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
@@ -1298,16 +1306,16 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",
-            'll_job'
+            tmp_file
         ]
-        self.mock_ntf.return_value.__enter__.return_value.name = tmp_file
-        mock_filehandle = self.mock_ntf.return_value
-        mock_write = mock_filehandle.write
+        mock_tmpfile = mock_ntf.return_value.__enter__.return_value
+        mock_tmpfile.name = tmp_file
+        mock_write = mock_tmpfile.write
         with patch(
                 'fsl_sub.plugins.fsl_sub_SGE.open',
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 1, stdout=qsub_out, stderr="Bad job")
             self.assertRaises(
                 self.plugin.BadSubmission,
@@ -1317,16 +1325,16 @@ acmd 6 7 8
                 queue=queue,
                 array_task=True
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            self.mock_ntp.assert_called_once_with(
+            mock_ntf.assert_called_once_with(
                 delete=False
             )
             mock_write.assert_called_once_with(
-                b'''#!/bin/sh
+                '''#!/bin/sh
 
 #$ -S /bin/sh
 
@@ -1352,7 +1360,7 @@ acmd 6 7 8
         job_file_name = 'll_job'
         tmp_file = 'atmpfile'
         jid = 12344
-        qsub_out = 'Your job ' + jid + ' ("test_job") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
         mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
@@ -1364,16 +1372,16 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-8:2",
-            'll_job'
+            tmp_file
         ]
-        self.mock_ntf.return_value.__enter__.return_value.name = tmp_file
-        mock_filehandle = self.mock_ntf.return_value
-        mock_write = mock_filehandle.write
+        mock_tmpfile = mock_ntf.return_value.__enter__.return_value
+        mock_tmpfile.name = tmp_file
+        mock_write = mock_tmpfile.write
         with patch(
                 'fsl_sub.plugins.fsl_sub_SGE.open',
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1385,16 +1393,16 @@ acmd 6 7 8
                     array_stride=2
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            self.mock_ntp.assert_called_once_with(
+            mock_ntf.assert_called_once_with(
                 delete=False
             )
             mock_write.assert_called_once_with(
-                b'''#!/bin/sh
+                '''#!/bin/sh
 
 #$ -S /bin/sh
 
@@ -1420,7 +1428,8 @@ acmd 6 7 8
         job_file_name = 'll_job'
         tmp_file = 'atmpfile'
         jid = 12344
-        qsub_out = 'Your job ' + jid + ' ("test_job") has been submitted'
+        limit = 2
+        qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
         mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
@@ -1429,21 +1438,20 @@ acmd 6 7 8
             'linear:1',
             '-o', '/Users/testuser',
             '-e', '/Users/testuser',
-            '-tc', "2",
+            '-tc', limit,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",
-
-            'll_job'
+            tmp_file
         ]
-        self.mock_ntf.return_value.__enter__.return_value.name = tmp_file
-        mock_filehandle = self.mock_ntf.return_value
-        mock_write = mock_filehandle.write
+        mock_tmpfile = mock_ntf.return_value.__enter__.return_value
+        mock_tmpfile.name = tmp_file
+        mock_write = mock_tmpfile.write
         with patch(
                 'fsl_sub.plugins.fsl_sub_SGE.open',
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1452,19 +1460,19 @@ acmd 6 7 8
                     job_name=job_name,
                     queue=queue,
                     array_task=True,
-                    array_limit=2
+                    array_limit=limit
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            self.mock_ntp.assert_called_once_with(
+            mock_ntf.assert_called_once_with(
                 delete=False
             )
             mock_write.assert_called_once_with(
-                b'''#!/bin/sh
+                '''#!/bin/sh
 
 #$ -S /bin/sh
 
@@ -1490,9 +1498,9 @@ acmd 6 7 8
         job_file_name = 'll_job'
         tmp_file = 'atmpfile'
         jid = 12344
-        qsub_out = 'Your job ' + jid + ' ("test_job") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
         test_mconf = dict(self.mconf_dict)
-        test_mconf['array_limit'] = False
+        test_mconf['array_limits'] = False
         mock_mconf.return_value = test_mconf
         expected_cmd = [
             '/usr/bin/qsub',
@@ -1504,17 +1512,16 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",
-
-            'll_job'
+            tmp_file
         ]
-        self.mock_ntf.return_value.__enter__.return_value.name = tmp_file
-        mock_filehandle = self.mock_ntf.return_value
-        mock_write = mock_filehandle.write
+        mock_tmpfile = mock_ntf.return_value.__enter__.return_value
+        mock_tmpfile.name = tmp_file
+        mock_write = mock_tmpfile.write
         with patch(
                 'fsl_sub.plugins.fsl_sub_SGE.open',
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1526,16 +1533,16 @@ acmd 6 7 8
                     array_limit=2
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            self.mock_ntp.assert_called_once_with(
+            mock_ntf.assert_called_once_with(
                 delete=False
             )
             mock_write.assert_called_once_with(
-                b'''#!/bin/sh
+                '''#!/bin/sh
 
 #$ -S /bin/sh
 
@@ -1562,7 +1569,7 @@ acmd 6 7 8
         tmp_file = 'atmpfile'
         jid = 12344
         hold_jid = 12343
-        qsub_out = 'Your job ' + jid + ' ("test_job") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
         mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
@@ -1575,16 +1582,16 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",
-            'll_job'
+            tmp_file
         ]
-        self.mock_ntf.return_value.__enter__.return_value.name = tmp_file
-        mock_filehandle = self.mock_ntf.return_value
-        mock_write = mock_filehandle.write
+        mock_tmpfile = mock_ntf.return_value.__enter__.return_value
+        mock_tmpfile.name = tmp_file
+        mock_write = mock_tmpfile.write
         with patch(
                 'fsl_sub.plugins.fsl_sub_SGE.open',
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1596,16 +1603,16 @@ acmd 6 7 8
                     array_hold=hold_jid
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            self.mock_ntp.assert_called_once_with(
+            mock_ntf.assert_called_once_with(
                 delete=False
             )
             mock_write.assert_called_once_with(
-                b'''#!/bin/sh
+                '''#!/bin/sh
 
 #$ -S /bin/sh
 
@@ -1632,9 +1639,9 @@ acmd 6 7 8
         tmp_file = 'atmpfile'
         jid = 12344
         hold_jid = 12343
-        qsub_out = 'Your job ' + jid + ' ("test_job") has been submitted'
+        qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
         test_mconf = dict(self.mconf_dict)
-        test_mconf['array_hold'] = False
+        test_mconf['array_holds'] = False
         mock_mconf.return_value = test_mconf
         expected_cmd = [
             '/usr/bin/qsub',
@@ -1646,16 +1653,16 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",
-            'll_job'
+            tmp_file
         ]
-        self.mock_ntf.return_value.__enter__.return_value.name = tmp_file
-        mock_filehandle = self.mock_ntf.return_value
-        mock_write = mock_filehandle.write
+        mock_tmpfile = mock_ntf.return_value.__enter__.return_value
+        mock_tmpfile.name = tmp_file
+        mock_write = mock_tmpfile.write
         with patch(
                 'fsl_sub.plugins.fsl_sub_SGE.open',
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
-            self.mock_sprun.return_value = subprocess.CompletedProcess(
+            mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0, stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
@@ -1667,16 +1674,16 @@ acmd 6 7 8
                     array_hold=hold_jid
                 )
             )
-            self.mock_sprun.assert_called_once_with(
+            mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            self.mock_ntp.assert_called_once_with(
+            mock_ntf.assert_called_once_with(
                 delete=False
             )
             mock_write.assert_called_once_with(
-                b'''#!/bin/sh
+                '''#!/bin/sh
 
 #$ -S /bin/sh
 

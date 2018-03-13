@@ -30,7 +30,6 @@ method_opts:
       - shmem
     # Which PE should be used to break up large memory jobs
     large_job_split_pe: shmem
-
     # Replicate user's shell environment to running job
     copy_environment: True
     # Method used to bind to CPUs - set to None to disable
@@ -65,9 +64,9 @@ method_opts:
     # Highest priority
     max_priority: 1023
     # Supports parallel holds?
-    parallel_holds: True
+    array_holds: True
     # Supports parallel job limits?
-    parallel_limit: True
+    array_limits: True
     # Enable architecture selection?
     architecture: False
     # Supports job resources?
@@ -121,26 +120,43 @@ copro_opts:
     uses_modules: True
     # What is the name of the parent module for this co-processor?
     module_parent: cuda
+    # Should we disable core binding for co-processor tasks?
+    no_binding: True
 
+# Queue definitions
 queues:
+  # Queue name
   gpu.q:
+    # Maximum job rum time
     time: 18000
+    # Maximum memory per job (GB)
     max_size: 250
+    # Maximum memory per CPU core (GB)
     slot_size: 64
+    # Maximum number of threads per job (e.g. number of CPU cores)
     max_slots: 20
+    # Available coprocessors
     copros:
+      # Coprocessor name (same as configuration above)
       cuda:
+        # Number of devices available per job (e.g. number of devices on a single node)
         max_quantity: 4
+        # List of available classes
         classes:
           - K
           - P
           - V
+    # Should jobs be split over multiple slots when requires more RAM than available
+    # in a single slot
     map_ram: true
+    # List of available parallel environments
     parallel_envs:
       - shmem
+    # Priority of queue, higher numbers win
     priority: 1
+    # Group of queue - use this to group together variations of a queue based on
+    # hardware types, the priority is then used to decide which variant to use
     group: 0
-    default: true
   short.qf,short.qe,short.qc:
     time: 1440
     max_size: 160
@@ -151,7 +167,6 @@ queues:
       - shmem
     priority: 3
     group: 1
-    default: true
   short.qe,short.qc:
     time: 1440
     max_size: 240
@@ -162,7 +177,6 @@ queues:
       - shmem
     priority: 2
     group: 1
-    default: true
   short.qc:
     time: 1440
     max_size: 368
@@ -173,7 +187,6 @@ queues:
       - shmem
     priority: 1
     group: 1
-    default: true
   long.qf,long.qe,long.qc:
     time: 10080
     max_size: 160
@@ -204,7 +217,3 @@ queues:
       - shmem
     priority: 1
     group: 2
-default_queues:
-  - short.qf,short,qe,short.qc
-  - short.qe,short.qc
-  - short.qc

@@ -1,6 +1,5 @@
 #!/usr/bin/env fslpython
 import argparse
-import copy
 import getpass
 import logging
 import os
@@ -9,7 +8,6 @@ import shlex
 import subprocess
 import sys
 import warnings
-from operator import itemgetter
 from math import ceil
 from fsl_sub.exceptions import (
     BadConfiguration,
@@ -22,16 +20,16 @@ from fsl_sub.coprocessors import (
     list_coprocessors,
     coproc_classes,
     coproc_toolkits,
-    coproc_load_module
+    coproc_load_module,
 )
 from fsl_sub.config import (
     read_config,
     method_config,
-    coprocessor_config
+    coprocessor_config,
 )
 from fsl_sub.shell_modules import (
     find_module_cmd,
-    get_modules
+    get_modules,
 )
 from fsl_sub.system import system_stdout
 
@@ -41,7 +39,7 @@ from fsl_sub.utils import (
     affirmative,
     check_command,
     check_command_file,
-    control_threads
+    control_threads,
 )
 
 VERSION = '2.0'
@@ -263,55 +261,60 @@ def submit(
     return job_id
 
 
-def split_ram_by_slots(jram, jslots):
-    return int(ceil(jram / jslots))
-
-
 def getq_and_slots(
-        queues, job_time=None, job_ram=None,
+        queues, job_time=0, job_ram=0,
         job_threads=1, coprocessor=None,
         ll_env=None):
     '''Calculate which queue to run the job on
     Still needs job splitting across slots'''
     logger = logging.getLogger('__name__')
 
-    if job_time is None:
-        queue_list = [
-            q for q in queues if 'default' in q and q['default']]
-    else:
-        queue_list = copy.deepcopy(queues)
+    queue_list = list(queues.keys())
     # Filter on coprocessor availability
-    if coprocessor:
+    if not queue_list:
+        return None
+
+    if coprocessor is not None:
         queue_list = [
-            q for q in queue_list if 'copros' in q and
-            coprocessor in q['copros']]
-    # Filter on parallel environment availability
-    if ll_env:
+            q for q in queue_list if 'copros' in queues[q] and
+            coprocessor in queues[q]['copros']]
+    else:
         queue_list = [
-            q for q in queue_list if 'parallel_envs' in q and
-            ll_env in q['parallel_envs']
+            q for q in queue_list if 'copros' not in queues[q]
         ]
+    if not queue_list:
+        return None
+
+    # Filter on parallel environment availability
+    if ll_env is not None:
+        queue_list = [
+            q for q in queue_list if 'parallel_envs' in queues[q] and
+            ll_env in queues[q]['parallel_envs']
+        ]
+    if not queue_list:
+        return None
 
     # For each queue calculate how many slots would be necessary...
     def calc_slots(job_ram, slot_size, job_threads):
         # No ram specified
-        if job_ram is None:
+        if job_ram == 0:
             return max(1, job_threads)
         else:
             return max(int(ceil(job_ram / slot_size)), job_threads)
 
-    for queue in queue_list:
-        queue_list[queue]['slots_required'] = calc_slots(
-            job_ram, queue['slot_size'], job_threads)
+    slots = {}
+    for q in queue_list:
+        slots[q] = calc_slots(
+            job_ram, queues[q]['slot_size'], job_threads)
 
-    sql = sorted(
-        queue_list,
-        key=itemgetter('group', 'priority', 'slots_required'))
+    queue_list.sort(key=lambda x: queues[x]['priority'], reverse=True)
+    queue_list.sort(key=lambda x: (queues[x]['group'], slots[x]))
 
-    ql = [
-        q['name'] for q in sql if q['time'] >= job_time and
-        q['memory'] >= job_ram and
-        q['max_slots'] <= job_threads]
+    ql = [q for q in queue_list if queues[q]['time'] >= job_time and
+          queues[q]['max_size'] >= job_ram and
+          queues[q]['max_slots'] >= job_threads]
+    if not ql:
+        return None
 
     logger.info(
         "Estimated RAM was {0} GBm, runtime was {1} minutes.\n".format(
@@ -319,10 +322,11 @@ def getq_and_slots(
         ))
     if coprocessor:
         logger.info("Co-processor {} was requested".format(coprocessor))
-    logger.info(
-        "Appropriate queue is {}".format(ql[0]))
+    if len(ql):
+        logger.info(
+            "Appropriate queue is {}".format(ql[0]))
     try:
-        q_tuple = (ql[0], ql[0]['slots_required'])
+        q_tuple = (ql[0], slots[ql[0]])
     except IndexError:
         raise BadSubmission("No matching queues found")
     return q_tuple
