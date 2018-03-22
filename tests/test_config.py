@@ -98,8 +98,9 @@ class TestConfig(unittest.TestCase):
                 'method_o': {'method': 'config', }, }
             with self.assertRaises(fsl_sub.config.BadConfiguration) as me:
                 fsl_sub.config.method_config('method')
-                self.assertEqual(
-                    me.msg, "Unable to find method configuration dictionary")
+            self.assertEqual(
+                me.exception.args[0],
+                "Unable to find method configuration dictionary")
         fsl_sub.config.method_config.cache_clear()
         with self.subTest('Test 4'):
             mock_read_config.return_value = {
@@ -107,8 +108,9 @@ class TestConfig(unittest.TestCase):
             self.assertEqual('config', fsl_sub.config.method_config('method'))
             with self.assertRaises(fsl_sub.config.BadConfiguration) as me:
                 fsl_sub.config.method_config('method2')
-                self.assertEqual(
-                    me.msg, "Unable to find configuration for method")
+            self.assertEqual(
+                me.exception.args[0],
+                "Unable to find configuration for method2")
 
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_coprocessor_config(self, mock_read_config):
@@ -130,17 +132,18 @@ class TestConfig(unittest.TestCase):
                 'coproc_o': {'cuda': 'option', }, }
             with self.assertRaises(fsl_sub.config.BadConfiguration) as me:
                 fsl_sub.config.coprocessor_config('cuda')
-                self.assertEqual(
-                    me.msg,
-                    "Unable to find coprocessor configuration dictionary")
+            self.assertEqual(
+                me.exception.args[0],
+                "Unable to find coprocessor configuration dictionary")
         fsl_sub.config.coprocessor_config.cache_clear()
         with self.subTest('Test 4'):
             mock_read_config.return_value = {
                 'coproc_opts': {'cuda': 'option', }, }
             with self.assertRaises(fsl_sub.config.BadConfiguration) as me:
                 fsl_sub.config.coprocessor_config('phi')
-                self.assertEqual(
-                    me.msg, "Unable to find configuration for phi")
+            self.assertEqual(
+                me.exception.args[0],
+                "Unable to find configuration for phi")
 
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_queue_config(self, mock_read_config):
@@ -159,8 +162,8 @@ class TestConfig(unittest.TestCase):
         with self.subTest('Test 3'):
             with self.assertRaises(fsl_sub.config.BadConfiguration) as me:
                 fsl_sub.config.queue_config('long.q')
-                self.assertEqual(
-                    me.msg,
+            self.assertEqual(
+                    me.exception.args[0],
                     "Unable to find definition for queue long.q")
         fsl_sub.config.queue_config.cache_clear()
         with self.subTest('Test 4'):
@@ -168,8 +171,8 @@ class TestConfig(unittest.TestCase):
                 'q': {'short.q': 'option', }, }
             with self.assertRaises(fsl_sub.config.BadConfiguration) as me:
                 fsl_sub.config.queue_config()
-                self.assertEqual(
-                    me.msg,
+            self.assertEqual(
+                    me.exception.args[0],
                     "Unable to find queue definitions")
 
 

@@ -196,7 +196,7 @@ def submit(
         parallel_env = m_config['large_job_split_pe']
 
     if queue is None:
-        (queue, slots_required) = getq_and_slots(
+        queue_details = getq_and_slots(
                 job_time=jobtime,
                 job_ram=jobram,
                 job_threads=threads,
@@ -204,9 +204,10 @@ def submit(
                 coprocessor=coprocessor,
                 ll_env=parallel_env
                 )
-
-    if queue is None:
-        raise BadSubmission("Unable to find a queue with these parameters")
+        if queue_details is None:
+            raise BadSubmission("Unable to find a queue with these parameters")
+        else:
+            (queue, slots_required) = queue_details
 
     if not queue_exists(queue):
         raise BadSubmission("Unrecognised queue " + queue)
@@ -221,6 +222,8 @@ def submit(
         raise BadSubmission(
                 "Job requires {} slots but no parallel envrionment "
                 "available or requested".format(threads))
+    if threads > 1 and config['ram_thread_divide'] and not split_on_ram:
+        split_on_ram = True
 
     if coprocessor:
         try:

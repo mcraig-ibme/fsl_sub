@@ -134,6 +134,17 @@ amodule/5.5
             self.assertListEqual(
                 fsl_sub.shell_modules.get_modules('amodule'),
                 ['5.0', '5.5', ])
+        with self.subTest('Test 1b'):
+            mock_system_stdout.reset_mock()
+            mock_system_stdout.return_value = '''
+/usr/local/etc/ShellModules:
+bmodule
+'''
+
+            self.assertListEqual(
+                fsl_sub.shell_modules.get_modules('bmodule'),
+                ['bmodule', ])
+        mock_system_stdout.reset_mock()
         with self.subTest('Test 2'):
             mock_system_stdout.side_effect = subprocess.CalledProcessError(
                 'acmd', 1

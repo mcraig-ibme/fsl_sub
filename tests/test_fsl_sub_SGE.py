@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import subprocess
 import unittest
-import xml.etree.ElementTree as ET
 import yaml
 import fsl_sub.plugins.fsl_sub_SGE
 
@@ -54,7 +53,7 @@ class TestSgeFinders(unittest.TestCase):
             )
 
     @patch('fsl_sub.plugins.fsl_sub_SGE.which', autospec=True)
-    def qsub(self, mock_which):
+    def test_qsub(self, mock_which):
         bin_path = '/opt/sge/bin/qsub'
         with self.subTest("Test 1"):
             mock_which.return_value = bin_path
@@ -72,7 +71,7 @@ class TestSgeFinders(unittest.TestCase):
 
     @patch('fsl_sub.plugins.fsl_sub_SGE.qconf_cmd', autospec=True)
     @patch('fsl_sub.plugins.fsl_sub_SGE.sp.run', autospec=True)
-    def queue_exists(self, mock_spr, mock_qconf):
+    def test_queue_exists(self, mock_spr, mock_qconf):
         bin_path = '/opt/sge/bin/qtest'
         qname = 'myq'
         with self.subTest("Test 1"):
@@ -107,7 +106,8 @@ class TestSgeFinders(unittest.TestCase):
             self.assertFalse(mock_qconf.called)
         mock_spr.reset_mock()
         with self.subTest("Test 4"):
-            mock_spr.side_effect = subprocess.CalledProcess_error()
+            mock_spr.side_effect = subprocess.CalledProcessError(
+                returncode=1, cmd=bin_path)
             self.assertFalse(
                 fsl_sub.plugins.fsl_sub_SGE.queue_exists(qname, bin_path)
             )
@@ -761,37 +761,74 @@ copro_opts:
 
         mock_mconf.return_value = self.mconf_dict
         qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
-        expected_cmd = [
-            '/usr/bin/qsub',
-            '-V',
-            '-binding',
-            'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
-            '-l', "m_mem_free={0}G,h_vmem={0}G".format(jobram),
-            '-N', 'test_job',
-            '-cwd', '-q', 'a.q',
-            '-shell', 'n',
-            '-b', 'y',
-            '-r', 'y',
-            'acmd', 'arg1', 'arg2'
-        ]
-        mock_sprun.return_value = subprocess.CompletedProcess(
-            expected_cmd, 0, stdout=qsub_out, stderr=None)
-        self.assertEqual(
-            jid,
-            self.plugin.submit(
-                command=cmd,
-                job_name=job_name,
-                queue=queue,
-                jobram=jobram
-                )
-        )
-        mock_sprun.assert_called_once_with(
-            expected_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
+        with self.subTest('Basic submission'):
+            expected_cmd = [
+                '/usr/bin/qsub',
+                '-V',
+                '-binding',
+                'linear:1',
+                '-o', '/Users/testuser',
+                '-e', '/Users/testuser',
+                '-l', "m_mem_free={0}G,h_vmem={0}G".format(jobram),
+                '-N', 'test_job',
+                '-cwd', '-q', 'a.q',
+                '-shell', 'n',
+                '-b', 'y',
+                '-r', 'y',
+                'acmd', 'arg1', 'arg2'
+            ]
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                expected_cmd, 0, stdout=qsub_out, stderr=None)
+            self.assertEqual(
+                jid,
+                self.plugin.submit(
+                    command=cmd,
+                    job_name=job_name,
+                    queue=queue,
+                    jobram=jobram
+                    )
+            )
+            mock_sprun.assert_called_once_with(
+                expected_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+        mock_sprun.reset_mock()
+        with self.subTest("Split on RAM"):
+            threads = 2
+            expected_cmd = [
+                '/usr/bin/qsub',
+                '-V',
+                '-binding',
+                'linear:2',
+                '-o', '/Users/testuser',
+                '-e', '/Users/testuser',
+                '-l', "m_mem_free={0}G,h_vmem={0}G".format(jobram // threads),
+                '-N', 'test_job',
+                '-cwd', '-q', 'a.q',
+                '-shell', 'n',
+                '-b', 'y',
+                '-r', 'y',
+                'acmd', 'arg1', 'arg2'
+            ]
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                expected_cmd, 0, stdout=qsub_out, stderr=None)
+            self.assertEqual(
+                jid,
+                self.plugin.submit(
+                    command=cmd,
+                    job_name=job_name,
+                    queue=queue,
+                    jobram=jobram,
+                    threads=threads,
+                    ramsplit=True
+                    )
+            )
+            mock_sprun.assert_called_once_with(
+                expected_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
 
     def test_mail_support(
             self, mock_sprun, mock_ntf, mock_cpconf,
