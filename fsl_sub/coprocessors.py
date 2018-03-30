@@ -55,7 +55,7 @@ def coproc_classes(coprocessor):
         if 'copros' in q:
             try:
                 for c in q['copros'][coprocessor]['classes']:
-                    classes[c] = copro_opts[c]['capability']
+                    classes[c] = copro_opts['class_types'][c]['capability']
             except KeyError:
                 continue
     if not classes:
@@ -100,3 +100,28 @@ def coproc_load_module(coproc, module_version):
             else:
                 load_module("/".join(
                     (coproc['module_parent'], module_version)))
+
+
+def co_processors_info():
+    available_coprocessors = list_coprocessors()
+    coprocessor_classes = []
+    coprocessor_toolkits = []
+    for c in available_coprocessors:
+        cp_classes = coproc_classes(c)
+        cp_tkits = coproc_toolkits(c)
+        if cp_classes is not None:
+            coprocessor_classes.extend(cp_classes)
+        if cp_tkits is not None:
+            coprocessor_toolkits.extend(cp_tkits)
+    if not available_coprocessors:
+        available_coprocessors = None
+    if not coprocessor_classes:
+        coprocessor_classes = None
+    if not coprocessor_toolkits:
+        coprocessor_toolkits = None
+
+    return {
+        'available': available_coprocessors,
+        'classes': coprocessor_classes,
+        'toolkits': coprocessor_toolkits,
+    }

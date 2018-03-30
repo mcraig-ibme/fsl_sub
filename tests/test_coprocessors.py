@@ -44,26 +44,26 @@ coproc_opts:
         classes: True
         class_resource: gputype
         class_types:
-        G:
-            resource: TitanX
-            doc: TitanX. No-ECC, single-precision workloads
-            capability: 1
-        K:
-            resource: k80
-            doc: Kepler. ECC, double- or single-precision workloads
-            capability: 2
-        P:
-            resource: v100
-            doc: >
-                Pascal. ECC, double-, single- and half-precision
-                workloads
-            capability: 3
-        V:
-            resource: v100
-            doc: >
-                Volta. ECC, double-, single-, half-
-                and quarter-precision workloads
-            capability: 4
+            G:
+                resource: TitanX
+                doc: TitanX. No-ECC, single-precision workloads
+                capability: 1
+            K:
+                resource: k80
+                doc: Kepler. ECC, double- or single-precision workloads
+                capability: 2
+            P:
+                resource: v100
+                doc: >
+                    Pascal. ECC, double-, single- and half-precision
+                    workloads
+                capability: 3
+            V:
+                resource: v100
+                doc: >
+                    Volta. ECC, double-, single-, half-
+                    and quarter-precision workloads
+                capability: 4
         default_class: K
         include_more_capable: True
         uses_modules: True

@@ -157,7 +157,7 @@ def submit(
             or all more capable
     coprocessor_multi - how many coprocessors you need (or
             complex description) (string)
-
+    usescript - queue config is defined in script
     '''
 
     logger = logging.getLogger("__name__")
@@ -248,7 +248,8 @@ def submit(
 
         if (mconf['job_priorities'] and
                 priority is not None):
-            if 'max_priority' in mconf:
+            if 'min_priority' in mconf:
+                priority = max(mconf['min_priority'], priority)
                 priority = min(mconf['max_priority'], priority)
             command_args.extend(['-p', priority, ])
 

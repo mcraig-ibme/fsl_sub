@@ -83,7 +83,7 @@ def submit(
     coprocessor_class=None,
     coprocessor_class_strict=False,
     coprocessor_multi="1",
-    usesscript=False,
+    usescript=False,
     architecture=None,
 ):
     '''Submit job(s) to a queue'''
@@ -239,7 +239,7 @@ def submit(
         coprocessor_class=coprocessor_class,
         coprocessor_class_strict=coprocessor_class_strict,
         coprocessor_multi=coprocessor_multi,
-        usesscript=usesscript,
+        usescript=usescript,
         architecture=architecture)
 
     return job_id
@@ -304,4 +304,3 @@ def getq_and_slots(
     logger.info(
         "Appropriate queue is {}".format(ql[0]))
     return (ql[0], ql[0]['slots_required'])
-

@@ -63,8 +63,10 @@ method_opts:
     ram_units: G
     # Supports job priority setting?
     job_priorities: True
-    # Highest priority
-    max_priority: 1023
+    # Lowest priority
+    min_priority: -1023
+    # Highest (user) priority
+    max_priority: 0
     # Supports parallel holds?
     array_holds: True
     # Supports parallel job limits?
@@ -77,7 +79,7 @@ method_opts:
 # The following defines configuration options for co-processor queues
 # Define queues with a copro key set to the name of the appropriate option
 # set and ensure that your queue method has a way of interpreting this
-copro_opts:
+coproc_opts:
   cuda:
     # Which scheduler resource requests GPU facilities
     resource: gpu

@@ -15,17 +15,18 @@ from fsl_sub.exceptions import (
     BadSubmission,
     NoModule,
     LoadModuleError,
+    CommandError,
 )
 from fsl_sub.coprocessors import (
-    list_coprocessors,
     coproc_classes,
-    coproc_toolkits,
     coproc_load_module,
+    co_processors_info,
 )
 from fsl_sub.config import (
     read_config,
     method_config,
     coprocessor_config,
+    queue_config,
 )
 from fsl_sub.shell_modules import (
     find_module_cmd,
@@ -55,9 +56,11 @@ warnings.formatwarning = fsl_sub_warnings_formatter
 warnings.simplefilter('always', UserWarning)
 
 
-def parallel_envs(queues):
+def parallel_envs(queues=None):
     '''Return the list of configured parallel environments
     in the supplied queue definition dict'''
+    if queues is None:
+        queues = queue_config()
     ll_envs = []
     for q in queues.values():
         try:
@@ -94,7 +97,7 @@ def submit(
     coprocessor_class=None,
     coprocessor_class_strict=False,
     coprocessor_multi="1",
-    usesscript=False,
+    usescript=False,
     architecture=None,
 ):
     '''Submit job(s) to a queue'''
@@ -170,8 +173,7 @@ def submit(
         job_type = 'array'
         if (
                 array_hold is not None or
-                array_limit is not None or
-                array_stride is not None):
+                array_limit is not None):
             raise BadSubmission(
                 "Array controls not applicable to non-array tasks")
         if validate_command:
@@ -226,14 +228,15 @@ def submit(
         split_on_ram = True
 
     if coprocessor:
-        try:
-            coproc_load_module(
-                coprocessor_config(coprocessor),
-                coprocessor_toolkit)
-        except LoadModuleError:
-            raise BadSubmission(
-                "Unable to load requested coprocessor toolkit"
-            )
+        if coprocessor_toolkit != -1:
+            try:
+                coproc_load_module(
+                    coprocessor_config(coprocessor),
+                    coprocessor_toolkit)
+            except LoadModuleError:
+                raise BadSubmission(
+                    "Unable to load requested coprocessor toolkit"
+                )
     job_id = queue_submit(
         command,
         job_name=task_name,
@@ -258,7 +261,7 @@ def submit(
         coprocessor_class=coprocessor_class,
         coprocessor_class_strict=coprocessor_class_strict,
         coprocessor_multi=coprocessor_multi,
-        usesscript=usesscript,
+        usescript=usescript,
         architecture=architecture)
 
     return job_id
@@ -335,27 +338,26 @@ def getq_and_slots(
     return q_tuple
 
 
-def build_parser(config):
+def build_parser(config=None, cp_info=None):
     '''Parse the command line, returns a dict keyed on option'''
-
-    available_coprocessors = list_coprocessors(config)
-    coprocessor_classes = {
-        c: coproc_classes(config, c) for c in available_coprocessors}
-    coprocessor_toolkit = coproc_toolkits(config)
+    if config is None:
+        config = read_config()
+    if cp_info is None:
+        cp_info = co_processors_info()
     ll_envs = parallel_envs(config['queues'])
 
     # Build the epilog...
-    epilog = []
+    epilog = ''
     if config['method'] != 'None':
         epilog += '''
 Queues
 
 There are several batch queues configured on the cluster:
         '''
-        for qname, q in config.queues.items():
+        for qname, q in config['queues'].items():
             epilog += (
                 "{qname}: {timelimit} max run time; {q[slot_size]}GB "
-                "per slot; {q[maxram]}GB total".format(
+                "per slot; {q[max_size]}GB total\n".format(
                     qname=qname,
                     timelimit=minutes_to_human(q['time']),
                     q=q,
@@ -364,49 +366,44 @@ There are several batch queues configured on the cluster:
             if 'copros' in q:
                 epilog += (
                     padding + "Coprocessors available: " +
-                    "; ".join(q['copros'])
+                    "; ".join(q['copros']) + '\n'
                 )
             if 'parallel_envs' in q:
                 epilog += (
                     padding + "Parallel environments available: " +
-                    "; ".join(q['parallel_envs'])
+                    "; ".join(q['parallel_envs']) + '\n'
                 )
             if 'map_ram' in q and q['map_ram']:
                 epilog += (
-                    padding + "Supports splitting into multiple slots."
+                    padding + "Supports splitting into multiple slots." + '\n'
                 )
-    mconf = config[config['method']]
-    if available_coprocessors:
-        cp_versions = []
-        for cp in available_coprocessors:
+    mconf = method_config(config['method'])
+    if cp_info['available']:
+        epilog += "Co-processors:"
+        for cp in cp_info['available']:
+            epilog += "  " + cp
             try:
-                cp_def = config['copro_opts'][cp]
-            except KeyError:
+                cp_def = coprocessor_config(cp)
+            except BadConfiguration:
                 continue
             if find_module_cmd():
                 if cp_def['uses_modules']:
+                    epilog += "    Available toolkits:" + '\n'
                     try:
-                        cp_versions.append(
-                            "{copro}: {versions}".format(
-                                copro=cp,
-                                versions=','.join(
-                                    get_modules('module_parent'))))
+                        epilog += "      " + ', '.join(
+                                get_modules('module_parent') + '\n')
                     except NoModule as e:
                         raise BadConfiguration from e
-            if cp_versions:
-                epilog += (
-                    "Co-processor toolkit versions available: "
-                    "; ".join(cp))
-            cp_classes = coproc_classes(config, cp)
+            cp_classes = coproc_classes(cp)
             if cp_classes:
                 epilog += (
-                    "Co-processor classes available: "
+                    "    Co-processor classes available: " + '\n'
                 )
                 for cpclass in cp_classes:
                     epilog += (
-                        ": ".join(
-                            (cpclass, cp_def[cpclass]['doc'])
-                        )
+                        "      " + ": ".join(
+                            (cpclass, cp_def['class_types'][cpclass]['doc']))
+                        + '\n'
                     )
 
     parser = argparse.ArgumentParser(
@@ -435,42 +432,77 @@ There are several batch queues configured on the cluster:
             action='append',
             default=None,
             help="Architecture [e.g., lx-amd64].")
-    copro_g.add_argument(
-        '-c', '--coprocessor',
-        action='append',
-        default=None,
-        choices=available_coprocessors,
-        help="Request a co-processor, further details below.")
-    copro_g.add_argument(
-        '--coprocessor_class',
-        default=None,
-        choices=coprocessor_classes,
-        help="Request a specific co-processor hardware class. "
-        "Details of which classes are available for each co-processor "
-        "are below."
-    )
-    copro_g.add_argument(
-        '--coprocessor_class_strict',
-        action='store_true',
-        help="If set will only allow running on this class. "
-        "The default is to use this class and all more capable devices."
-    )
-    copro_g.add_argument(
-        '--coprocessor_toolkit',
-        default=None,
-        choices=coprocessor_toolkit,
-        help="Request a specific version of the co-processor software "
-        "tools. Will default to the latest version available. "
-        "If you wish to use the toolkit defined in your current "
-        " environment, give the value '-1' to this argument."
-    )
-    copro_g.add_argument(
-        '--coprocessor_multi',
-        default=1,
-        help="Request multiple co-processors for a job. This make take "
-        "the form of simple number to a complex definition of devices. "
-        "See your cluster documentation for details."
-    )
+    else:
+        advanced_g.add_argument(
+            '-a', '--arch',
+            action='append',
+            default=None,
+            help="Architectures not available.")
+    if cp_info['available']:
+        copro_g.add_argument(
+            '-c', '--coprocessor',
+            default=None,
+            choices=cp_info['available'],
+            help="Request a co-processor, further details below.")
+        copro_g.add_argument(
+            '--coprocessor_multi',
+            default=1,
+            help="Request multiple co-processors for a job. This make take "
+            "the form of simple number to a complex definition of devices. "
+            "See your cluster documentation for details."
+        )
+    else:
+        copro_g.add_argument(
+            '-c', '--coprocessor',
+            default=None,
+            help="No co-processor configured - ignored.")
+        copro_g.add_argument(
+            '--coprocessor_multi',
+            default=1,
+            help="No co-processor configured - ignored"
+        )
+    if cp_info['classes']:
+        copro_g.add_argument(
+            '--coprocessor_class',
+            default=None,
+            choices=cp_info['classes'],
+            help="Request a specific co-processor hardware class. "
+            "Details of which classes are available for each co-processor "
+            "are below."
+        )
+        copro_g.add_argument(
+            '--coprocessor_class_strict',
+            action='store_true',
+            help="If set will only allow running on this class. "
+            "The default is to use this class and all more capable devices."
+        )
+    else:
+        copro_g.add_argument(
+            '--coprocessor_class',
+            default=None,
+            help="No co-processor classes configured - ignored."
+        )
+        copro_g.add_argument(
+            '--coprocessor_class_strict',
+            action='store_true',
+            help="No co-processor classes configured - ignored."
+        )
+    if cp_info['toolkits']:
+        copro_g.add_argument(
+            '--coprocessor_toolkit',
+            default=None,
+            choices=cp_info['toolkits'],
+            help="Request a specific version of the co-processor software "
+            "tools. Will default to the latest version available. "
+            "If you wish to use the toolkit defined in your current "
+            " environment, give the value '-1' to this argument."
+        )
+    else:
+        copro_g.add_argument(
+            '--coprocessor_toolkit',
+            default=None,
+            help="No co-processor toolkits configured - ignored."
+        )
     advanced_g.add_argument(
         '-F', '--usescript',
         action='store_true',
@@ -495,21 +527,20 @@ There are several batch queues configured on the cluster:
         default=os.getcwd(),
         help="Where to output logfiles."
     )
-    if mconf['mail_support']:
-        email_g.add_argument(
-            '-m', '--mailoptions',
-            default=None,
-            help="Specify job mail options, see your queuing software for "
-            "details."
-        )
-        email_g.add_argument(
-            '-M', '--mailto',
-            default="{username}@{hostname}.".format(
-                        username=getpass.getuser(),
-                        hostname=socket.gethostname()
-                    ),
-            help="Who to email."
-        )
+    email_g.add_argument(
+        '-m', '--mailoptions',
+        default=None,
+        help="Specify job mail options, see your queuing software for "
+        "details."
+    )
+    email_g.add_argument(
+        '-M', '--mailto',
+        default="{username}@{hostname}".format(
+                    username=getpass.getuser(),
+                    hostname=socket.gethostname()
+                ),
+        help="Who to email."
+    )
     parser.add_argument(
         '-n', '--novalidation',
         action='store_true',
@@ -525,8 +556,11 @@ There are several batch queues configured on the cluster:
     )
     advanced_g.add_argument(
         '-p', '--priority',
-        default=0,
-        choices=range(0, -1024),
+        default=None,
+        type=int,
+        choices=range(
+            config['method_opts'][config['method']]['max_priority'],
+            config['method_opts'][config['method']]['min_priority']),
         help="Specify a lower job priority (where supported)."
         "Takes a negative integer."
     )
@@ -536,7 +570,7 @@ There are several batch queues configured on the cluster:
         help="Select a particular queue - see below for details. "
         "Instead of choosing a queue try to specify the time required."
     )
-    advanced_g.add_arguemt(
+    advanced_g.add_argument(
         '-r', '--resource',
         default=None,
         action='append',
@@ -546,6 +580,7 @@ There are several batch queues configured on the cluster:
     parser.add_argument(
         '-R', '--jobram',
         default=None,
+        type=int,
         help="Max total RAM to use for job (integer in GB). "
         "This is very important to set if your job requires more "
         "than the queue slot memory limit as then you job can be "
@@ -569,17 +604,20 @@ There are several batch queues configured on the cluster:
     )
     array_g.add_argument(
         '-t', '--array_task',
+        default=None,
         help="Specify a task file of commands to execute in parallel."
     )
     array_g.add_argument(
         '--array_stride',
         default=1,
+        type=int,
         help="For parallel task files, increment of sub-task ID between "
         "sub-tasks"
     )
     parser.add_argument(
         '-T', '--jobtime',
         default=None,
+        type=int,
         help="Estimated job length in minutes, used to auto-choose the queue "
         "name."
     )
@@ -596,6 +634,7 @@ There are several batch queues configured on the cluster:
     advanced_g.add_argument(
         '-x', '--array_limit',
         default=None,
+        type=int,
         help="Specify the maximum number of parallel job sub-tasks to run "
         "concurrently."
     )
@@ -605,39 +644,62 @@ There are several batch queues configured on the cluster:
         metavar='file',
         help="If the <file> file already exists, do nothing and exit."
     )
-    job_mutex.add_argument('args', nargs=argparse.REMAINDER)
+    job_mutex.add_argument('args', nargs='*', default=None)
     return parser
 
 
-def main():
+def file_is_image(filename):
+    '''Is the specified file an image file?'''
+    if os.path.isfile(filename):
+        try:
+            if system_stdout(
+                command=[
+                    os.path.join(
+                        os.environ['FSLDIR'],
+                        'bin',
+                        'imtest'),
+                    filename
+                    ]).strip() == '1':
+                return True
+        except subprocess.CalledProcessError as e:
+            raise CommandError(
+                "Error trying to check image file - " +
+                str(e))
+    return False
+
+
+def main(args=None):
     logger = logging.getLogger('__name__')
 
     config = read_config()
 
-    cmd_parser = build_parser(config)
-    options = vars(cmd_parser.parse_args())
+    cp_info = co_processors_info()
+    cmd_parser = build_parser(config, cp_info)
+    options = vars(cmd_parser.parse_args(args=args))
+    if not cp_info['available']:
+        options['coprocessor'] = None
+        options['coprocessor_class'] = None
+        options['coprocessor_class_strict'] = False
+        options['coprocessor_toolkits'] = None
+        options['coprocessor_multi'] = 1
+    else:
+        if not cp_info['classes']:
+            options['coprocessor_class'] = None
+            options['coprocessor_class_strict'] = False
+        if not cp_info['toolkits']:
+            options['coprocessor_toolkits'] = None
 
     if options['verbose']:
-        logger.set_level(logging.INFO)
+        logger.setLevel(logging.INFO)
 
-    if options['file-is-image']:
+    if options['fileisimage']:
         logger.debug("Check file is image requested")
-        if os.path.isfile(options['file-is-image']):
-            try:
-                if system_stdout(
-                    command=[
-                        os.path.join(
-                            os.environ['FSLDIR'],
-                            'bin',
-                            'imtest'),
-                        options['file-is-image']
-                        ]) == '1':
-                    logger.info("File is an image")
-                    sys.exit(0)
-            except subprocess.CalledProcessError as e:
-                cmd_parser.error(
-                    "Error trying to check image file - " +
-                    str(e))
+        try:
+            if file_is_image(options['fileisimage']):
+                logger.info("File is an image")
+                sys.exit(0)
+        except CommandError as e:
+            cmd_parser.error(str(e))
 
     if options['parallelenv']:
         try:
@@ -645,16 +707,21 @@ def main():
                 options['parallelenv'], config['queues'])
         except ArgumentError as e:
             cmd_parser.error(str(e))
+    else:
+        pe_name, threads = (None, None, )
 
-    array_task = True
-    if options['array_task'] is None:
+    if options['array_task'] is not None:
+        array_task = True
+        command = options['array_task']
+    else:
         array_task = False
         if (
                 options['array_hold'] is not None or
-                options['array_limit'] is not None or
-                options['array_stride'] is not None):
+                options['array_limit'] is not None):
             cmd_parser.error(
                 "Array controls not applicable to non-array tasks")
+        command = options['args']
+
     if 'mailoptions' not in options:
         options['mailoptions'] = None
     if 'mailto' not in options:
@@ -662,9 +729,20 @@ def main():
 
     try:
         job_id = submit(
+            command,
+            architecture=options['arch'],
+            array_hold=options['array_hold'],
+            array_limit=options['array_limit'],
+            array_stride=options['array_stride'],
+            array_task=array_task,
+            coprocessor=options['coprocessor'],
+            coprocessor_toolkit=options['coprocessor_toolkit'],
+            coprocessor_class=options['coprocessor_class'],
+            coprocessor_class_strict=options['coprocessor_class_strict'],
+            coprocessor_multi=options['coprocessor_multi'],
             name=options['name'],
-            queue=options['queue'],
             parallel_env=pe_name,
+            queue=options['queue'],
             threads=threads,
             jobhold=options['jobhold'],
             jobram=options['jobram'],
@@ -672,11 +750,11 @@ def main():
             logdir=options['logdir'],
             mail_on=options['mailoptions'],
             mailto=options['mailto'],
-            array_hold=options['array_hold'],
-            array_limit=options['array_limit'],
-            array_stride=options['array_stride'],
-            array_task=array_task,
-
+            priority=options['priority'],
+            ramsplit=not options['noramsplit'],
+            resources=options['resource'],
+            usescript=options['usescript'],
+            validate_command=not options['novalidation'],
         )
     except BadSubmission as e:
         cmd_parser.error("Error submitting job:" + str(e))

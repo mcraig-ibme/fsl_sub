@@ -267,7 +267,8 @@ method_opts:
             - h_vmem
         ram_units: G
         job_priorities: True
-        max_priority: 1023
+        min_priority: -1023
+        max_priority: 0
         array_holds: True
         array_limits: True
         architecture: False
@@ -530,7 +531,7 @@ copro_opts:
                     '-V',
                     '-binding',
                     'linear:1',
-                    '-p', 1000,
+                    '-p', -1000,
                     '-o', '/Users/testuser',
                     '-e', '/Users/testuser',
                     '-N', 'test_job',
@@ -548,7 +549,7 @@ copro_opts:
                         command=cmd,
                         job_name=job_name,
                         queue=queue,
-                        priority=1000
+                        priority=-1000
                         )
                 )
                 mock_sprun.assert_called_once_with(
@@ -565,7 +566,42 @@ copro_opts:
                     '-V',
                     '-binding',
                     'linear:1',
-                    '-p', 1023,
+                    '-p', -1023,
+                    '-o', '/Users/testuser',
+                    '-e', '/Users/testuser',
+                    '-N', 'test_job',
+                    '-cwd', '-q', 'a.q',
+                    '-shell', 'n',
+                    '-b', 'y',
+                    '-r', 'y',
+                    'acmd', 'arg1', 'arg2'
+                ]
+                mock_sprun.return_value = subprocess.CompletedProcess(
+                    expected_cmd, 0, stdout=qsub_out, stderr=None)
+                self.assertEqual(
+                    jid,
+                    self.plugin.submit(
+                        command=cmd,
+                        job_name=job_name,
+                        queue=queue,
+                        priority=-2000
+                        )
+                )
+                mock_sprun.assert_called_once_with(
+                    expected_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+            mock_sprun.reset_mock()
+            mock_mconf.return_value = self.mconf_dict
+            with self.subTest("With priorities positive"):
+                mock_mconf.return_value = self.mconf_dict
+                expected_cmd = [
+                    '/usr/bin/qsub',
+                    '-V',
+                    '-binding',
+                    'linear:1',
+                    '-p', 0,
                     '-o', '/Users/testuser',
                     '-e', '/Users/testuser',
                     '-N', 'test_job',
@@ -796,6 +832,8 @@ copro_opts:
         mock_sprun.reset_mock()
         with self.subTest("Split on RAM"):
             threads = 2
+            split_ram = jobram // threads
+            mock_srbs.return_value = split_ram
             expected_cmd = [
                 '/usr/bin/qsub',
                 '-V',
@@ -803,7 +841,7 @@ copro_opts:
                 'linear:2',
                 '-o', '/Users/testuser',
                 '-e', '/Users/testuser',
-                '-l', "m_mem_free={0}G,h_vmem={0}G".format(jobram // threads),
+                '-l', "m_mem_free={0}G,h_vmem={0}G".format(split_ram),
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
