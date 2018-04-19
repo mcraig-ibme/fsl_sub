@@ -4,6 +4,100 @@ from unittest.mock import patch
 import fsl_sub.utils
 
 
+class TestConversions(unittest.TestCase):
+    def test_human_to_ram(self):
+        with self.subTest('no units'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram(10),
+                10240
+            )
+        with self.subTest('Raises on bad unit specifier'):
+            self.assertRaises(
+                ValueError,
+                fsl_sub.utils.human_to_ram,
+                10,
+                'H')
+        with self.subTest('Raises on non-number'):
+            self.assertRaises(
+                ValueError,
+                fsl_sub.utils.human_to_ram,
+                "a",
+                'H')
+            self.assertRaises(
+                ValueError,
+                fsl_sub.utils.human_to_ram,
+                "1..2",
+                'H')
+        with self.subTest('Raises on non-string units/output'):
+            self.assertRaises(
+                ValueError,
+                fsl_sub.utils.human_to_ram,
+                1,
+                'T', 1)
+            self.assertRaises(
+                ValueError,
+                fsl_sub.utils.human_to_ram,
+                1,
+                1, 'T')
+        with self.subTest('TBs'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10T'),
+                10485760
+            )
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram(10, units='T'),
+                10485760
+            )
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10TB'),
+                10485760
+            )
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10Tb'),
+                10485760
+            )
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10Ti'),
+                10485760
+            )
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10Tib'),
+                10485760
+            )
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10t'),
+                10485760
+            )
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10ti'),
+                10485760
+            )
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10tiB'),
+                10485760
+            )
+        with self.subTest('PBs'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10P'),
+                10737418240
+            )
+        with self.subTest('PBs to GBs'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10P', output='G'),
+                10485760
+            )
+        with self.subTest('KBs to MBs'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10K', output='M'),
+                10 / 1024
+            )
+        with self.subTest('MBs to MBs'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10M', output='M'),
+                10
+            )
+
+
 class TestPlugins(unittest.TestCase):
     @patch('fsl_sub.utils.pkgutil.iter_modules', auto_spec=True)
     @patch('fsl_sub.utils.importlib.import_module', auto_spec=True)
