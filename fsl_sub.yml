@@ -1,5 +1,8 @@
 # Job submission method to use. Supported values are 'SGE' and 'NONE'
 method: SGE
+# Default units for RAM given
+# (P, T, G, M, K)
+ram_units: G
 
 # List all environment variables that control thread usage
 # will set these to parallel environment threads
@@ -9,6 +12,7 @@ thread_control:
   - MKL_DOMAIN_NUM_THREADS
   - OPENBLAS_NUM_THREADS
   - GOTO_NUM_THREADS
+
 method_opts:
   None:
     parallel_envs: []
@@ -17,10 +21,69 @@ method_opts:
     mail_support: False
     map_ram: False
     job_priorities: False
-    parallel_holds: False
-    parallel_limit: False
+    array_holds: False
+    array_limit: False
     architecture: False
     job_resources: False
+  SLURM:
+    # SLURM doesn't use parallel environments - leave these definitions as is
+    parallel_envs:
+      - shmem
+    same_node_pes:
+      - shmem
+    large_job_split_pe:
+      - shmem
+    # Replicate user's shell environment to running job
+    copy_environment: True
+    # Method used to bind to CPUs - set to None to disable
+    # Supported options, linear
+    affinity_type: linear
+    # How to configure this affinity options are:
+    #   threads - set to number of threads required
+    #   cores - set to number of cores required
+    # See --cpu_bind option to sbatch for other options
+    affinity_control: threads
+    # Enable Emailing end-user about job status
+    mail_support: True
+    # Supports job priority setting?
+    job_priorities: False
+    # Lowest priority
+    min_priority: 10000
+    # Highest (user) priority
+    max_priority: 0
+    # Array holds
+    array_holds: False
+    # Array limits
+    array_limits: True
+    # Whether to split large memory jobs into shared memory slots
+    # If your system is configured with MaxMemPerCPU with accounting
+    # then this could be set to False as the system should automatically
+    # increase the number of CPUs required to satisfy memory requirements
+    map_ram: True
+    # Whether to divide up RAM requirements for multi-threaded tasks
+    thread_ram_divide: True
+    # Enable Emailing end-user about job status
+    mail_support: True
+    # What mail modes are allowed
+    mail_modes:
+      b:
+        - BEGIN
+      e:
+        - END
+      a:
+        - FAIL
+        - REQUEUE
+      f:
+        - ALL
+      n:
+        - NONE
+    # When to email user:
+    #   b - begin
+    #   e - end
+    #   a - fail/abort/requeue
+    #   f - all events
+    #   n - no events
+    mail_mode: a
   SGE:
     # List all parallel environments configured on your cluster here
     parallel_envs:
@@ -43,13 +106,20 @@ method_opts:
     mail_support: True
     # What mail modes are allowed
     mail_modes:
-      - b
-      - e
-      - a
-      - s
-      - n
+      b:
+        - b
+      e:
+        - e
+      a:
+        - a
+      f:
+        - a
+        - e
+        - b
+      n:
+        - n
     # When to email user:
-    #   a - on abort
+    #   a - on abort/requeue
     mail_mode: a
     # Whether to split large memory jobs into shared memory PE slots
     map_ram: True
@@ -59,8 +129,6 @@ method_opts:
     ram_resources:
         - m_mem_free
         - h_vmem
-    # Units for RAM given....?????
-    ram_units: G
     # Supports job priority setting?
     job_priorities: True
     # Lowest priority
@@ -92,7 +160,7 @@ coproc_opts:
     # text
     class_types:
       G:
-        # Queue resource to request
+        # Queue resource to request (on SLURM this may be a constraint or type)
         resource: TitanX
         # Documentation about this hardware
         doc: TitanX. No-ECC, single-precision workloads
@@ -118,6 +186,7 @@ coproc_opts:
     # If a class is not specified, which class should we use?
     default_class: K
     # Should we also allow running on more capable hardware?
+    # Requires constraints on SLURM
     include_more_capable: True
     # Should we use Shell modules to load the environment settings for
     # the hardware?
@@ -126,8 +195,9 @@ coproc_opts:
     module_parent: cuda
     # Should we disable core binding for co-processor tasks?
     no_binding: True
-
-# Queue definitions
+    # Does the SURLM cluster use constraints to specify GPU types?
+    slurm_constraints: True
+# Queue definitions (Partitions in SLURM)
 queues:
   # Queue name
   gpu.q:

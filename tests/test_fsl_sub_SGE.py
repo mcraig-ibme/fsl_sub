@@ -243,6 +243,7 @@ class TestCheckPE(unittest.TestCase):
 @patch('fsl_sub.plugins.fsl_sub_SGE.sp.run', autospec=True)
 class TestSubmit(unittest.TestCase):
     conf_dict = yaml.load('''---
+ram_units: G
 method_opts:
     SGE:
         parallel_envs:
@@ -255,17 +256,23 @@ method_opts:
         affinity_control: threads
         mail_support: True
         mail_modes:
-            - b
-            - e
-            - a
-            - s
-            - n
+            b:
+                - b
+            e:
+                - e
+            a:
+                - a
+            f:
+                - a
+                - e
+                - b
+            n:
+                - n
         mail_mode: a
         map_ram: True
         ram_resources:
             - m_mem_free
             - h_vmem
-        ram_units: G
         job_priorities: True
         min_priority: -1023
         max_priority: 0
@@ -325,8 +332,6 @@ copro_opts:
                 '-V',
                 '-binding',
                 'linear:1',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
@@ -359,8 +364,6 @@ copro_opts:
                     '-V',
                     '-binding',
                     'linear:slots',
-                    '-o', '/Users/testuser',
-                    '-e', '/Users/testuser',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-shell', 'n',
@@ -395,6 +398,49 @@ copro_opts:
                 queue=queue
             )
 
+    def test_submit_logdir(
+            self, mock_sprun, mock_ntf, mock_cpconf,
+            mock_srbs, mock_mconf, mock_qsub,
+            mock_getcwd, mock_check_pe, mock_shlex):
+        mock_mconf.return_value = self.mconf_dict
+        job_name = 'test_job'
+        queue = 'a.q'
+        cmd = ['acmd', 'arg1', 'arg2', ]
+
+        jid = 12345
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
+        with self.subTest("logdir"):
+            expected_cmd = [
+                '/usr/bin/qsub',
+                '-V',
+                '-binding',
+                'linear:1',
+                '-o', '/tmp/alog',
+                '-e', '/tmp/alog',
+                '-N', 'test_job',
+                '-cwd', '-q', 'a.q',
+                '-shell', 'n',
+                '-b', 'y',
+                '-r', 'y',
+                'acmd', 'arg1', 'arg2'
+            ]
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                expected_cmd, 0, stdout=qsub_out, stderr=None)
+            self.assertEqual(
+                jid,
+                self.plugin.submit(
+                    command=cmd,
+                    job_name=job_name,
+                    queue=queue,
+                    logdir="/tmp/alog"
+                )
+            )
+            mock_sprun.assert_called_once_with(
+                expected_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+
     def test_no_env_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
@@ -412,8 +458,6 @@ copro_opts:
             '/usr/bin/qsub',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-shell', 'n',
@@ -453,8 +497,6 @@ copro_opts:
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-shell', 'n',
@@ -497,8 +539,6 @@ copro_opts:
                     '-V',
                     '-binding',
                     'linear:1',
-                    '-o', '/Users/testuser',
-                    '-e', '/Users/testuser',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-shell', 'n',
@@ -532,8 +572,6 @@ copro_opts:
                     '-binding',
                     'linear:1',
                     '-p', -1000,
-                    '-o', '/Users/testuser',
-                    '-e', '/Users/testuser',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-shell', 'n',
@@ -567,8 +605,6 @@ copro_opts:
                     '-binding',
                     'linear:1',
                     '-p', -1023,
-                    '-o', '/Users/testuser',
-                    '-e', '/Users/testuser',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-shell', 'n',
@@ -602,8 +638,6 @@ copro_opts:
                     '-binding',
                     'linear:1',
                     '-p', 0,
-                    '-o', '/Users/testuser',
-                    '-e', '/Users/testuser',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-shell', 'n',
@@ -646,8 +680,6 @@ copro_opts:
                     '-binding',
                     'linear:1',
                     '-l', 'ramlimit=1000',
-                    '-o', '/Users/testuser',
-                    '-e', '/Users/testuser',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-shell', 'n',
@@ -679,8 +711,6 @@ copro_opts:
                     '-binding',
                     'linear:1',
                     '-l', 'resource1=1,resource2=2',
-                    '-o', '/Users/testuser',
-                    '-e', '/Users/testuser',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-shell', 'n',
@@ -722,8 +752,6 @@ copro_opts:
             '-V',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-hold_jid', hjid,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
@@ -803,8 +831,6 @@ copro_opts:
                 '-V',
                 '-binding',
                 'linear:1',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-l', "m_mem_free={0}G,h_vmem={0}G".format(jobram),
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
@@ -839,8 +865,6 @@ copro_opts:
                 '-V',
                 '-binding',
                 'linear:2',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-l', "m_mem_free={0}G,h_vmem={0}G".format(split_ram),
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
@@ -887,8 +911,6 @@ copro_opts:
                 '-V',
                 '-binding',
                 'linear:1',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-M', mailto,
                 '-m', mailon,
                 '-N', 'test_job',
@@ -922,8 +944,6 @@ copro_opts:
                 '-V',
                 '-binding',
                 'linear:1',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-M', mailto,
                 '-m', self.mconf_dict['mail_mode'],
                 '-N', 'test_job',
@@ -949,6 +969,40 @@ copro_opts:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
+        mock_sprun.reset_mock()
+        with self.subTest("Test for multiple mail modes"):
+            expected_cmd = [
+                '/usr/bin/qsub',
+                '-V',
+                '-binding',
+                'linear:1',
+                '-M', mailto,
+                '-m', 'a,e,b',
+                '-N', 'test_job',
+                '-cwd', '-q', 'a.q',
+                '-shell', 'n',
+                '-b', 'y',
+                '-r', 'y',
+                'acmd', 'arg1', 'arg2'
+            ]
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                expected_cmd, 0, stdout=qsub_out, stderr=None)
+            self.assertEqual(
+                jid,
+                self.plugin.submit(
+                    command=cmd,
+                    job_name=job_name,
+                    queue=queue,
+                    mailto=mailto,
+                    mailon='f'
+                    )
+            )
+            mock_sprun.assert_called_once_with(
+                expected_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+
         with self.subTest("Test for bad input"):
             mailon = 't'
             self.assertRaises(
@@ -983,8 +1037,6 @@ copro_opts:
                 '-V',
                 '-l', 'gputype=' + '|'.join((second_gtype, gputype)),
                 '-l', 'gpu=1',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
@@ -1017,8 +1069,6 @@ copro_opts:
                 '-V',
                 '-l', 'gputype=' + gputype,
                 '-l', 'gpu=1',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
@@ -1053,8 +1103,6 @@ copro_opts:
                 '-V',
                 '-l', 'gputype={0}|{1}'.format(gputype, second_gtype),
                 '-l', 'gpu=1',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
@@ -1091,8 +1139,6 @@ copro_opts:
                 '-V',
                 '-l', 'gputype=' + gputype,
                 '-l', 'gpu=1',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
@@ -1128,8 +1174,6 @@ copro_opts:
                 '-V',
                 '-l', 'gputype=' + gputype,
                 '-l', 'gpu=' + str(multi_gpu),
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
@@ -1175,8 +1219,6 @@ copro_opts:
                 '-V',
                 '-binding',
                 'linear:1',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
@@ -1208,8 +1250,6 @@ copro_opts:
                 '-V',
                 '-binding',
                 'linear:2',
-                '-o', '/Users/testuser',
-                '-e', '/Users/testuser',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-shell', 'n',
@@ -1262,8 +1302,6 @@ copro_opts:
             '-V',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-hold_jid_ad', hjid,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
@@ -1309,8 +1347,6 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",
@@ -1376,8 +1412,6 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",
@@ -1442,8 +1476,6 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-8:2",
@@ -1511,8 +1543,6 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-tc', limit,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
@@ -1582,8 +1612,6 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",
@@ -1651,8 +1679,6 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
             '-hold_jid_ad', hold_jid,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
@@ -1723,8 +1749,7 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-o', '/Users/testuser',
-            '-e', '/Users/testuser',
+            '-hold_jid', hold_jid,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-t', "1-4:1",

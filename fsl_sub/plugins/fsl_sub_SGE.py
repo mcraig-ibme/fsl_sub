@@ -20,6 +20,7 @@ from fsl_sub.exceptions import (
 from fsl_sub.config import (
     method_config,
     coprocessor_config,
+    read_config,
 )
 from fsl_sub.utils import (
     split_ram_by_slots,
@@ -122,7 +123,8 @@ def submit(
         coprocessor_class_strict=False,
         coprocessor_multi=1,
         usescript=False,
-        architecture=None
+        architecture=None,
+        requeueable=True
         ):
     '''Submits the job to a Grid Engine cluster
     Requires:
@@ -143,6 +145,7 @@ def submit(
     parallelenv - parallel environment name
     jobram - RAM required by job (total of all threads)
     jobtime - time (in minutes for task)
+    requeueable - job may be requeued on node failure
     resources - list of resource request strings
     ramsplit - break tasks into multiple slots to meet RAM constraints
     priority - job priority (0-1023)
@@ -169,12 +172,13 @@ def submit(
     mconf = defaultdict(lambda: False, method_config('SGE'))
     qsub = qsub_cmd()
     command_args = [qsub, ]
-    if logdir is None:
-        logdir = os.getcwd()
+
     if isinstance(resources, str):
         resources = [resources, ]
 
-    if not usescript:
+    if usescript:
+        command_args.append(command)
+    else:
         # Check Parallel Environment is available
         if parallel_env:
             check_pe(qtest(), parallel_env)
@@ -257,9 +261,10 @@ def submit(
             command_args.extend(
                 ['-l', ','.join(resources), ])
 
-        command_args.extend(
-            ['-o', logdir, '-e', logdir]
-        )
+        if logdir is not None:
+            command_args.extend(
+                ['-o', logdir, '-e', logdir]
+            )
 
         if jobhold:
             command_args.extend(
@@ -271,37 +276,48 @@ def submit(
                 command_args.extend(
                     ['-hold_jid_ad', array_hold, ]
                 )
-
+            elif array_hold:
+                command_args.extend(
+                    ['-hold_jid', array_hold, ]
+                )
             if mconf['array_limits'] and array_limit:
                 command_args.extend(
                     ['-tc', array_limit, ]
                 )
 
         if jobram:
+            ram_units = read_config['ram_units']
             if ramsplit:
                 jobram = split_ram_by_slots(jobram, threads)
 
             command_args.extend(
                 ['-l', ','.join(
                     ['{0}={1}{2}'.format(
-                        a, jobram, mconf['ram_units']) for
+                        a, jobram, ram_units) for
                         a in mconf['ram_resources']])]
             )
 
         if mconf['mail_support']:
             if mailto:
                 command_args.extend(['-M', mailto, ])
-                if mailon:
-                    if mailon not in mconf['mail_modes']:
-                        raise BadSubmission("Unrecognised mail mode")
-                    command_args.extend(['-m', mailon, ])
-                else:
-                    command_args.extend(['-m', mconf['mail_mode'], ])
+                if not mailon:
+                    mailon = mconf['mail_mode']
+                if mailon not in mconf['mail_modes']:
+                    raise BadSubmission("Unrecognised mail mode")
+                command_args.extend(
+                    [
+                        '-m',
+                        ','.join(mconf['mail_modes'][mailon])
+                        ])
 
         command_args.extend(['-N', job_name, ])
         command_args.extend(
             ['-cwd', '-q', queue, ])
 
+        if requeueable:
+            command_args.extend(
+                ['-r', 'y', ]
+            )
         if array_task:
             # Submit array task file
             with open(command, 'r') as cmd_f:
@@ -314,7 +330,7 @@ def submit(
             # Submit single script/binary
             command_args.extend(
                 ['-shell', 'n',
-                 '-b', 'y', '-r', 'y', ])
+                 '-b', 'y', ])
             if isinstance(command, str):
                 command = shlex.split(command)
             command_args.extend(command)
@@ -323,25 +339,26 @@ def submit(
         [str(a) for a in command_args if a != qsub]))
 
     if array_task:
-        logger.info("control file: " + command)
-        scriptcontents = '''#!/bin/sh
+        logger.info("executing array task")
+        scriptcontents = '''#!/bin/bash
 
-#$ -S /bin/sh
+#$ -S /bin/bash
 
 the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
 
-exec /bin/sh -c "$the_command"
+exec /bin/bash -c "$the_command"
 '''.format(command)
         logger.debug(scriptcontents)
         with tempfile.NamedTemporaryFile(delete=False) as script:
             script.write(scriptcontents)
         logger.debug(script.name)
         command_args.append(script.name)
-        logger.info(
-            "executing srray task: " +
-            " ".join([str(a) for a in command_args]))
     else:
-        logger.info("executing: " + " ".join([str(a) for a in command_args]))
+        if usescript:
+            logger.info("executing cluster script")
+        else:
+            logger.info("executing single task")
+            logger.info(" ".join([str(a) for a in command_args]))
 
     result = sp.run(command_args, stdout=sp.PIPE, stderr=sp.PIPE)
     if array_task:

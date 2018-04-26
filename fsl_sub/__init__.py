@@ -1,5 +1,6 @@
 #!/usr/bin/env fslpython
 import argparse
+import errno
 import getpass
 import logging
 import os
@@ -21,6 +22,7 @@ from fsl_sub.coprocessors import (
     coproc_classes,
     coproc_load_module,
     co_processors_info,
+    max_coprocessors,
 )
 from fsl_sub.config import (
     read_config,
@@ -91,7 +93,7 @@ def submit(
     mailto="{username}@{hostname}.".format(
                             username=getpass.getuser(),
                             hostname=socket.gethostname()),
-    logdir=os.getcwd(),
+    logdir=None,
     coprocessor=None,
     coprocessor_toolkit=None,
     coprocessor_class=None,
@@ -99,6 +101,7 @@ def submit(
     coprocessor_multi="1",
     usescript=False,
     architecture=None,
+    requeueable=True
 ):
     '''Submit job(s) to a queue'''
     logger = logging.getLogger('__name__')
@@ -143,6 +146,21 @@ def submit(
             ' software not found.'.format(config['method'])
         )
 
+    if logdir is not None and logdir != "/dev/null":
+        try:
+            os.makedirs(logdir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise BadSubmission(
+                    "Unable to create {0} ({1})".format(
+                        logdir, str(e)
+                    ))
+            else:
+                if not os.path.isdir(logdir):
+                    raise BadSubmission(
+                        "Log destination is a file "
+                        "(should be a folder)")
+
     if method_config['mail_support'] is True:
         if mail_on is None:
             try:
@@ -152,9 +170,9 @@ def submit(
                     "Mail not configured but enabled in configuration for " +
                     config['method'])
         else:
-            for m_opt in method_config['mail_modes'].split(','):
-                if m_opt not in method_config['mail_modes']:
-                    raise BadSubmission(
+            # Mail modes is a dictionary
+            if mail_on not in method_config['mail_modes']:
+                raise BadSubmission(
                         "Unrecognised mail mode " + mail_on)
 
     if array_task is False:
@@ -228,6 +246,17 @@ def submit(
         split_on_ram = True
 
     if coprocessor:
+        if coprocessor_multi != '1':
+            try:
+                if int(coprocessor_multi) > max_coprocessors(coprocessor):
+                    raise BadSubmission(
+                        "Unable to provide {} coprocessors for job".format(
+                            coprocessor_multi
+                        ))
+
+            except ValueError:
+                # Complex coprocessor_multi passed - do not validate
+                pass
         if coprocessor_toolkit != -1:
             try:
                 coproc_load_module(
@@ -262,7 +291,8 @@ def submit(
         coprocessor_class_strict=coprocessor_class_strict,
         coprocessor_multi=coprocessor_multi,
         usescript=usescript,
-        architecture=architecture)
+        architecture=architecture,
+        requeueable=requeueable)
 
     return job_id
 
@@ -515,16 +545,28 @@ There are several batch queues configured on the cluster:
         help="Place a hold on this task until specified job id has "
         "completed."
     )
-    array_g.add_argument(
-        '--array_hold',
-        default=None,
-        help="Place a parallel hold on the specified array task. Each"
-        "sub-task is held until the equivalent sub-task in the"
-        "parent array task completes."
+    parser.add_argument(
+        '--not_requeueable',
+        action='store_true',
+        help="Job cannot be requeued in the event of a node failure"
     )
+    if mconf['array_holds']:
+        array_g.add_argument(
+            '--array_hold',
+            default=None,
+            help="Place a parallel hold on the specified array task. Each"
+            "sub-task is held until the equivalent sub-task in the"
+            "parent array task completes."
+        )
+    else:
+        array_g.add_argument(
+            '--array_hold',
+            default=None,
+            help="Not supported - will be converted to simple job hold"
+        )
     parser.add_argument(
         '-l', '--logdir',
-        default=os.getcwd(),
+        default=None,
         help="Where to output logfiles."
     )
     email_g.add_argument(
@@ -575,13 +617,15 @@ There are several batch queues configured on the cluster:
         default=None,
         action='append',
         help="Pass a resource request string through to the job "
-        "scheduler. See your scheduler's instructions for details"
+        "scheduler (a constraint on SLURM). See your scheduler's "
+        "instructions for details."
     )
     parser.add_argument(
         '-R', '--jobram',
         default=None,
         type=int,
-        help="Max total RAM to use for job (integer in GB). "
+        help="Max total RAM required for job (integer in " +
+        config['ram_units'] + "B). "
         "This is very important to set if your job requires more "
         "than the queue slot memory limit as then you job can be "
         "split over multiple slots automatically - see autoslotsbyram."

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import getpass
-import os
 import socket
 import subprocess
 import unittest
@@ -11,6 +10,7 @@ from unittest.mock import patch
 
 YAML_CONF = '''---
 method: SGE
+ram_units: G
 method_opts:
     SGE:
         parallel_envs:
@@ -25,22 +25,28 @@ method_opts:
         affinity_control: threads
         mail_support: True
         mail_modes:
-        - b
-        - e
-        - a
-        - s
-        - n
+            b:
+                - b
+            e:
+                - e
+            a:
+                - a
+            f:
+                - a
+                - e
+                - b
+            n:
+                - n
         mail_mode: a
         map_ram: True
         ram_resources:
             - m_mem_free
             - h_vmem
-        ram_units: G
         job_priorities: True
         min_priority: -1023
         max_priority: 0
-        parallel_holds: True
-        parallel_limit: True
+        array_holds: True
+        array_limits: True
         architecture: False
         job_resources: True
 coproc_opts:
@@ -404,7 +410,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -436,7 +442,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -467,7 +473,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -499,7 +505,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on='n',
             mailto=USER_EMAIL,
             priority=None,
@@ -531,7 +537,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto='user@test.com',
             priority=None,
@@ -562,7 +568,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto='user@test.com',
             priority=None,
@@ -594,7 +600,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -625,7 +631,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -657,7 +663,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -688,7 +694,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -721,7 +727,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -754,7 +760,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -786,7 +792,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -821,7 +827,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -856,7 +862,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -892,7 +898,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
@@ -927,7 +933,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
-            logdir=os.getcwd(),
+            logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
             priority=None,
