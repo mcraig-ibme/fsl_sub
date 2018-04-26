@@ -6,6 +6,68 @@ import fsl_sub.plugins.fsl_sub_SGE
 
 from unittest.mock import (patch, mock_open)
 
+conf_dict = yaml.load('''---
+ram_units: G
+method_opts:
+    SGE:
+        parallel_envs:
+            - shmem
+        same_node_pes:
+            - shmem
+        large_job_split_pe: shmem
+        copy_environment: True
+        affinity_type: linear
+        affinity_control: threads
+        mail_support: True
+        mail_modes:
+            b:
+                - b
+            e:
+                - e
+            a:
+                - a
+            f:
+                - a
+                - e
+                - b
+            n:
+                - n
+        mail_mode: a
+        map_ram: True
+        ram_resources:
+            - m_mem_free
+            - h_vmem
+        job_priorities: True
+        min_priority: -1023
+        max_priority: 0
+        array_holds: True
+        array_limits: True
+        architecture: False
+        job_resources: True
+copro_opts:
+    cuda:
+        resource: gpu
+        classes: True
+        class_resource: gputype
+        class_types:
+            K:
+                resource: k80
+                doc: Kepler. ECC, double- or single-precision workloads
+                capability: 2
+            P:
+                resource: p100
+                doc: >
+                    Pascal. ECC, double-, single- and half-precision
+                    workloads
+                capability: 3
+        default_class: K
+        include_more_capable: True
+        uses_modules: True
+        module_parent: cuda
+        no_binding: True
+''')
+mconf_dict = conf_dict['method_opts']['SGE']
+
 
 class TestSgeFinders(unittest.TestCase):
     @patch('fsl_sub.plugins.fsl_sub_SGE.qconf_cmd', autospec=True)
@@ -221,6 +283,10 @@ class TestCheckPE(unittest.TestCase):
 
 
 @patch(
+    'fsl_sub.plugins.fsl_sub_SGE.read_config', autospec=True,
+    return_value=conf_dict
+)
+@patch(
     'fsl_sub.plugins.fsl_sub_SGE.shlex.split',
     autospec=True)
 @patch(
@@ -234,7 +300,9 @@ class TestCheckPE(unittest.TestCase):
     'fsl_sub.plugins.fsl_sub_SGE.qsub_cmd',
     autospec=True, return_value='/usr/bin/qsub'
 )
-@patch('fsl_sub.plugins.fsl_sub_SGE.method_config', autospec=True)
+@patch(
+    'fsl_sub.plugins.fsl_sub_SGE.method_config', autospec=True,
+    return_value=mconf_dict)
 @patch('fsl_sub.plugins.fsl_sub_SGE.split_ram_by_slots', autospec=True)
 @patch('fsl_sub.plugins.fsl_sub_SGE.coprocessor_config', autospec=True)
 @patch(
@@ -242,73 +310,13 @@ class TestCheckPE(unittest.TestCase):
     autospec=True)
 @patch('fsl_sub.plugins.fsl_sub_SGE.sp.run', autospec=True)
 class TestSubmit(unittest.TestCase):
-    conf_dict = yaml.load('''---
-ram_units: G
-method_opts:
-    SGE:
-        parallel_envs:
-            - shmem
-        same_node_pes:
-            - shmem
-        large_job_split_pe: shmem
-        copy_environment: True
-        affinity_type: linear
-        affinity_control: threads
-        mail_support: True
-        mail_modes:
-            b:
-                - b
-            e:
-                - e
-            a:
-                - a
-            f:
-                - a
-                - e
-                - b
-            n:
-                - n
-        mail_mode: a
-        map_ram: True
-        ram_resources:
-            - m_mem_free
-            - h_vmem
-        job_priorities: True
-        min_priority: -1023
-        max_priority: 0
-        array_holds: True
-        array_limits: True
-        architecture: False
-        job_resources: True
-copro_opts:
-    cuda:
-        resource: gpu
-        classes: True
-        class_resource: gputype
-        class_types:
-            K:
-                resource: k80
-                doc: Kepler. ECC, double- or single-precision workloads
-                capability: 2
-            P:
-                resource: p100
-                doc: >
-                    Pascal. ECC, double-, single- and half-precision
-                    workloads
-                capability: 3
-        default_class: K
-        include_more_capable: True
-        uses_modules: True
-        module_parent: cuda
-        no_binding: True
-''')
-    mconf_dict = conf_dict['method_opts']['SGE']
+
     plugin = fsl_sub.plugins.fsl_sub_SGE
 
     def test_empty_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         self.assertRaises(
             self.plugin.BadSubmission,
             self.plugin.submit,
@@ -318,8 +326,7 @@ copro_opts:
     def test_submit_basic(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
-        mock_mconf.return_value = self.mconf_dict
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -334,9 +341,9 @@ copro_opts:
                 'linear:1',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -356,7 +363,7 @@ copro_opts:
             )
         mock_sprun.reset_mock()
         with self.subTest("SGE"):
-            sge_dict = dict(self.mconf_dict)
+            sge_dict = dict(mconf_dict)
             sge_dict['affinity_control'] = 'slots'
             mock_mconf.return_value = sge_dict
             expected_cmd = [
@@ -366,9 +373,9 @@ copro_opts:
                     'linear:slots',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
+                    '-r', 'y',
                     '-shell', 'n',
                     '-b', 'y',
-                    '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -398,11 +405,49 @@ copro_opts:
                 queue=queue
             )
 
+    def test_submit_requeueable(
+            self, mock_sprun, mock_ntf, mock_cpconf,
+            mock_srbs, mock_mconf, mock_qsub,
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+        job_name = 'test_job'
+        queue = 'a.q'
+        cmd = ['acmd', 'arg1', 'arg2', ]
+
+        jid = 12345
+        qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
+        with self.subTest("Univa"):
+            expected_cmd = [
+                '/usr/bin/qsub',
+                '-V',
+                '-binding',
+                'linear:1',
+                '-N', 'test_job',
+                '-cwd', '-q', 'a.q',
+                '-shell', 'n',
+                '-b', 'y',
+                'acmd', 'arg1', 'arg2'
+            ]
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                expected_cmd, 0, stdout=qsub_out, stderr=None)
+            self.assertEqual(
+                jid,
+                self.plugin.submit(
+                    command=cmd,
+                    job_name=job_name,
+                    queue=queue,
+                    requeueable=False,
+                )
+            )
+            mock_sprun.assert_called_once_with(
+                expected_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+
     def test_submit_logdir(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
-        mock_mconf.return_value = self.mconf_dict
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -419,9 +464,9 @@ copro_opts:
                 '-e', '/tmp/alog',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -444,8 +489,8 @@ copro_opts:
     def test_no_env_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
-        test_dict = dict(self.mconf_dict)
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+        test_dict = dict(mconf_dict)
         test_dict['copy_environment'] = False
         mock_mconf.return_value = test_dict
         job_name = 'test_job'
@@ -460,9 +505,9 @@ copro_opts:
             'linear:1',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-shell', 'n',
             '-b', 'y',
-            '-r', 'y',
             'acmd', 'arg1', 'arg2'
         ]
         mock_sprun.return_value = subprocess.CompletedProcess(
@@ -484,8 +529,8 @@ copro_opts:
     def test_no_affinity_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
-        test_dict = dict(self.mconf_dict)
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+        test_dict = dict(mconf_dict)
         test_dict['affinity_type'] = None
         mock_mconf.return_value = test_dict
         job_name = 'test_job'
@@ -499,9 +544,9 @@ copro_opts:
             '-V',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-shell', 'n',
             '-b', 'y',
-            '-r', 'y',
             'acmd', 'arg1', 'arg2'
         ]
         mock_sprun.return_value = subprocess.CompletedProcess(
@@ -523,7 +568,7 @@ copro_opts:
     def test_priority_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
             job_name = 'test_job'
             queue = 'a.q'
             cmd = ['acmd', 'arg1', 'arg2', ]
@@ -531,7 +576,7 @@ copro_opts:
             jid = 12345
             qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
             with self.subTest("No priorities"):
-                test_dict = dict(self.mconf_dict)
+                test_dict = dict(mconf_dict)
                 test_dict['job_priorities'] = False
                 mock_mconf.return_value = test_dict
                 expected_cmd = [
@@ -541,9 +586,9 @@ copro_opts:
                     'linear:1',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
+                    '-r', 'y',
                     '-shell', 'n',
                     '-b', 'y',
-                    '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
@@ -563,9 +608,9 @@ copro_opts:
                     stderr=subprocess.PIPE
                 )
             mock_sprun.reset_mock()
-            mock_mconf.return_value = self.mconf_dict
+            mock_mconf.return_value = mconf_dict
             with self.subTest("With priorities"):
-                mock_mconf.return_value = self.mconf_dict
+                mock_mconf.return_value = mconf_dict
                 expected_cmd = [
                     '/usr/bin/qsub',
                     '-V',
@@ -574,9 +619,9 @@ copro_opts:
                     '-p', -1000,
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
+                    '-r', 'y',
                     '-shell', 'n',
                     '-b', 'y',
-                    '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
@@ -596,9 +641,9 @@ copro_opts:
                     stderr=subprocess.PIPE
                 )
             mock_sprun.reset_mock()
-            mock_mconf.return_value = self.mconf_dict
+            mock_mconf.return_value = mconf_dict
             with self.subTest("With priorities (limited)"):
-                mock_mconf.return_value = self.mconf_dict
+                mock_mconf.return_value = mconf_dict
                 expected_cmd = [
                     '/usr/bin/qsub',
                     '-V',
@@ -607,9 +652,9 @@ copro_opts:
                     '-p', -1023,
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
+                    '-r', 'y',
                     '-shell', 'n',
                     '-b', 'y',
-                    '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
@@ -629,9 +674,9 @@ copro_opts:
                     stderr=subprocess.PIPE
                 )
             mock_sprun.reset_mock()
-            mock_mconf.return_value = self.mconf_dict
+            mock_mconf.return_value = mconf_dict
             with self.subTest("With priorities positive"):
-                mock_mconf.return_value = self.mconf_dict
+                mock_mconf.return_value = mconf_dict
                 expected_cmd = [
                     '/usr/bin/qsub',
                     '-V',
@@ -640,9 +685,9 @@ copro_opts:
                     '-p', 0,
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
+                    '-r', 'y',
                     '-shell', 'n',
                     '-b', 'y',
-                    '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
@@ -665,14 +710,13 @@ copro_opts:
     def test_resources_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
             job_name = 'test_job'
             queue = 'a.q'
             cmd = ['acmd', 'arg1', 'arg2', ]
 
             jid = 12345
             qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
-            mock_mconf.return_value = self.mconf_dict
             with self.subTest("With single resource"):
                 expected_cmd = [
                     '/usr/bin/qsub',
@@ -682,9 +726,9 @@ copro_opts:
                     '-l', 'ramlimit=1000',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
+                    '-r', 'y',
                     '-shell', 'n',
                     '-b', 'y',
-                    '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
@@ -713,9 +757,9 @@ copro_opts:
                     '-l', 'resource1=1,resource2=2',
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
+                    '-r', 'y',
                     '-shell', 'n',
                     '-b', 'y',
-                    '-r', 'y',
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
@@ -738,7 +782,7 @@ copro_opts:
     def test_job_hold_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -746,7 +790,6 @@ copro_opts:
         jid = 12345
         hjid = 12344
         qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
-        mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
@@ -755,9 +798,9 @@ copro_opts:
             '-hold_jid', hjid,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-shell', 'n',
             '-b', 'y',
-            '-r', 'y',
             'acmd', 'arg1', 'arg2'
         ]
         mock_sprun.return_value = subprocess.CompletedProcess(
@@ -780,12 +823,11 @@ copro_opts:
     def test_no_array_hold_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
 
-        mock_mconf.return_value = self.mconf_dict
         self.assertRaises(
             self.plugin.BadSubmission,
             self.plugin.submit,
@@ -798,12 +840,11 @@ copro_opts:
     def test_no_array_limit_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
 
-        mock_mconf.return_value = self.mconf_dict
         self.assertRaises(
             self.plugin.BadSubmission,
             self.plugin.submit,
@@ -816,14 +857,13 @@ copro_opts:
     def test_jobram_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         jid = 123456
         jobram = 1024
         cmd = ['acmd', 'arg1', 'arg2', ]
 
-        mock_mconf.return_value = self.mconf_dict
         qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         with self.subTest('Basic submission'):
             expected_cmd = [
@@ -834,9 +874,9 @@ copro_opts:
                 '-l', "m_mem_free={0}G,h_vmem={0}G".format(jobram),
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -868,9 +908,9 @@ copro_opts:
                 '-l', "m_mem_free={0}G,h_vmem={0}G".format(split_ram),
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -895,7 +935,7 @@ copro_opts:
     def test_mail_support(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         jid = 123456
@@ -903,7 +943,6 @@ copro_opts:
         mailon = 'e'
         cmd = ['acmd', 'arg1', 'arg2', ]
 
-        mock_mconf.return_value = self.mconf_dict
         qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         with self.subTest("Test mail settings"):
             expected_cmd = [
@@ -915,9 +954,9 @@ copro_opts:
                 '-m', mailon,
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -945,12 +984,12 @@ copro_opts:
                 '-binding',
                 'linear:1',
                 '-M', mailto,
-                '-m', self.mconf_dict['mail_mode'],
+                '-m', mconf_dict['mail_mode'],
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -980,9 +1019,9 @@ copro_opts:
                 '-m', 'a,e,b',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -1018,18 +1057,17 @@ copro_opts:
     def test_coprocessor_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         jid = 123456
         cmd = ['acmd', 'arg1', 'arg2', ]
         copro_type = 'cuda'
-        cp_opts = self.conf_dict['copro_opts'][copro_type]
+        cp_opts = conf_dict['copro_opts'][copro_type]
         mock_cpconf.return_value = cp_opts
         gpuclass = 'P'
         gputype = cp_opts['class_types'][gpuclass]['resource']
         second_gtype = cp_opts['class_types']['K']['resource']
-        mock_mconf.return_value = self.mconf_dict
         qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
         with self.subTest("Test basic GPU"):
             expected_cmd = [
@@ -1039,9 +1077,9 @@ copro_opts:
                 '-l', 'gpu=1',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -1071,9 +1109,9 @@ copro_opts:
                 '-l', 'gpu=1',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -1105,9 +1143,9 @@ copro_opts:
                 '-l', 'gpu=1',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -1128,7 +1166,7 @@ copro_opts:
             )
         mock_sprun.reset_mock()
         with self.subTest("Test more capable classes of GPU (configuration)"):
-            test_mconf = dict(self.mconf_dict)
+            test_mconf = dict(mconf_dict)
             copro_opts = dict(cp_opts)
             copro_opts['include_more_capable'] = False
             gpuclass = 'K'
@@ -1141,9 +1179,9 @@ copro_opts:
                 '-l', 'gpu=1',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_mconf.return_value = test_mconf
@@ -1176,9 +1214,9 @@ copro_opts:
                 '-l', 'gpu=' + str(multi_gpu),
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -1203,8 +1241,7 @@ copro_opts:
     def test_parallel_env_submit(
             self, mock_qconf, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
-        mock_mconf.return_value = self.mconf_dict
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         mock_qconf.return_value = '/usr/bin/qconf'
         job_name = 'test_job'
         queue = 'a.q'
@@ -1221,9 +1258,9 @@ copro_opts:
                 'linear:1',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -1252,9 +1289,9 @@ copro_opts:
                 'linear:2',
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
+                '-r', 'y',
                 '-shell', 'n',
                 '-b', 'y',
-                '-r', 'y',
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
@@ -1290,13 +1327,12 @@ copro_opts:
     def test_array_hold_on_non_array_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         hjid = 12344
-        mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
@@ -1305,9 +1341,9 @@ copro_opts:
             '-hold_jid_ad', hjid,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-shell', 'n',
             '-b', 'y',
-            '-r', 'y',
             'acmd', 'arg1', 'arg2'
         ]
         self.assertRaises(
@@ -1329,7 +1365,7 @@ copro_opts:
     def test_array_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1341,7 +1377,6 @@ acmd 6 7 8
         tmp_file = 'atmpfile'
         jid = 12344
         qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
-        mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
@@ -1349,6 +1384,7 @@ acmd 6 7 8
             'linear:1',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-t', "1-4:1",
             tmp_file
         ]
@@ -1379,13 +1415,13 @@ acmd 6 7 8
                 delete=False
             )
             mock_write.assert_called_once_with(
-                '''#!/bin/sh
+                '''#!/bin/bash
 
-#$ -S /bin/sh
+#$ -S /bin/bash
 
 the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
 
-exec /bin/sh -c "$the_command"
+exec /bin/bash -c "$the_command"
 '''.format(job_file_name)
             )
             mock_osr.assert_called_once_with(tmp_file)
@@ -1394,7 +1430,7 @@ exec /bin/sh -c "$the_command"
     def test_array_submit_fails(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1406,7 +1442,6 @@ acmd 6 7 8
         tmp_file = 'atmpfile'
         jid = 12344
         qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
-        mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
@@ -1414,6 +1449,7 @@ acmd 6 7 8
             'linear:1',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-t', "1-4:1",
             tmp_file
         ]
@@ -1443,13 +1479,13 @@ acmd 6 7 8
                 delete=False
             )
             mock_write.assert_called_once_with(
-                '''#!/bin/sh
+                '''#!/bin/bash
 
-#$ -S /bin/sh
+#$ -S /bin/bash
 
 the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
 
-exec /bin/sh -c "$the_command"
+exec /bin/bash -c "$the_command"
 '''.format(job_file_name)
             )
             mock_osr.assert_called_once_with(tmp_file)
@@ -1458,7 +1494,7 @@ exec /bin/sh -c "$the_command"
     def test_array_submit_stride(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1470,7 +1506,6 @@ acmd 6 7 8
         tmp_file = 'atmpfile'
         jid = 12344
         qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
-        mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
@@ -1478,6 +1513,7 @@ acmd 6 7 8
             'linear:1',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-t', "1-8:2",
             tmp_file
         ]
@@ -1509,13 +1545,13 @@ acmd 6 7 8
                 delete=False
             )
             mock_write.assert_called_once_with(
-                '''#!/bin/sh
+                '''#!/bin/bash
 
-#$ -S /bin/sh
+#$ -S /bin/bash
 
 the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
 
-exec /bin/sh -c "$the_command"
+exec /bin/bash -c "$the_command"
 '''.format(job_file_name)
             )
             mock_osr.assert_called_once_with(tmp_file)
@@ -1524,7 +1560,7 @@ exec /bin/sh -c "$the_command"
     def test_array_limit_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1537,7 +1573,6 @@ acmd 6 7 8
         jid = 12344
         limit = 2
         qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
-        mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
@@ -1546,6 +1581,7 @@ acmd 6 7 8
             '-tc', limit,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-t', "1-4:1",
             tmp_file
         ]
@@ -1577,13 +1613,13 @@ acmd 6 7 8
                 delete=False
             )
             mock_write.assert_called_once_with(
-                '''#!/bin/sh
+                '''#!/bin/bash
 
-#$ -S /bin/sh
+#$ -S /bin/bash
 
 the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
 
-exec /bin/sh -c "$the_command"
+exec /bin/bash -c "$the_command"
 '''.format(job_file_name)
             )
             mock_osr.assert_called_once_with(tmp_file)
@@ -1592,7 +1628,7 @@ exec /bin/sh -c "$the_command"
     def test_array_limit_disabled_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1604,7 +1640,7 @@ acmd 6 7 8
         tmp_file = 'atmpfile'
         jid = 12344
         qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
-        test_mconf = dict(self.mconf_dict)
+        test_mconf = dict(mconf_dict)
         test_mconf['array_limits'] = False
         mock_mconf.return_value = test_mconf
         expected_cmd = [
@@ -1614,6 +1650,7 @@ acmd 6 7 8
             'linear:1',
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-t', "1-4:1",
             tmp_file
         ]
@@ -1645,13 +1682,13 @@ acmd 6 7 8
                 delete=False
             )
             mock_write.assert_called_once_with(
-                '''#!/bin/sh
+                '''#!/bin/bash
 
-#$ -S /bin/sh
+#$ -S /bin/bash
 
 the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
 
-exec /bin/sh -c "$the_command"
+exec /bin/bash -c "$the_command"
 '''.format(job_file_name)
             )
             mock_osr.assert_called_once_with(tmp_file)
@@ -1660,7 +1697,7 @@ exec /bin/sh -c "$the_command"
     def test_array_hold_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1673,7 +1710,6 @@ acmd 6 7 8
         jid = 12344
         hold_jid = 12343
         qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
-        mock_mconf.return_value = self.mconf_dict
         expected_cmd = [
             '/usr/bin/qsub',
             '-V',
@@ -1682,6 +1718,7 @@ acmd 6 7 8
             '-hold_jid_ad', hold_jid,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-t', "1-4:1",
             tmp_file
         ]
@@ -1713,13 +1750,13 @@ acmd 6 7 8
                 delete=False
             )
             mock_write.assert_called_once_with(
-                '''#!/bin/sh
+                '''#!/bin/bash
 
-#$ -S /bin/sh
+#$ -S /bin/bash
 
 the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
 
-exec /bin/sh -c "$the_command"
+exec /bin/bash -c "$the_command"
 '''.format(job_file_name)
             )
             mock_osr.assert_called_once_with(tmp_file)
@@ -1728,7 +1765,7 @@ exec /bin/sh -c "$the_command"
     def test_array_hold_disabled_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex):
+            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1741,7 +1778,7 @@ acmd 6 7 8
         jid = 12344
         hold_jid = 12343
         qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
-        test_mconf = dict(self.mconf_dict)
+        test_mconf = dict(mconf_dict)
         test_mconf['array_holds'] = False
         mock_mconf.return_value = test_mconf
         expected_cmd = [
@@ -1752,6 +1789,7 @@ acmd 6 7 8
             '-hold_jid', hold_jid,
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
+            '-r', 'y',
             '-t', "1-4:1",
             tmp_file
         ]
@@ -1783,13 +1821,13 @@ acmd 6 7 8
                 delete=False
             )
             mock_write.assert_called_once_with(
-                '''#!/bin/sh
+                '''#!/bin/bash
 
-#$ -S /bin/sh
+#$ -S /bin/bash
 
 the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
 
-exec /bin/sh -c "$the_command"
+exec /bin/bash -c "$the_command"
 '''.format(job_file_name)
             )
             mock_osr.assert_called_once_with(tmp_file)

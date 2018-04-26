@@ -286,7 +286,7 @@ def submit(
                 )
 
         if jobram:
-            ram_units = read_config['ram_units']
+            ram_units = read_config()['ram_units']
             if ramsplit:
                 jobram = split_ram_by_slots(jobram, threads)
 
