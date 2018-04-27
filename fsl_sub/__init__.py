@@ -445,10 +445,9 @@ There are several batch queues configured on the cluster:
     advanced_g = parser.add_argument_group(
         'Advanced',
         'Advanced queueing options not typically required.')
-    if mconf['mail_support']:
-        email_g = parser.add_argument_group(
-            'Emailing',
-            'Email notification options.')
+    email_g = parser.add_argument_group(
+        'Emailing',
+        'Email notification options.')
     copro_g = parser.add_argument_group(
         'Co-processors',
         'Options for requesting co-processors, e.g. GPUs')
@@ -569,20 +568,35 @@ There are several batch queues configured on the cluster:
         default=None,
         help="Where to output logfiles."
     )
-    email_g.add_argument(
-        '-m', '--mailoptions',
-        default=None,
-        help="Specify job mail options, see your queuing software for "
-        "details."
-    )
-    email_g.add_argument(
-        '-M', '--mailto',
-        default="{username}@{hostname}".format(
-                    username=getpass.getuser(),
-                    hostname=socket.gethostname()
-                ),
-        help="Who to email."
-    )
+    if mconf['mail_support']:
+        email_g.add_argument(
+            '-m', '--mailoptions',
+            default=None,
+            help="Specify job mail options, see your queuing software for "
+            "details."
+        )
+        email_g.add_argument(
+            '-M', '--mailto',
+            default="{username}@{hostname}".format(
+                        username=getpass.getuser(),
+                        hostname=socket.gethostname()
+                    ),
+            help="Who to email."
+        )
+    else:
+        email_g.add_argument(
+            '-m', '--mailoptions',
+            default=None,
+            help="Not supported - will be ignored"
+        )
+        email_g.add_argument(
+            '-M', '--mailto',
+            default="{username}@{hostname}".format(
+                        username=getpass.getuser(),
+                        hostname=socket.gethostname()
+                    ),
+            help="Not supported - will be ignored"
+        )
     parser.add_argument(
         '-n', '--novalidation',
         action='store_true',
