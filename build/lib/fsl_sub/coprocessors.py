@@ -10,7 +10,8 @@ from fsl_sub.exceptions import (
 )
 from fsl_sub.shell_modules import (
     get_modules,
-    load_module
+    load_module,
+    NoModule,
 )
 
 
@@ -76,7 +77,11 @@ def coproc_toolkits(coprocessor):
         )
     if not copro_conf['uses_modules']:
         return None
-    return get_modules(copro_conf['module_parent'])
+    try:
+        cp_mods = get_modules(copro_conf['module_parent'])
+    except NoModule:
+        return None
+    return cp_mods
 
 
 def coproc_class(coproc_class, coproc_classes):
