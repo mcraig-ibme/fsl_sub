@@ -6,12 +6,12 @@ from fsl_sub.config import (
 )
 from fsl_sub.exceptions import (
     BadConfiguration,
-    UnrecognisedModule
+    UnrecognisedModule,
+    NoModule,
 )
 from fsl_sub.shell_modules import (
     get_modules,
     load_module,
-    NoModule,
 )
 
 
