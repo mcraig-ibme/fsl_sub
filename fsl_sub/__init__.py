@@ -255,7 +255,7 @@ def submit(
         jobtime=jobtime,
         resources=resources,
         ramsplit=split_on_ram,
-        prority=priority,
+        priority=priority,
         mail_on=mail_on,
         mailto=mailto,
         logdir=logdir,
