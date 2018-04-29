@@ -5,3 +5,4 @@
 *.pyc
 htmlcov
 fsl_sub_NONE.yml
+fsl_sub_SLURM.yml
