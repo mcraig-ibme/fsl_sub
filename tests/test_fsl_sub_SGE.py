@@ -348,7 +348,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -382,7 +382,7 @@ class TestSubmit(unittest.TestCase):
                 ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -433,7 +433,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -477,7 +477,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -520,7 +520,7 @@ class TestSubmit(unittest.TestCase):
         ]
         mock_sprun.return_value = subprocess.CompletedProcess(
             expected_cmd, 0,
-            stdout=qsub_out, stderr=None, universal_newlines=True)
+            stdout=qsub_out, stderr=None)
         self.assertEqual(
             jid,
             self.plugin.submit(
@@ -561,7 +561,7 @@ class TestSubmit(unittest.TestCase):
         ]
         mock_sprun.return_value = subprocess.CompletedProcess(
             expected_cmd, 0,
-            stdout=qsub_out, stderr=None, universal_newlines=True)
+            stdout=qsub_out, stderr=None)
         self.assertEqual(
             jid,
             self.plugin.submit(
@@ -605,7 +605,7 @@ class TestSubmit(unittest.TestCase):
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0,
-                    stdout=qsub_out, stderr=None, universal_newlines=True)
+                    stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -640,7 +640,7 @@ class TestSubmit(unittest.TestCase):
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0,
-                    stdout=qsub_out, stderr=None, universal_newlines=True)
+                    stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -675,7 +675,7 @@ class TestSubmit(unittest.TestCase):
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0,
-                    stdout=qsub_out, stderr=None, universal_newlines=True)
+                    stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -710,7 +710,7 @@ class TestSubmit(unittest.TestCase):
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0,
-                    stdout=qsub_out, stderr=None, universal_newlines=True)
+                    stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -753,7 +753,7 @@ class TestSubmit(unittest.TestCase):
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0,
-                    stdout=qsub_out, stderr=None, universal_newlines=True)
+                    stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -786,7 +786,7 @@ class TestSubmit(unittest.TestCase):
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
                     expected_cmd, 0,
-                    stdout=qsub_out, stderr=None, universal_newlines=True)
+                    stdout=qsub_out, stderr=None)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -829,7 +829,7 @@ class TestSubmit(unittest.TestCase):
         ]
         mock_sprun.return_value = subprocess.CompletedProcess(
             expected_cmd, 0,
-            stdout=qsub_out, stderr=None, universal_newlines=True)
+            stdout=qsub_out, stderr=None)
         self.assertEqual(
             jid,
             self.plugin.submit(
@@ -907,7 +907,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -943,7 +943,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -991,7 +991,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1026,7 +1026,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1060,7 +1060,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1120,7 +1120,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1154,7 +1154,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1190,7 +1190,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1229,7 +1229,7 @@ class TestSubmit(unittest.TestCase):
             mock_mconf.return_value = test_mconf
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1265,7 +1265,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1311,7 +1311,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1344,7 +1344,7 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1448,7 +1448,7 @@ acmd 6 7 8
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1580,7 +1580,7 @@ acmd 6 7 8
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1650,7 +1650,7 @@ acmd 6 7 8
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1721,7 +1721,7 @@ acmd 6 7 8
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1791,7 +1791,7 @@ acmd 6 7 8
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1864,7 +1864,7 @@ acmd 6 7 8
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
-                stdout=qsub_out, stderr=None, universal_newlines=True)
+                stdout=qsub_out, stderr=None)
             self.assertEqual(
                 jid,
                 self.plugin.submit(

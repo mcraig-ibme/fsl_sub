@@ -173,7 +173,7 @@ USER_EMAIL = "{username}@{hostname}".format(
 
 
 @patch(
-    'fsl_sub.main.config.read_config',
+    'fsl_sub.config.read_config',
     autospec=True,
     return_value=yaml.load(YAML_CONF))
 @patch(
@@ -188,7 +188,7 @@ USER_EMAIL = "{username}@{hostname}".format(
     'fsl_sub.main.get_modules', autospec=True,
     return_value=['7.5', '8.0', ])
 @patch(
-    'fsl_sub.main.coprocessors.get_modules',
+    'fsl_sub.coprocessors.get_modules',
     autospec=True, return_value=['7.5', '8.0', ])
 class TestMain(unittest.TestCase):
     def test_noramsplit(self, *args):
