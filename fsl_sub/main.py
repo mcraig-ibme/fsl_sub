@@ -23,6 +23,7 @@ from fsl_sub.exceptions import (
     CommandError,
     BadConfiguration,
     BadSubmission,
+    GridOutputError,
     NoModule,
 )
 from fsl_sub.shell_modules import (
@@ -539,6 +540,10 @@ def main(args=None):
         )
     except BadSubmission as e:
         cmd_parser.error("Error submitting job:" + str(e))
+    except GridOutputError as e:
+        cmd_parser.error(
+            "Error submitting job - output from submission "
+            "not understood. " + str(e))
     except Exception as e:
         traceback.print_exc(file=sys.stderr)
         cmd_parser.error("Unexpected error: " + str(e))
