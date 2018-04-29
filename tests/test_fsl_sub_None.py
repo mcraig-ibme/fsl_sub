@@ -34,7 +34,8 @@ class TestNone(unittest.TestCase):
                 args,
                 stdout=mock_writer.return_value,
                 stderr=mock_writer.return_value,
-                shell=True
+                shell=True,
+                universal_newlines=True
                 )
 
         self.assertEqual(job_id, 12345)

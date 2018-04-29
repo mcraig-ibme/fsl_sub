@@ -347,7 +347,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -359,7 +360,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         with self.subTest("SGE"):
@@ -379,7 +381,8 @@ class TestSubmit(unittest.TestCase):
                     'acmd', 'arg1', 'arg2'
                 ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -391,7 +394,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         with self.subTest("Bad affinity type"):
@@ -428,7 +432,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -441,7 +446,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
 
     def test_submit_logdir(
@@ -470,7 +476,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -483,7 +490,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
 
     def test_no_env_submit(
@@ -511,7 +519,8 @@ class TestSubmit(unittest.TestCase):
             'acmd', 'arg1', 'arg2'
         ]
         mock_sprun.return_value = subprocess.CompletedProcess(
-            expected_cmd, 0, stdout=qsub_out, stderr=None)
+            expected_cmd, 0,
+            stdout=qsub_out, stderr=None, universal_newlines=True)
         self.assertEqual(
             jid,
             self.plugin.submit(
@@ -523,7 +532,8 @@ class TestSubmit(unittest.TestCase):
         mock_sprun.assert_called_once_with(
             expected_cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            universal_newlines=True
         )
 
     def test_no_affinity_submit(
@@ -550,7 +560,8 @@ class TestSubmit(unittest.TestCase):
             'acmd', 'arg1', 'arg2'
         ]
         mock_sprun.return_value = subprocess.CompletedProcess(
-            expected_cmd, 0, stdout=qsub_out, stderr=None)
+            expected_cmd, 0,
+            stdout=qsub_out, stderr=None, universal_newlines=True)
         self.assertEqual(
             jid,
             self.plugin.submit(
@@ -562,7 +573,8 @@ class TestSubmit(unittest.TestCase):
         mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
 
     def test_priority_submit(
@@ -592,7 +604,8 @@ class TestSubmit(unittest.TestCase):
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
-                    expected_cmd, 0, stdout=qsub_out, stderr=None)
+                    expected_cmd, 0,
+                    stdout=qsub_out, stderr=None, universal_newlines=True)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -605,7 +618,8 @@ class TestSubmit(unittest.TestCase):
                 mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
                 )
             mock_sprun.reset_mock()
             mock_mconf.return_value = mconf_dict
@@ -625,7 +639,8 @@ class TestSubmit(unittest.TestCase):
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
-                    expected_cmd, 0, stdout=qsub_out, stderr=None)
+                    expected_cmd, 0,
+                    stdout=qsub_out, stderr=None, universal_newlines=True)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -638,7 +653,8 @@ class TestSubmit(unittest.TestCase):
                 mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
                 )
             mock_sprun.reset_mock()
             mock_mconf.return_value = mconf_dict
@@ -658,7 +674,8 @@ class TestSubmit(unittest.TestCase):
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
-                    expected_cmd, 0, stdout=qsub_out, stderr=None)
+                    expected_cmd, 0,
+                    stdout=qsub_out, stderr=None, universal_newlines=True)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -671,7 +688,8 @@ class TestSubmit(unittest.TestCase):
                 mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
                 )
             mock_sprun.reset_mock()
             mock_mconf.return_value = mconf_dict
@@ -691,7 +709,8 @@ class TestSubmit(unittest.TestCase):
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
-                    expected_cmd, 0, stdout=qsub_out, stderr=None)
+                    expected_cmd, 0,
+                    stdout=qsub_out, stderr=None, universal_newlines=True)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -704,7 +723,8 @@ class TestSubmit(unittest.TestCase):
                 mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
                 )
 
     def test_resources_submit(
@@ -732,7 +752,8 @@ class TestSubmit(unittest.TestCase):
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
-                    expected_cmd, 0, stdout=qsub_out, stderr=None)
+                    expected_cmd, 0,
+                    stdout=qsub_out, stderr=None, universal_newlines=True)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -745,7 +766,8 @@ class TestSubmit(unittest.TestCase):
                 mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
                 )
             mock_sprun.reset_mock()
             with self.subTest("With multiple resources"):
@@ -763,7 +785,8 @@ class TestSubmit(unittest.TestCase):
                     'acmd', 'arg1', 'arg2'
                 ]
                 mock_sprun.return_value = subprocess.CompletedProcess(
-                    expected_cmd, 0, stdout=qsub_out, stderr=None)
+                    expected_cmd, 0,
+                    stdout=qsub_out, stderr=None, universal_newlines=True)
                 self.assertEqual(
                     jid,
                     self.plugin.submit(
@@ -776,7 +799,8 @@ class TestSubmit(unittest.TestCase):
                 mock_sprun.assert_called_once_with(
                     expected_cmd,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
                 )
 
     def test_job_hold_submit(
@@ -804,7 +828,8 @@ class TestSubmit(unittest.TestCase):
             'acmd', 'arg1', 'arg2'
         ]
         mock_sprun.return_value = subprocess.CompletedProcess(
-            expected_cmd, 0, stdout=qsub_out, stderr=None)
+            expected_cmd, 0,
+            stdout=qsub_out, stderr=None, universal_newlines=True)
         self.assertEqual(
             jid,
             self.plugin.submit(
@@ -817,7 +842,8 @@ class TestSubmit(unittest.TestCase):
         mock_sprun.assert_called_once_with(
             expected_cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            universal_newlines=True
         )
 
     def test_no_array_hold_submit(
@@ -880,7 +906,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -893,7 +920,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         with self.subTest("Split on RAM"):
@@ -914,7 +942,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -929,7 +958,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
 
     def test_mail_support(
@@ -960,7 +990,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -974,7 +1005,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         with self.subTest("Test for auto set of mail mode"):
@@ -993,7 +1025,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1006,7 +1039,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         with self.subTest("Test for multiple mail modes"):
@@ -1025,7 +1059,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1039,7 +1074,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
 
         with self.subTest("Test for bad input"):
@@ -1083,7 +1119,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1096,7 +1133,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         with self.subTest("Test specific class of GPU"):
@@ -1115,7 +1153,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1129,7 +1168,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         with self.subTest("Test more capable classes of GPU"):
@@ -1149,7 +1189,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1162,7 +1203,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         with self.subTest("Test more capable classes of GPU (configuration)"):
@@ -1186,7 +1228,8 @@ class TestSubmit(unittest.TestCase):
             ]
             mock_mconf.return_value = test_mconf
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1199,7 +1242,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         mock_cpconf.return_value = cp_opts
@@ -1220,7 +1264,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1234,7 +1279,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
 
     @patch('fsl_sub.plugins.fsl_sub_SGE.qconf_cmd', autospec=True)
@@ -1264,7 +1310,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1277,7 +1324,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
         mock_sprun.reset_mock()
         with self.subTest("Two threads"):
@@ -1295,7 +1343,8 @@ class TestSubmit(unittest.TestCase):
                 'acmd', 'arg1', 'arg2'
             ]
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1309,7 +1358,8 @@ class TestSubmit(unittest.TestCase):
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
 
         with self.subTest("Bad PE"):
@@ -1358,7 +1408,8 @@ class TestSubmit(unittest.TestCase):
         mock_sprun.assert_called_once_with(
             expected_cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            universal_newlines=True
         )
 
     @patch('fsl_sub.plugins.fsl_sub_SGE.os.remove', autospec=True)
@@ -1396,7 +1447,8 @@ acmd 6 7 8
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1409,7 +1461,8 @@ acmd 6 7 8
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
                 delete=False
@@ -1473,7 +1526,8 @@ acmd 6 7 8
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
                 delete=False
@@ -1525,7 +1579,8 @@ acmd 6 7 8
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1539,7 +1594,8 @@ acmd 6 7 8
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
                 delete=False
@@ -1593,7 +1649,8 @@ acmd 6 7 8
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1607,7 +1664,8 @@ acmd 6 7 8
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
                 delete=False
@@ -1662,7 +1720,8 @@ acmd 6 7 8
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1676,7 +1735,8 @@ acmd 6 7 8
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
                 delete=False
@@ -1730,7 +1790,8 @@ acmd 6 7 8
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1744,7 +1805,8 @@ acmd 6 7 8
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
                 delete=False
@@ -1801,7 +1863,8 @@ acmd 6 7 8
                 new_callable=mock_open, read_data=job_file) as m:
             m.return_value.__iter__.return_value = job_file.splitlines()
             mock_sprun.return_value = subprocess.CompletedProcess(
-                expected_cmd, 0, stdout=qsub_out, stderr=None)
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None, universal_newlines=True)
             self.assertEqual(
                 jid,
                 self.plugin.submit(
@@ -1815,7 +1878,8 @@ acmd 6 7 8
             mock_sprun.assert_called_once_with(
                 expected_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
                 delete=False
