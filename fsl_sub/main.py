@@ -443,7 +443,9 @@ def main(args=None):
     fmt = LogFormatter()
     lhdr.setFormatter(fmt)
     logger = logging.getLogger('fsl_sub')
+    plugin_logger = logging.getLogger('fsl_sub.plugins')
     logger.addHandler(lhdr)
+    plugin_logger.addHandler(lhdr)
     config = read_config()
 
     cp_info = coproc_info()
@@ -464,8 +466,10 @@ def main(args=None):
 
     if options['verbose']:
         logger.setLevel(logging.INFO)
+        plugin_logger.setLevel(logging.INFO)
     if options['debug']:
         logger.setLevel(logging.DEBUG)
+        plugin_logger.setLevel(logging.DEBUG)
 
     if options['fileisimage']:
         logger.debug("Check file is image requested")
