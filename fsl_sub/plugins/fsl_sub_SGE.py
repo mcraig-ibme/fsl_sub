@@ -65,6 +65,9 @@ def queue_exists(qname, qtest=None):
             [qtest, '-sq', qname],
             stderr=sp.PIPE,
             check=True, universal_newlines=True)
+    except FileNotFoundError:
+        raise BadSubmission(
+            "Grid Engine software may not be correctly installed")
     except sp.CalledProcessError:
         return False
     return True
@@ -114,7 +117,7 @@ def submit(
         resources=None,
         ramsplit=False,
         priority=None,
-        mailon=None,
+        mail_on=None,
         mailto=None,
         logdir=None,
         coprocessor=None,
@@ -149,7 +152,7 @@ def submit(
     resources - list of resource request strings
     ramsplit - break tasks into multiple slots to meet RAM constraints
     priority - job priority (0-1023)
-    mailon - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
+    mail_on - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
             's'uspended, 'n'o mail
     mailto - email address to receive job info
     logdir - directory to put log files in
@@ -163,7 +166,7 @@ def submit(
     usescript - queue config is defined in script
     '''
 
-    logger = logging.getLogger("__name__")
+    logger = logging.getLogger(__name__)
 
     if command is None:
         raise BadSubmission(
@@ -300,14 +303,14 @@ def submit(
         if mconf['mail_support']:
             if mailto:
                 command_args.extend(['-M', mailto, ])
-                if not mailon:
-                    mailon = mconf['mail_mode']
-                if mailon not in mconf['mail_modes']:
+                if not mail_on:
+                    mail_on = mconf['mail_mode']
+                if mail_on not in mconf['mail_modes']:
                     raise BadSubmission("Unrecognised mail mode")
                 command_args.extend(
                     [
                         '-m',
-                        ','.join(mconf['mail_modes'][mailon])
+                        ','.join(mconf['mail_modes'][mail_on])
                         ])
 
         command_args.extend(['-N', job_name, ])
@@ -359,7 +362,8 @@ exec /bin/bash -c "$the_command"
         else:
             logger.info("executing single task")
             logger.info(" ".join([str(a) for a in command_args]))
-
+    logger.debug(type(command_args))
+    logger.debug(command_args)
     result = sp.run(command_args, stdout=sp.PIPE, stderr=sp.PIPE)
     if array_task:
         os.remove(script.name)

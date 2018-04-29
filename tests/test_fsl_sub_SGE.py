@@ -940,7 +940,7 @@ class TestSubmit(unittest.TestCase):
         queue = 'a.q'
         jid = 123456
         mailto = 'auser@adomain.com'
-        mailon = 'e'
+        mail_on = 'e'
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         qsub_out = 'Your job ' + str(jid) + ' ("acmd") has been submitted'
@@ -951,7 +951,7 @@ class TestSubmit(unittest.TestCase):
                 '-binding',
                 'linear:1',
                 '-M', mailto,
-                '-m', mailon,
+                '-m', mail_on,
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-r', 'y',
@@ -968,7 +968,7 @@ class TestSubmit(unittest.TestCase):
                     job_name=job_name,
                     queue=queue,
                     mailto=mailto,
-                    mailon=mailon
+                    mail_on=mail_on
                     )
             )
             mock_sprun.assert_called_once_with(
@@ -1033,7 +1033,7 @@ class TestSubmit(unittest.TestCase):
                     job_name=job_name,
                     queue=queue,
                     mailto=mailto,
-                    mailon='f'
+                    mail_on='f'
                     )
             )
             mock_sprun.assert_called_once_with(
@@ -1043,7 +1043,7 @@ class TestSubmit(unittest.TestCase):
             )
 
         with self.subTest("Test for bad input"):
-            mailon = 't'
+            mail_on = 't'
             self.assertRaises(
                 self.plugin.BadSubmission,
                 self.plugin.submit,
@@ -1051,7 +1051,7 @@ class TestSubmit(unittest.TestCase):
                 job_name=job_name,
                 queue=queue,
                 mailto=mailto,
-                mailon=mailon
+                mail_on=mail_on
             )
 
     def test_coprocessor_submit(
