@@ -26,7 +26,7 @@ def submit(
         logdir=os.getcwd(),
         **kwargs):
     '''Submits the job'''
-    logger = logging.getLogger('__name__')
+    logger = logging.getLogger(__name__)
     pid = os.getpid()
     logfile_base = os.path.join(logdir, job_name)
     stdout = "{0}.{1}{2}".format(logfile_base, 'o', pid)
