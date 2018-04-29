@@ -135,7 +135,7 @@ def submit(
     usescript - queue config is defined in script
     '''
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getFLogger(__name__)
 
     if command is None:
         raise BadSubmission(
