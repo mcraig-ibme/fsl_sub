@@ -165,7 +165,7 @@ def submit(
         if coprocessor is not None:
             # Setup the coprocessor
             cpconf = coprocessor_config(coprocessor)
-            if cpconf['no_binding'] is True:
+            if cpconf['no_binding']:
                 binding = None
 
             if cpconf['classes']:
