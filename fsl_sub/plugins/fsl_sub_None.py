@@ -72,6 +72,7 @@ def submit(
                                 cmd,
                                 stdout=stdout_file,
                                 stderr=stderr_file,
+                                universal_newlines=True,
                                 shell=True)
                     if result.returncode != 0:
                         raise BadSubmission(

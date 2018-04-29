@@ -86,6 +86,7 @@ def check_pe(pe_name, queue, qconf=None, qstat=None):
     # Check for availability of PE
     cmd = sp.run(
         [qstat, '-g', 'c', '-pe', pe_name, '-xml'],
+        universal_newlines=True,
         stdout=sp.PIPE, stderr=sp.PIPE)
     if (cmd.returncode != 0 or (
             cmd.stderr is not None and
@@ -167,7 +168,6 @@ def submit(
     '''
 
     logger = logging.getLogger('fsl_sub.plugins')
-
     if command is None:
         raise BadSubmission(
             "Must provide command line or array task file name")
@@ -180,7 +180,9 @@ def submit(
         resources = [resources, ]
 
     if usescript:
-        command_args.append(command)
+        if not isinstance(command, str):
+            raise BadSubmission(
+                "Command should be a grid submission script (no arguments)")
     else:
         # Check Parallel Environment is available
         if parallel_env:
@@ -364,7 +366,9 @@ exec /bin/bash -c "$the_command"
             logger.info(" ".join([str(a) for a in command_args]))
     logger.debug(type(command_args))
     logger.debug(command_args)
-    result = sp.run(command_args, stdout=sp.PIPE, stderr=sp.PIPE)
+    result = sp.run(
+        command_args, universal_newlines=True,
+        stdout=sp.PIPE, stderr=sp.PIPE)
     if array_task:
         os.remove(script.name)
     if result.returncode != 0:

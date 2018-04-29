@@ -363,6 +363,7 @@ def submit(
             "executing cluster script")
         result = sp.run(
             command_args,
+            universal_newlines=True,
             stdout=sp.PIPE, stderr=sp.PIPE
         )
     else:
@@ -392,6 +393,7 @@ exec /bin/bash -c "$the_command"
             logger.debug(scriptcontents)
             result = sp.run(
                 command_args,
+                universal_newlines=True,
                 stdout=sp.PIPE,
                 stderr=sp.PIPE)
     if result.returncode != 0:
