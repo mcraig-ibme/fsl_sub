@@ -232,7 +232,7 @@ There are several batch queues configured on the cluster:
     else:
         advanced_g.add_argument(
             '-F', '--usescript',
-            action='store_false',
+            action='store_true',
             help="Use flags embedded in scripts to set queuing options - "
             "not supported"
         )
