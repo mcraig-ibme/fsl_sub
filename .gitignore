@@ -8,3 +8,4 @@ fsl_sub_NONE.yml
 fsl_sub_SLURM.yml
 bin/qconf
 bin/qsub
+build
