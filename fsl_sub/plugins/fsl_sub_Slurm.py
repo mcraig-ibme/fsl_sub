@@ -358,6 +358,9 @@ def submit(
         [str(a) for a in command_args if a != qsub]))
 
     if usescript:
+        if not isinstance(command, str):
+            raise BadSubmission(
+                "Command should be a grid submission script (no arguments)")
         command_args.insert(0, qsub)
         logger.info(
             "executing cluster script")
