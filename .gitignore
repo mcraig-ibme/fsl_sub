@@ -4,3 +4,4 @@
 .coverage
 *.pyc
 htmlcov
+fsl_sub_NONE.yml
