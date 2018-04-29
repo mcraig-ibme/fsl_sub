@@ -1,6 +1,9 @@
 #!/usr/bin/env python
+import subprocess
+import sys
 import unittest
 from unittest.mock import patch
+from fsl_sub.exceptions import CommandError
 import fsl_sub.utils
 
 
@@ -111,10 +114,15 @@ class TestPlugins(unittest.TestCase):
             ('finder2', 'fsl_sub_2', True, ),
             ('nothing', 'notfsl', True, ),
             ]
+        s_path = sys.path
         self.assertDictEqual(
             fsl_sub.utils.load_plugins(),
             {'fsl_sub_1': 'finder1',
              'fsl_sub_2': 'finder2', }
+        )
+        self.assertListEqual(
+            s_path,
+            sys.path
         )
 
 
@@ -327,6 +335,26 @@ class TestUtils(unittest.TestCase):
                 fsl_sub.utils.check_command_file,
                 'afile'
             )
+
+
+class TestFileIsImage(unittest.TestCase):
+    @patch('fsl_sub.utils.os.path.isfile', autospec=True)
+    @patch('fsl_sub.utils.system_stdout', autospec=True)
+    def test_file_is_image(self, mock_sstdout, mock_isfile):
+        mock_isfile.return_value = False
+        self.assertFalse(fsl_sub.utils.file_is_image('a'))
+        mock_isfile.return_value = True
+        mock_sstdout.return_value = '1\n'
+        self.assertTrue(fsl_sub.utils.file_is_image('a'))
+        mock_sstdout.return_value = '0\n'
+        self.assertFalse(fsl_sub.utils.file_is_image('a'))
+        mock_sstdout.side_effect = subprocess.CalledProcessError(
+            1, 'a', "failed")
+        self.assertRaises(
+            CommandError,
+            fsl_sub.utils.file_is_image,
+            'a'
+        )
 
 
 if __name__ == '__main__':

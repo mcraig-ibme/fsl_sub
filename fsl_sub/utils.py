@@ -3,27 +3,39 @@ import os
 import pkgutil
 import re
 import shutil
+import subprocess
+import sys
 from math import ceil
 from fsl_sub.exceptions import (
     CommandError,
+)
+from fsl_sub.system import (
+    system_stdout,
 )
 
 
 def load_plugins():
     plugin_path = []
 
-    try:
-        plugin_path.append(os.environ['FSLSUB_PLUGINPATH'])
-    except KeyError:
-        pass
-    plugin_path.append('./plugins')
+    if 'FSLSUB_PLUGINPATH' in os.environ:
+        plugin_path.extend(os.environ['FSLSUB_PLUGINPATH'].split(':'))
+    here = os.path.dirname(os.path.abspath(__file__))
+    plugin_path.append(os.path.join(here, 'plugins'))
 
-    return {
+    sys_path = sys.path
+    ppath = list(plugin_path)
+    ppath.reverse()
+    for p_dir in ppath:
+        sys.path.insert(0, p_dir)
+
+    plugin_dict = {
         name: importlib.import_module(name)
         for finder, name, ispkg
         in pkgutil.iter_modules(path=plugin_path)
         if name.startswith('fsl_sub_')
     }
+    sys.path = sys_path
+    return plugin_dict
 
 
 def minutes_to_human(minutes):
@@ -133,3 +145,23 @@ def control_threads(env_vars, threads):
 
 def split_ram_by_slots(jram, jslots):
     return int(ceil(jram / jslots))
+
+
+def file_is_image(filename):
+    '''Is the specified file an image file?'''
+    if os.path.isfile(filename):
+        try:
+            if system_stdout(
+                command=[
+                    os.path.join(
+                        os.environ['FSLDIR'],
+                        'bin',
+                        'imtest'),
+                    filename
+                    ]).strip() == '1':
+                return True
+        except subprocess.CalledProcessError as e:
+            raise CommandError(
+                "Error trying to check image file - " +
+                str(e))
+    return False
