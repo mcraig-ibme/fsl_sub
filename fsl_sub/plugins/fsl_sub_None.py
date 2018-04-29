@@ -32,7 +32,7 @@ def submit(
     stdout = "{0}.{1}{2}".format(logfile_base, 'o', pid)
     stderr = "{0}.{1}{2}".format(logfile_base, 'e', pid)
     command_lines = []
-    if array_task is True:
+    if array_task:
         try:
             with open(command, 'r') as ll_tasks:
                 commands = ll_tasks.readlines()
