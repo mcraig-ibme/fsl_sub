@@ -3,7 +3,7 @@ import getpass
 import socket
 import unittest
 import yaml
-import fsl_sub.main
+import fsl_sub.cmd
 from unittest.mock import patch
 
 YAML_CONF = '''---
@@ -173,26 +173,26 @@ USER_EMAIL = "{username}@{hostname}".format(
 
 
 @patch(
+    'fsl_sub.cmd.read_config',
+    autospec=True,
+    return_value=yaml.load(YAML_CONF))
+@patch(
     'fsl_sub.config.read_config',
     autospec=True,
     return_value=yaml.load(YAML_CONF))
 @patch(
-    'fsl_sub.main.read_config',
-    autospec=True,
-    return_value=yaml.load(YAML_CONF))
-@patch(
-    'fsl_sub.main.submit',
+    'fsl_sub.cmd.submit',
     autospec=True,
     return_value=123)
 @patch(
-    'fsl_sub.main.get_modules', autospec=True,
+    'fsl_sub.cmd.get_modules', autospec=True,
     return_value=['7.5', '8.0', ])
 @patch(
     'fsl_sub.coprocessors.get_modules',
     autospec=True, return_value=['7.5', '8.0', ])
 class TestMain(unittest.TestCase):
     def test_noramsplit(self, *args):
-        fsl_sub.main.main(['--noramsplit', '1', '2', ])
+        fsl_sub.cmd.main(['--noramsplit', '1', '2', ])
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -209,7 +209,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -224,7 +224,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_parallelenv(self, *args):
-        fsl_sub.main.main(['--parallelenv', 'shmem,2', '1', '2', ])
+        fsl_sub.cmd.main(['--parallelenv', 'shmem,2', '1', '2', ])
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -255,7 +255,7 @@ class TestMain(unittest.TestCase):
             validate_command=True
         )
         args[2].reset_mock()
-        fsl_sub.main.main(['-s', 'shmem,2', '1', '2', ])
+        fsl_sub.cmd.main(['-s', 'shmem,2', '1', '2', ])
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -287,7 +287,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_mailoptions(self, *args):
-        fsl_sub.main.main(['--mailoptions', 'n', '1', '2', ])
+        fsl_sub.cmd.main(['--mailoptions', 'n', '1', '2', ])
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -304,7 +304,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -319,7 +319,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_mailto(self, *args):
-        fsl_sub.main.main(['--mailto', 'user@test.com', '1', '2', ])
+        fsl_sub.cmd.main(['--mailto', 'user@test.com', '1', '2', ])
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -336,7 +336,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -350,7 +350,7 @@ class TestMain(unittest.TestCase):
             validate_command=True
         )
         args[2].reset_mock()
-        fsl_sub.main.main(['-M', 'user@test.com', '1', '2', ])
+        fsl_sub.cmd.main(['-M', 'user@test.com', '1', '2', ])
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -367,7 +367,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -382,7 +382,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_array_task(self, *args):
-        fsl_sub.main.main(['--array_task', 'taskfile', ])
+        fsl_sub.cmd.main(['--array_task', 'taskfile', ])
 
         args[2].assert_called_with(
             'taskfile',
@@ -399,7 +399,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -413,7 +413,7 @@ class TestMain(unittest.TestCase):
             validate_command=True
         )
         args[2].reset_mock()
-        fsl_sub.main.main(['-t', 'taskfile', ])
+        fsl_sub.cmd.main(['-t', 'taskfile', ])
 
         args[2].assert_called_with(
             'taskfile',
@@ -430,7 +430,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -445,7 +445,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_array_limit(self, *args):
-        fsl_sub.main.main(
+        fsl_sub.cmd.main(
             ['--array_task', 'commandfile', '--array_limit', '2', ])
 
         args[2].assert_called_with(
@@ -463,7 +463,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -477,7 +477,7 @@ class TestMain(unittest.TestCase):
             validate_command=True
         )
         args[2].reset_mock()
-        fsl_sub.main.main(['-x', '2', '--array_task', 'commandfile', ])
+        fsl_sub.cmd.main(['-x', '2', '--array_task', 'commandfile', ])
 
         args[2].assert_called_with(
             'commandfile',
@@ -494,7 +494,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -509,7 +509,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_array_hold(self, *args):
-        fsl_sub.main.main(
+        fsl_sub.cmd.main(
             ['--array_task', 'commandfile', '--array_hold', '20002', ])
 
         args[2].assert_called_with(
@@ -527,7 +527,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -542,7 +542,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_array_stride(self, *args):
-        fsl_sub.main.main(
+        fsl_sub.cmd.main(
             ['--array_task', 'commandfile', '--array_stride', '2', ])
 
         args[2].assert_called_with(
@@ -560,7 +560,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -575,7 +575,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor(self, *args):
-        fsl_sub.main.main(['--coprocessor', 'cuda', '1', '2', ])
+        fsl_sub.cmd.main(['--coprocessor', 'cuda', '1', '2', ])
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -592,7 +592,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -607,7 +607,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor_toolkit(self, *args):
-        fsl_sub.main.main([
+        fsl_sub.cmd.main([
             '--coprocessor', 'cuda',
             '--coprocessor_toolkit', '7.5',
             '1', '2', ])
@@ -627,7 +627,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -642,7 +642,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor_class(self, *args):
-        fsl_sub.main.main([
+        fsl_sub.cmd.main([
             '--coprocessor', 'cuda',
             '--coprocessor_class', 'K',
             '1', '2', ])
@@ -662,7 +662,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -677,7 +677,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor_class_strict(self, *args):
-        fsl_sub.main.main([
+        fsl_sub.cmd.main([
             '--coprocessor', 'cuda',
             '--coprocessor_class', 'K',
             '--coprocessor_class_strict',
@@ -698,7 +698,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,
@@ -713,7 +713,7 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor_multi(self, *args):
-        fsl_sub.main.main([
+        fsl_sub.cmd.main([
             '--coprocessor', 'cuda',
             '--coprocessor_multi', '2',
             '1', '2', ])
@@ -733,7 +733,7 @@ class TestMain(unittest.TestCase):
             name=None,
             parallel_env=None,
             queue=None,
-            threads=None,
+            threads=1,
             jobhold=None,
             jobram=None,
             jobtime=None,

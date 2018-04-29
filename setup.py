@@ -13,7 +13,7 @@ setup(
     install_requires=['pyyaml', ],
     entry_points={
         'console_scripts': [
-            'fsl_sub = fsl_sub.main:main',
+            'fsl_sub = fsl_sub.cmd:main',
         ]
     }
     )
