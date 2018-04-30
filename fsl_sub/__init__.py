@@ -155,15 +155,15 @@ def submit(
             job_type = 'single'
         else:
             raise BadSubmission("Command should be a list or string")
-        if validate_command:
-            check_command(command[0])
-    else:
-        job_type = 'array'
         if (
                 array_hold is not None or
                 array_limit is not None):
             raise BadSubmission(
                 "Array controls not applicable to non-array tasks")
+        if validate_command:
+            check_command(command[0])
+    else:
+        job_type = 'array'
         if validate_command:
             try:
                 check_command_file(command)
