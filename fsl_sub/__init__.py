@@ -285,6 +285,11 @@ def getq_and_slots(
     Still needs job splitting across slots'''
     logger = logging.getLogger(__name__)
 
+    if job_ram is None:
+        job_ram = 0
+    if job_time is None:
+        job_time = 0
+
     queue_list = list(queues.keys())
     # Filter on coprocessor availability
     if not queue_list:
@@ -317,7 +322,7 @@ def getq_and_slots(
             "Calc slots based on JR:SS:JT - {0}:{1}:{2}".format(
                 job_ram, slot_size, job_threads
             ))
-        if job_ram == 0:
+        if job_ram == 0 or job_ram is None:
             return max(1, job_threads)
         else:
             return max(int(ceil(job_ram / slot_size)), job_threads)

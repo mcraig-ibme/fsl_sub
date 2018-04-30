@@ -264,6 +264,20 @@ class GetQTests(unittest.TestCase):
                     self.conf_dict['queues'],
                     coprocessor='cuda')
             )
+        with self.subTest("job ram is none"):
+            self.assertTupleEqual(
+                ('a.qa,a.qb,a.qc', 1, ),
+                fsl_sub.getq_and_slots(
+                    self.conf_dict['queues'],
+                    job_ram=None)
+            )
+        with self.subTest("job time is none"):
+            self.assertTupleEqual(
+                ('a.qa,a.qb,a.qc', 1, ),
+                fsl_sub.getq_and_slots(
+                    self.conf_dict['queues'],
+                    job_time=None)
+            )
 
 
 if __name__ == '__main__':
