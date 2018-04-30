@@ -162,6 +162,7 @@ def submit(
                 "Array controls not applicable to non-array tasks")
         if validate_command:
             check_command(command[0])
+        job_args = command
     else:
         job_type = 'array'
         if validate_command:
@@ -171,13 +172,14 @@ def submit(
                 raise BadSubmission(
                     "Array task definition file fault: " + str(e)
                 )
+        job_args = [command, ]
         if name is None:
             name = os.path.basename(command)
     logger.info(
         "METHOD={0} : TYPE={1} : args={2}".format(
             config['method'],
             job_type,
-            " ".join(command)
+            " ".join(job_args)
         ))
     if name is None:
         if isinstance(command, list):
@@ -248,6 +250,16 @@ def submit(
                 raise BadSubmission(
                     "Unable to load requested coprocessor toolkit"
                 )
+    logger.debug("Calling queue_submit with: ")
+    logger.debug(
+        ", ".join(
+            [str(a) for a in [
+                command, task_name, queue, jobhold, array_task,
+                array_hold, array_limit, array_stride, parallel_env,
+                jobram, jobtime, resources, ramsplit, priority,
+                mail_on, mailto, logdir, coprocessor, coprocessor_toolkit,
+                coprocessor_class, coprocessor_class_strict, coprocessor_multi,
+                usescript, architecture, requeueable]]))
     job_id = queue_submit(
         command,
         job_name=task_name,
