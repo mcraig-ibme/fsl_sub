@@ -187,6 +187,8 @@ def submit(
         if '/' in c_name:
             c_name = os.path.basename(c_name)
         task_name = c_name
+    else:
+        task_name = name
 
     split_on_ram = mconfig['map_ram'] and ramsplit
 
