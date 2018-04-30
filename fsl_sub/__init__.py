@@ -287,14 +287,13 @@ def getq_and_slots(
 
     if job_ram is None:
         job_ram = 0
-    if job_time is None:
-        job_time = 0
-
+    
     queue_list = list(queues.keys())
-    # Filter on coprocessor availability
+    
     if not queue_list:
         return None
-
+    
+    # Filter on coprocessor availability
     if coprocessor is not None:
         queue_list = [
             q for q in queue_list if 'copros' in queues[q] and
@@ -314,6 +313,17 @@ def getq_and_slots(
         ]
     if not queue_list:
         return None
+
+    # If no job time was specified then find the default queues
+    # (if defined)
+    if job_time is None or job_time == 0:
+        d_queues = [
+            q for q in queue_list if 'default' in queues[q]
+        ]
+        if d_queues:
+            queue_list = d_queues
+
+        job_time = 0
 
     # For each queue calculate how many slots would be necessary...
     def calc_slots(job_ram, slot_size, job_threads):
