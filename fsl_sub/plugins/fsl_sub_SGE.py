@@ -63,7 +63,8 @@ def queue_exists(qname, qtest=None):
     try:
         sp.run(
             [qtest, '-sq', qname],
-            stderr=sp.PIPE,
+            stdout=sp.DEVNULL,
+            stderr=sp.DEVNULL,
             check=True, universal_newlines=True)
     except FileNotFoundError:
         raise BadSubmission(
@@ -79,7 +80,10 @@ def check_pe(pe_name, queue, qconf=None, qstat=None):
     if qstat is None:
         qstat = qstat_cmd()
     # Check for configured PE of pe_name
-    cmd = sp.run([qconf, '-sp', pe_name])
+    cmd = sp.run(
+        [qconf, '-sp', pe_name],
+        stdout=sp.DEVNULL,
+        stderr=sp.DEVNULL)
     if cmd.returncode != 0:
         raise BadSubmission(pe_name + " is not a valid PE")
 
