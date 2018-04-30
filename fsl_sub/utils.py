@@ -116,7 +116,7 @@ def negative(astring):
 
 def check_command(cmd):
     if shutil.which(cmd) is None:
-        raise CommandError("Cannot find script/binary " + cmd)
+        raise CommandError("Cannot find script/binary '{}'".format(cmd))
 
 
 def check_command_file(cmds):
