@@ -190,8 +190,7 @@ def submit(
     else:
         # Check Parallel Environment is available
         if parallel_env:
-            check_pe(qtest(), parallel_env)
-
+            check_pe(parallel_env, queue)
             command_args.extend(
                 ['-pe', parallel_env, threads, '-w', 'e'])
         if mconf['copy_environment']:
