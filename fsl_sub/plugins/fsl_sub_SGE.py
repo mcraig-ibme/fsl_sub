@@ -263,7 +263,7 @@ def submit(
             if 'min_priority' in mconf:
                 priority = max(mconf['min_priority'], priority)
                 priority = min(mconf['max_priority'], priority)
-            command_args.extend(['-p', priority, ])
+            command_args.extend(['-p', str(priority), ])
 
         if resources:
             command_args.extend(
@@ -276,21 +276,21 @@ def submit(
 
         if jobhold:
             command_args.extend(
-                ['-hold_jid', jobhold, ]
+                ['-hold_jid', str(jobhold), ]
             )
 
         if array_task is not None:
             if mconf['array_holds'] and array_hold:
                 command_args.extend(
-                    ['-hold_jid_ad', array_hold, ]
+                    ['-hold_jid_ad', str(array_hold), ]
                 )
             elif array_hold:
                 command_args.extend(
-                    ['-hold_jid', array_hold, ]
+                    ['-hold_jid', str(array_hold), ]
                 )
             if mconf['array_limits'] and array_limit:
                 command_args.extend(
-                    ['-tc', array_limit, ]
+                    ['-tc', str(array_limit), ]
                 )
 
         if jobram:

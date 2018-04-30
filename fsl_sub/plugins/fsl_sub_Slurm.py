@@ -255,7 +255,7 @@ def submit(
             jobhold = array_hold
 
         if jobhold:
-            parents = jobhold.split(',')
+            parents = str(jobhold).split(',')
             dependencies = ':'.join(parents)
             command_args.append(
                 "=".join(
