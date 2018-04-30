@@ -148,7 +148,8 @@ class TestSgeFinders(unittest.TestCase):
             mock_qconf.assert_called_once_with()
             mock_spr.assert_called_once_with(
                 [bin_path, '-sq', qname],
-                stderr=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
                 check=True,
                 universal_newlines=True)
         mock_qconf.reset_mock()
@@ -191,7 +192,8 @@ class TestCheckPE(unittest.TestCase):
             "nope", "aqueue"
         )
         mock_spr.assert_called_once_with(
-            ["/usr/bin/qconf", "-sp", "nope"]
+            ["/usr/bin/qconf", "-sp", "nope", ],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
         mock_qstat.assert_called_once_with()
         mock_qconf.assert_called_once_with()
@@ -630,7 +632,7 @@ class TestSubmit(unittest.TestCase):
                     '-V',
                     '-binding',
                     'linear:1',
-                    '-p', -1000,
+                    '-p', str(-1000),
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-r', 'y',
@@ -665,7 +667,7 @@ class TestSubmit(unittest.TestCase):
                     '-V',
                     '-binding',
                     'linear:1',
-                    '-p', -1023,
+                    '-p', str(-1023),
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-r', 'y',
@@ -700,7 +702,7 @@ class TestSubmit(unittest.TestCase):
                     '-V',
                     '-binding',
                     'linear:1',
-                    '-p', 0,
+                    '-p', str(0),
                     '-N', 'test_job',
                     '-cwd', '-q', 'a.q',
                     '-r', 'y',
@@ -819,7 +821,7 @@ class TestSubmit(unittest.TestCase):
             '-V',
             '-binding',
             'linear:1',
-            '-hold_jid', hjid,
+            '-hold_jid', str(hjid),
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
@@ -1298,7 +1300,7 @@ class TestSubmit(unittest.TestCase):
         with self.subTest("One thread"):
             expected_cmd = [
                 '/usr/bin/qsub',
-                '-pe', 'openmp', 1, '-w', 'e',
+                '-pe', 'openmp', '1', '-w', 'e',
                 '-V',
                 '-binding',
                 'linear:1',
@@ -1331,7 +1333,7 @@ class TestSubmit(unittest.TestCase):
         with self.subTest("Two threads"):
             expected_cmd = [
                 '/usr/bin/qsub',
-                '-pe', 'openmp', 2, '-w', 'e',
+                '-pe', 'openmp', str(2), '-w', 'e',
                 '-V',
                 '-binding',
                 'linear:2',
@@ -1383,19 +1385,6 @@ class TestSubmit(unittest.TestCase):
         cmd = ['acmd', 'arg1', 'arg2', ]
 
         hjid = 12344
-        expected_cmd = [
-            '/usr/bin/qsub',
-            '-V',
-            '-binding',
-            'linear:1',
-            '-hold_jid_ad', hjid,
-            '-N', 'test_job',
-            '-cwd', '-q', 'a.q',
-            '-r', 'y',
-            '-shell', 'n',
-            '-b', 'y',
-            'acmd', 'arg1', 'arg2'
-        ]
         self.assertRaises(
             self.plugin.BadSubmission,
             self.plugin.submit,
@@ -1403,13 +1392,6 @@ class TestSubmit(unittest.TestCase):
             job_name=job_name,
             queue=queue,
             array_hold=hjid
-        )
-
-        mock_sprun.assert_called_once_with(
-            expected_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True
         )
 
     @patch('fsl_sub.plugins.fsl_sub_SGE.os.remove', autospec=True)
@@ -1465,7 +1447,7 @@ acmd 6 7 8
                 universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
-                delete=False
+                delete=False, mode='wt'
             )
             mock_write.assert_called_once_with(
                 '''#!/bin/bash
@@ -1530,7 +1512,7 @@ acmd 6 7 8
                 universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
-                delete=False
+                delete=False, mode='wt'
             )
             mock_write.assert_called_once_with(
                 '''#!/bin/bash
@@ -1598,7 +1580,7 @@ acmd 6 7 8
                 universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
-                delete=False
+                delete=False, mode='wt'
             )
             mock_write.assert_called_once_with(
                 '''#!/bin/bash
@@ -1634,7 +1616,7 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-tc', limit,
+            '-tc', str(limit),
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
@@ -1668,7 +1650,7 @@ acmd 6 7 8
                 universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
-                delete=False
+                delete=False, mode='wt'
             )
             mock_write.assert_called_once_with(
                 '''#!/bin/bash
@@ -1739,7 +1721,7 @@ acmd 6 7 8
                 universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
-                delete=False
+                delete=False, mode='wt'
             )
             mock_write.assert_called_once_with(
                 '''#!/bin/bash
@@ -1775,7 +1757,7 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-hold_jid_ad', hold_jid,
+            '-hold_jid_ad', str(hold_jid),
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
@@ -1809,7 +1791,7 @@ acmd 6 7 8
                 universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
-                delete=False
+                delete=False, mode='wt'
             )
             mock_write.assert_called_once_with(
                 '''#!/bin/bash
@@ -1848,7 +1830,7 @@ acmd 6 7 8
             '-V',
             '-binding',
             'linear:1',
-            '-hold_jid', hold_jid,
+            '-hold_jid', str(hold_jid),
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
@@ -1882,7 +1864,7 @@ acmd 6 7 8
                 universal_newlines=True
             )
             mock_ntf.assert_called_once_with(
-                delete=False
+                delete=False, mode='wt'
             )
             mock_write.assert_called_once_with(
                 '''#!/bin/bash
