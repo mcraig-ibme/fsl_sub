@@ -161,7 +161,12 @@ def submit(
             raise BadSubmission(
                 "Array controls not applicable to non-array tasks")
         if validate_command:
-            check_command(command[0])
+            try:
+                check_command(command[0])
+            except CommandError as e:
+                raise BadSubmission(
+                    "Problem with task command: " + str(e)
+                )
         job_args = command
     else:
         job_type = 'array'
