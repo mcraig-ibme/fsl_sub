@@ -127,7 +127,18 @@ There are several batch queues configured on the cluster:
         description='FSL cluster submission.',
         epilog=epilog,
         )
-    job_mutex = parser.add_mutually_exclusive_group(required=True)
+    single_g = parser.add_argument_group(
+        'Simple Tasks',
+        'Options for submitting individual tasks.'
+    )
+    array_g = parser.add_argument_group(
+        'Array Tasks',
+        'Options for submitting and controlling array tasks.'
+    )
+    basic_g = parser.add_argument_group(
+        'Basic options',
+        'Options that specify individual and array tasks.'
+    )
     advanced_g = parser.add_argument_group(
         'Advanced',
         'Advanced queueing options not typically required.')
@@ -137,10 +148,6 @@ There are several batch queues configured on the cluster:
     copro_g = parser.add_argument_group(
         'Co-processors',
         'Options for requesting co-processors, e.g. GPUs')
-    array_g = job_mutex.add_argument_group(
-        'Array Tasks',
-        'Options for sumitting and controlling array tasks.'
-    )
     if 'architecture' in mconf and mconf['architecture']:
         advanced_g.add_argument(
             '-a', '--arch',
@@ -218,7 +225,7 @@ There are several batch queues configured on the cluster:
             default=None,
             help="No co-processor toolkits configured - ignored."
         )
-    parser.add_argument(
+    advanced_g.add_argument(
         '--debug',
         action='store_true',
         help=argparse.SUPPRESS
@@ -237,18 +244,18 @@ There are several batch queues configured on the cluster:
             help="Use flags embedded in scripts to set queuing options - "
             "not supported"
         )
-    parser.add_argument(
+    basic_g.add_argument(
         '-j', '--jobhold',
         default=None,
         help="Place a hold on this task until specified job id has "
         "completed."
     )
-    parser.add_argument(
+    basic_g.add_argument(
         '--not_requeueable',
         action='store_true',
         help="Job cannot be requeued in the event of a node failure"
     )
-    if mconf['array_holds']:
+    if 'array_holds' in mconf and mconf['array_holds']:
         array_g.add_argument(
             '--array_hold',
             default=None,
@@ -262,7 +269,7 @@ There are several batch queues configured on the cluster:
             default=None,
             help="Not supported - will be converted to simple job hold"
         )
-    parser.add_argument(
+    basic_g.add_argument(
         '-l', '--logdir',
         default=None,
         help="Where to output logfiles."
@@ -296,14 +303,14 @@ There are several batch queues configured on the cluster:
                     ),
             help="Not supported - will be ignored"
         )
-    parser.add_argument(
+    basic_g.add_argument(
         '-n', '--novalidation',
         action='store_true',
         help="Don't check for presence of script/binary in your search"
         "path (use where the software is only available on the "
         "compute node)."
     )
-    parser.add_argument(
+    basic_g.add_argument(
         '-N', '--name',
         default=None,
         help="Specify jobname as it will appear on queue. If not specified "
@@ -334,7 +341,7 @@ There are several batch queues configured on the cluster:
             type=int,
             help="Not supported on this platform."
         )
-    parser.add_argument(
+    basic_g.add_argument(
         '-q', '--queue',
         default=None,
         help="Select a particular queue - see below for details. "
@@ -347,7 +354,7 @@ There are several batch queues configured on the cluster:
         help="Pass a resource request or constraint string through to the job "
         "scheduler. See your scheduler's instructions for details."
     )
-    parser.add_argument(
+    basic_g.add_argument(
         '-R', '--jobram',
         default=None,
         type=int,
@@ -369,7 +376,7 @@ There are several batch queues configured on the cluster:
         "'threads' as a <pename>.".format(
             pe_name=ll_envs[0])
     )
-    parser.add_argument(
+    basic_g.add_argument(
         '-S', '--noramsplit',
         action='store_true',
         help="Disable the automatic requesting of multiple threads "
@@ -387,7 +394,7 @@ There are several batch queues configured on the cluster:
         help="For parallel task files, increment of sub-task ID between "
         "sub-tasks"
     )
-    parser.add_argument(
+    basic_g.add_argument(
         '-T', '--jobtime',
         default=None,
         type=int,
@@ -418,7 +425,7 @@ There are several batch queues configured on the cluster:
         help="If <file> already exists and is an MRI image file, do nothing "
         "and exit."
     )
-    job_mutex.add_argument(
+    single_g.add_argument(
         'args',
         nargs='*',
         default=None,
@@ -471,7 +478,10 @@ def main(args=None):
     if options['debug']:
         logger.setLevel(logging.DEBUG)
         plugin_logger.setLevel(logging.DEBUG)
-
+    if options['array_task'] and options['args']:
+        cmd_parser.error(
+            "Individual and array tasks are mutually exclusive."
+        )
     if options['fileisimage']:
         logger.debug("Check file is image requested")
         try:
@@ -539,7 +549,7 @@ def main(args=None):
             validate_command=not options['novalidation'],
         )
     except BadSubmission as e:
-        cmd_parser.error("Error submitting job:" + str(e))
+        cmd_parser.error("Error submitting job - " + str(e))
     except GridOutputError as e:
         cmd_parser.error(
             "Error submitting job - output from submission "

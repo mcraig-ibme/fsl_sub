@@ -10,6 +10,7 @@ from math import ceil
 from fsl_sub.exceptions import (
     BadConfiguration,
     BadSubmission,
+    CommandError,
     LoadModuleError,
 )
 from fsl_sub.coprocessors import (
@@ -164,7 +165,12 @@ def submit(
             raise BadSubmission(
                 "Array controls not applicable to non-array tasks")
         if validate_command:
-            check_command_file(command)
+            try:
+                check_command_file(command)
+            except CommandError as e:
+                raise BadSubmission(
+                    "Array task definition file fault: " + str(e)
+                )
         if name is None:
             name = os.path.basename(command)
     logger.info(

@@ -130,8 +130,8 @@ def check_command_file(cmds):
                     raise CommandError(
                         "Cannot find script/binary {0} on line {1}"
                         "of {2}".format(cmd, lineno + 1, cmd_file.name))
-    except IOError as e:
-        raise CommandError("Unable to read command_file")
+    except (IOError, FileNotFoundError) as e:
+        raise CommandError("Unable to read '{}'".format(cmds))
     return lineno + 1
 
 
