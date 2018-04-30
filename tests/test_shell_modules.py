@@ -53,7 +53,7 @@ os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
 '''
             )
             mock_system_stdout.assert_called_once_with(
-                (mcmd, "python", "add", 'amodule', ), shell=True)
+                [mcmd, "python", "add", 'amodule', ])
         with self.subTest('Test 2'):
             mock_system_stdout.side_effect = subprocess.CalledProcessError(
                 'acmd', 1)
@@ -121,9 +121,9 @@ os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
                     fsl_sub.shell_modules.loaded_modules(),
                     [])
 
-    @patch('fsl_sub.shell_modules.system_stdout', auto_spec=True)
-    def test_get_modules(self, mock_system_stdout):
-        mock_system_stdout.return_value = '''
+    @patch('fsl_sub.shell_modules.system_stderr', auto_spec=True)
+    def test_get_modules(self, mock_system_stderr):
+        mock_system_stderr.return_value = '''
 /usr/local/etc/ShellModules:
 amodule/5.0
 amodule/5.5
@@ -135,8 +135,8 @@ amodule/5.5
                 fsl_sub.shell_modules.get_modules('amodule'),
                 ['5.0', '5.5', ])
         with self.subTest('Test 1b'):
-            mock_system_stdout.reset_mock()
-            mock_system_stdout.return_value = '''
+            mock_system_stderr.reset_mock()
+            mock_system_stderr.return_value = '''
 /usr/local/etc/ShellModules:
 bmodule
 '''
@@ -144,11 +144,17 @@ bmodule
             self.assertListEqual(
                 fsl_sub.shell_modules.get_modules('bmodule'),
                 ['bmodule', ])
-        mock_system_stdout.reset_mock()
+        mock_system_stderr.reset_mock()
         with self.subTest('Test 2'):
-            mock_system_stdout.side_effect = subprocess.CalledProcessError(
+            mock_system_stderr.side_effect = subprocess.CalledProcessError(
                 'acmd', 1
             )
+            self.assertRaises(
+                fsl_sub.shell_modules.NoModule,
+                fsl_sub.shell_modules.get_modules, 'amodule')
+        mock_system_stderr.reset_mock()
+        mock_system_stderr.return_value = ''
+        with self.subTest('Test 3'):
             self.assertRaises(
                 fsl_sub.shell_modules.NoModule,
                 fsl_sub.shell_modules.get_modules, 'amodule')

@@ -301,12 +301,12 @@ def getq_and_slots(
 
     if job_ram is None:
         job_ram = 0
-    
+
     queue_list = list(queues.keys())
-    
+
     if not queue_list:
         return None
-    
+
     # Filter on coprocessor availability
     if coprocessor is not None:
         queue_list = [

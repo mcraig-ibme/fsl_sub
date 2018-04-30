@@ -1,12 +1,13 @@
 import os
 import re
+import shlex
 import shutil
 import subprocess
 from fsl_sub.exceptions import (
     LoadModuleError,
     NoModule,
 )
-from fsl_sub.system import system_stdout
+from fsl_sub.system import system_stdout, system_stderr
 
 
 def find_module_cmd():
@@ -34,7 +35,7 @@ def module_add(module_name):
     if module_cmd:
         try:
             environment = system_stdout(
-                (module_cmd, "python", "add", module_name, ), shell=True)
+                [module_cmd, "python", "add", module_name, ])
         except subprocess.CalledProcessError as e:
             raise LoadModuleError from e
         return read_module_environment(environment)
@@ -78,22 +79,24 @@ def loaded_modules():
 def get_modules(module_parent):
     '''Returns a list of available Shell Modules that setup the
     co-processor environment'''
-
     modules = []
     try:
-        available_modules = system_stdout(
-            ["module", "-t", "avail", module_parent],
+        available_modules = system_stderr(
+            "module -t avail " + shlex.quote(module_parent),
             shell=True)
-        for line in available_modules.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            if ':' in line:
-                continue
-            if '/' in line:
-                modules.append(line.split('/')[1])
-            else:
-                modules.append(line)
+        if available_modules:
+            for line in available_modules.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                if ':' in line:
+                    continue
+                if '/' in line:
+                    modules.append(line.split('/')[1])
+                else:
+                    modules.append(line)
+        else:
+            raise NoModule(module_parent)
     except subprocess.CalledProcessError as e:
         raise NoModule(module_parent)
     return sorted(modules)
