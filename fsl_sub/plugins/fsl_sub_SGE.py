@@ -192,7 +192,7 @@ def submit(
         if parallel_env:
             check_pe(parallel_env, queue)
             command_args.extend(
-                ['-pe', parallel_env, threads, '-w', 'e'])
+                ['-pe', parallel_env, str(threads), '-w', 'e'])
         if mconf['copy_environment']:
             command_args.append('-V')
 
