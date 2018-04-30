@@ -106,7 +106,7 @@ There are several batch queues configured on the cluster:
                     epilog += "    Available toolkits:" + '\n'
                     try:
                         epilog += "      " + ', '.join(
-                                get_modules('module_parent') + '\n')
+                                get_modules('module_parent')) + '\n'
                     except NoModule as e:
                         raise BadConfiguration from e
             cp_classes = coproc_classes(cp)
