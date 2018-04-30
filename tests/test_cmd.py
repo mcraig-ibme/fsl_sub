@@ -218,6 +218,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=False,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -250,6 +251,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -281,6 +283,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -313,6 +316,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -345,6 +349,7 @@ class TestMain(unittest.TestCase):
             mailto='user@test.com',
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -376,6 +381,7 @@ class TestMain(unittest.TestCase):
             mailto='user@test.com',
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -408,6 +414,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -439,6 +446,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -472,6 +480,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -503,6 +512,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -536,6 +546,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -569,6 +580,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -601,6 +613,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -636,6 +649,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -671,6 +685,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -707,6 +722,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
@@ -742,6 +758,7 @@ class TestMain(unittest.TestCase):
             mailto=USER_EMAIL,
             priority=None,
             ramsplit=True,
+            requeueable=True,
             resources=None,
             usescript=False,
             validate_command=True
