@@ -18,9 +18,14 @@ def find_config_file():
     except KeyError:
         pass
 
-    default_conf = os.path.join(
-        os.environ['FSLDIR'], 'etc',
-        'fslconf', 'fsl_sub.yml')
+    try:
+        default_conf = os.environ['FSLDIR']
+    except KeyError:
+        default_conf = os.sep
+    default_conf = os.path.abspath(
+        os.path.join(
+            default_conf, 'etc',
+            'fslconf'))
     if os.path.exists(default_conf):
         return default_conf
     else:
