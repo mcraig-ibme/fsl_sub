@@ -547,6 +547,7 @@ def main(args=None):
             resources=options['resource'],
             usescript=options['usescript'],
             validate_command=not options['novalidation'],
+            requeueable=not options['not_requeueable']
         )
     except BadSubmission as e:
         cmd_parser.error("Error submitting job - " + str(e))
