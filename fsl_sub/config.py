@@ -27,7 +27,7 @@ def find_config_file():
             default_conf, 'etc',
             'fslconf'))
     if os.path.exists(default_conf):
-        return default_conf
+        return os.path.join(default_conf, 'fsl_sub.yml')
     else:
         raise BadConfiguration("Unable to find fsl_sub config")
 
