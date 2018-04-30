@@ -224,7 +224,7 @@ def submit(
         raise BadSubmission(
                 "Job requires {} slots but no parallel envrionment "
                 "available or requested".format(threads))
-    if threads > 1 and config['thread_ram_divide'] and not split_on_ram:
+    if threads > 1 and mconfig['thread_ram_divide'] and not split_on_ram:
         split_on_ram = True
 
     if coprocessor:
