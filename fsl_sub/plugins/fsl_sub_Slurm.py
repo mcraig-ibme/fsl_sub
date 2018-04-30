@@ -155,7 +155,7 @@ def submit(
         # Check Parallel Environment is available
         if parallel_env:
             command_args.extend(
-                ['--cpus-per-task', threads, ])
+                ['--cpus-per-task', str(threads), ])
         if mconf['copy_environment']:
             command_args.append('='.join(
                 ('--export', 'ALL', )

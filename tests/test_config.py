@@ -46,6 +46,21 @@ class TestConfig(unittest.TestCase):
                     fsl_sub.config.find_config_file(),
                     '/etc/fsl_sub.yml'
                 )
+        mock_exists.reset_mock()
+        with self.subTest('No FSLDIR'):
+            mock_exists.side_effect = [False, True]
+            self.assertEqual(
+                fsl_sub.config.find_config_file(),
+                '/etc/fslconf/fsl_sub.yml'
+            )
+        mock_exists.reset_mock()
+        with self.subTest('No FSLDIR - no /etc conf'):
+            mock_exists.side_effect = [False, False]
+            import pdb; pdb.set_trace()
+            self.assertRaises(
+                fsl_sub.config.BadConfiguration,
+                fsl_sub.config.find_config_file,
+            )
 
     @patch('fsl_sub.config.find_config_file', auto_spec=True)
     def test_read_config(self, mock_find_config_file):
