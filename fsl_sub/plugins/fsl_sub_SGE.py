@@ -357,7 +357,9 @@ the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
 exec /bin/bash -c "$the_command"
 '''.format(command)
         logger.debug(scriptcontents)
-        with tempfile.NamedTemporaryFile(delete=False) as script:
+        with tempfile.NamedTemporaryFile(
+                mode='wt',
+                delete=False) as script:
             script.write(scriptcontents)
         logger.debug(script.name)
         command_args.append(script.name)
