@@ -75,6 +75,16 @@ def submit(
 ):
     '''Submit job(s) to a queue'''
     logger = logging.getLogger(__name__)
+    logger.debug("Submit called with:")
+    logger.debug(
+        command, name, threads, queue, jobhold, array_task,
+        array_hold, array_limit, array_stride, parallel_env,
+        jobram, jobtime, resources, ramsplit, priority,
+        validate_command, mail_on, mailto, logdir,
+        coprocessor, coprocessor_toolkit, coprocessor_class,
+        coprocessor_class_strict, coprocessor_multi,
+        usescript, architecture, requeueable
+    )
     PLUGINS = load_plugins()
 
     config = read_config()
@@ -227,7 +237,7 @@ def submit(
             jobram,
             config['queues'][queue]['slot_size'],
             threads)
-    
+
     threads = max(slots_required, threads)
 
     control_threads(config['thread_control'], threads)
@@ -253,7 +263,9 @@ def submit(
             except ValueError:
                 # Complex coprocessor_multi passed - do not validate
                 pass
-        if coprocessor_toolkit != -1:
+        if coprocessor_toolkit:
+            logger.debug("Attempting to load coprocessor toolkit")
+            logger.debug(":".join((coprocessor, coprocessor_toolkit)))
             try:
                 coproc_load_module(
                     coprocessor_config(coprocessor),
