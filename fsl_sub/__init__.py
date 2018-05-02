@@ -213,14 +213,21 @@ def submit(
                 coprocessor=coprocessor,
                 ll_env=parallel_env
                 )
+        logger.debug("Automatic queue selection:")
+        logger.debug(queue_details)
         if queue_details is None:
             raise BadSubmission("Unable to find a queue with these parameters")
         else:
             (queue, slots_required) = queue_details
-
-    if not queue_exists(queue):
-        raise BadSubmission("Unrecognised queue " + queue)
-
+    else:
+        if not queue_exists(queue) or queue not in config['queues']:
+            raise BadSubmission("Unrecognised queue " + queue)
+        logger.debug("Specific queue: " + queue)
+        slots_required = calc_slots(
+            jobram,
+            config['queues'][queue]['slot_size'],
+            threads)
+    
     threads = max(slots_required, threads)
 
     control_threads(config['thread_control'], threads)
@@ -296,6 +303,20 @@ def submit(
     return job_id
 
 
+def calc_slots(job_ram, slot_size, job_threads):
+    '''Calculate how many slots would be necessary to
+    provide this job request'''
+    logger = logging.getLogger(__name__)
+    logger.debug(
+        "Calc slots based on JR:SS:JT - {0}:{1}:{2}".format(
+            job_ram, slot_size, job_threads
+        ))
+    if job_ram == 0 or job_ram is None:
+        return max(1, job_threads)
+    else:
+        return max(int(ceil(job_ram / slot_size)), job_threads)
+
+
 def getq_and_slots(
         queues, job_time=0, job_ram=0,
         job_threads=1, coprocessor=None,
@@ -343,18 +364,6 @@ def getq_and_slots(
             queue_list = d_queues
 
         job_time = 0
-
-    # For each queue calculate how many slots would be necessary...
-    def calc_slots(job_ram, slot_size, job_threads):
-        # No ram specified
-        logger.debug(
-            "Calc slots based on JR:SS:JT - {0}:{1}:{2}".format(
-                job_ram, slot_size, job_threads
-            ))
-        if job_ram == 0 or job_ram is None:
-            return max(1, job_threads)
-        else:
-            return max(int(ceil(job_ram / slot_size)), job_threads)
 
     slots = {}
     for q in queue_list:
