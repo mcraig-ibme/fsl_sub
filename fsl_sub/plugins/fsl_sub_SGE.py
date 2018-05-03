@@ -106,6 +106,27 @@ def check_pe(pe_name, queue, qconf=None, qstat=None):
         )
 
 
+def _valid_resources(res_defs):
+    validity = [True if a else False for a in res_defs if '=' in a]
+    return all(validity)
+
+
+def _resource_dict(res):
+    '''Returns a dictionary of key, value from a list of strings of form
+    key=value'''
+
+    return dict(a.split('=') for a in res)
+
+
+def _filter_on_resource_dict(res_list, res_defs):
+    '''Return list of resources from res_list that aren't present in the
+    resource definitions in res_defs dict'''
+    if res_defs is None:
+        return res_list
+    result = [r for r in res_list if r not in res_defs]
+    return result
+
+
 def submit(
         command,
         job_name,
@@ -265,9 +286,10 @@ def submit(
                 priority = min(mconf['max_priority'], priority)
             command_args.extend(['-p', str(priority), ])
 
-        if resources:
+        if resources and _valid_resources(resources):
             command_args.extend(
                 ['-l', ','.join(resources), ])
+            resources = _resource_dict(resources)
 
         if logdir is not None:
             command_args.extend(
@@ -297,13 +319,19 @@ def submit(
             ram_units = read_config()['ram_units']
             if ramsplit:
                 jobram = split_ram_by_slots(jobram, threads)
-
-            command_args.extend(
-                ['-l', ','.join(
-                    ['{0}={1}{2}'.format(
-                        a, jobram, ram_units) for
-                        a in mconf['ram_resources']])]
-            )
+            if mconf['notify_ram_usage']:
+                # If a ram_resource has been specified for the job don't change
+                ram_resources = sorted(
+                    _filter_on_resource_dict(
+                        mconf['ram_resources'],
+                        resources))
+                if ram_resources:
+                    command_args.extend(
+                        ['-l', ','.join(
+                            ['{0}={1}{2}'.format(
+                                a, jobram, ram_units) for
+                                a in ram_resources])]
+                    )
 
         if mconf['mail_support']:
             if mailto:

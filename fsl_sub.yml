@@ -125,6 +125,8 @@ method_opts:
     map_ram: True
     # Whether to divide up RAM requirements for multi-threaded tasks
     thread_ram_divide: True
+    # Whether to set the ram_resources resources to the specified job RAM
+    notify_ram_usage: False
     # Queue complexes that specify RAM usage of a job
     ram_resources:
         - m_mem_free

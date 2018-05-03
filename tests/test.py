@@ -37,6 +37,7 @@ method_opts:
                 - n
         mail_mode: a
         map_ram: True
+        notify_ram_usage: True
         ram_resources:
             - m_mem_free
             - h_vmem

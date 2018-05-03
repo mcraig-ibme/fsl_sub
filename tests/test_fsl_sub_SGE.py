@@ -34,6 +34,7 @@ method_opts:
                 - n
         mail_mode: a
         map_ram: True
+        notify_ram_usage: True
         ram_resources:
             - m_mem_free
             - h_vmem
@@ -67,6 +68,69 @@ copro_opts:
         no_binding: True
 ''')
 mconf_dict = conf_dict['method_opts']['SGE']
+
+
+class TestSgeUtils(unittest.TestCase):
+    def test__valid_resources(self):
+        with self.subTest("Good"):
+            self.assertTrue(
+                fsl_sub.plugins.fsl_sub_SGE._valid_resources(
+                    ['a=b', 'c=d', 'e=f', ]))
+        with self.subTest('Bad'):
+            self.assertTrue(
+                fsl_sub.plugins.fsl_sub_SGE._valid_resources(
+                    ['a=b', 'cd', 'e=f', ]))
+
+    def test__resource_dict(self):
+        self.assertDictEqual(
+            {
+                'a': 'b',
+                'c': 'd',
+                'e': 'f', },
+            fsl_sub.plugins.fsl_sub_SGE._resource_dict(['a=b', 'c=d', 'e=f'])
+            )
+
+    def test__filter_on_resource_dict(self):
+        with self.subTest("No dict"):
+            self.assertListEqual(
+                fsl_sub.plugins.fsl_sub_SGE._filter_on_resource_dict(
+                    ['a', 'b', ],
+                    {}
+                ),
+                ['a', 'b', ]
+            )
+        with self.subTest("all matches"):
+            self.assertListEqual(
+                fsl_sub.plugins.fsl_sub_SGE._filter_on_resource_dict(
+                    ['a', 'b', ],
+                    {'a': 'c', 'b': 'd'}
+                ),
+                []
+            )
+        with self.subTest("one match"):
+            self.assertListEqual(
+                fsl_sub.plugins.fsl_sub_SGE._filter_on_resource_dict(
+                    ['a', 'e', ],
+                    {'a': 'c', 'b': 'd'}
+                ),
+                ['e']
+            )
+        with self.subTest("no match"):
+            self.assertListEqual(
+                fsl_sub.plugins.fsl_sub_SGE._filter_on_resource_dict(
+                    ['g', ],
+                    {'a': 'c', 'b': 'd'}
+                ),
+                ['g', ]
+            )
+        with self.subTest("no list"):
+            self.assertListEqual(
+                fsl_sub.plugins.fsl_sub_SGE._filter_on_resource_dict(
+                    [],
+                    {'a': 'c', 'b': 'd'}
+                ),
+                []
+            )
 
 
 class TestSgeFinders(unittest.TestCase):
@@ -899,7 +963,7 @@ class TestSubmit(unittest.TestCase):
                 '-V',
                 '-binding',
                 'linear:1',
-                '-l', "m_mem_free={0}G,h_vmem={0}G".format(jobram),
+                '-l', "h_vmem={0}G,m_mem_free={0}G".format(jobram),
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-r', 'y',
@@ -935,7 +999,7 @@ class TestSubmit(unittest.TestCase):
                 '-V',
                 '-binding',
                 'linear:2',
-                '-l', "m_mem_free={0}G,h_vmem={0}G".format(split_ram),
+                '-l', "h_vmem={0}G,m_mem_free={0}G".format(split_ram),
                 '-N', 'test_job',
                 '-cwd', '-q', 'a.q',
                 '-r', 'y',
@@ -963,6 +1027,115 @@ class TestSubmit(unittest.TestCase):
                 stderr=subprocess.PIPE,
                 universal_newlines=True
             )
+        mock_sprun.reset_mock()
+        ram_override = "2048"
+        with self.subTest('Not overriding memory request 1'):
+            expected_cmd = [
+                '/usr/bin/qsub',
+                '-V',
+                '-binding',
+                'linear:1',
+                '-l', "m_mem_free={0}G".format(ram_override),
+                '-l', "h_vmem={0}G".format(jobram),
+                '-N', 'test_job',
+                '-cwd', '-q', 'a.q',
+                '-r', 'y',
+                '-shell', 'n',
+                '-b', 'y',
+                'acmd', 'arg1', 'arg2'
+            ]
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None)
+            self.assertEqual(
+                jid,
+                self.plugin.submit(
+                    command=cmd,
+                    job_name=job_name,
+                    queue=queue,
+                    jobram=jobram,
+                    resources=['m_mem_free=' + ram_override + 'G']
+                    )
+            )
+            mock_sprun.assert_called_once_with(
+                expected_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+        mock_sprun.reset_mock()
+        with self.subTest('Not overriding memory request 2'):
+            expected_cmd = [
+                '/usr/bin/qsub',
+                '-V',
+                '-binding',
+                'linear:1',
+                '-l', "h_vmem={0}G".format(ram_override),
+                '-l', "m_mem_free={0}G".format(jobram),
+                '-N', 'test_job',
+                '-cwd', '-q', 'a.q',
+                '-r', 'y',
+                '-shell', 'n',
+                '-b', 'y',
+                'acmd', 'arg1', 'arg2'
+            ]
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None)
+            self.assertEqual(
+                jid,
+                self.plugin.submit(
+                    command=cmd,
+                    job_name=job_name,
+                    queue=queue,
+                    jobram=jobram,
+                    resources=['h_vmem=' + ram_override + 'G']
+                    )
+            )
+            mock_sprun.assert_called_once_with(
+                expected_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+        mock_sprun.reset_mock()
+        with self.subTest('Not overriding memory request 3'):
+            expected_cmd = [
+                '/usr/bin/qsub',
+                '-V',
+                '-binding',
+                'linear:1',
+                '-l', "m_mem_free={0}G,h_vmem={0}G".format(ram_override),
+                '-N', 'test_job',
+                '-cwd', '-q', 'a.q',
+                '-r', 'y',
+                '-shell', 'n',
+                '-b', 'y',
+                'acmd', 'arg1', 'arg2'
+            ]
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                expected_cmd, 0,
+                stdout=qsub_out, stderr=None)
+            self.assertEqual(
+                jid,
+                self.plugin.submit(
+                    command=cmd,
+                    job_name=job_name,
+                    queue=queue,
+                    jobram=jobram,
+                    resources=[
+                        'm_mem_free=' + ram_override + 'G',
+                        'h_vmem=' + ram_override + 'G',
+                    ]
+                    )
+            )
+            mock_sprun.assert_called_once_with(
+                expected_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+        mock_sprun.reset_mock()
 
     def test_mail_support(
             self, mock_sprun, mock_ntf, mock_cpconf,
