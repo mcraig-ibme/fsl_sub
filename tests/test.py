@@ -11,12 +11,6 @@ method: SGE
 ram_units: G
 method_opts:
     SGE:
-        parallel_envs:
-        - shmem
-        - specialpe
-        same_node_pes:
-        - shmem
-        - specialpe
         large_job_split_pe: shmem
         copy_environment: True
         affinity_type: linear

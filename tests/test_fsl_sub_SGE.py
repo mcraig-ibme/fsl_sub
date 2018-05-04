@@ -10,10 +10,6 @@ conf_dict = yaml.load('''---
 ram_units: G
 method_opts:
     SGE:
-        parallel_envs:
-            - shmem
-        same_node_pes:
-            - shmem
         large_job_split_pe: shmem
         copy_environment: True
         affinity_type: linear

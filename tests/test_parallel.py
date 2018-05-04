@@ -16,8 +16,6 @@ thread_control:
   - MKL_NUM_THREADS
 method_opts:
   None:
-    parallel_envs: []
-    same_node_pes: []
     large_job_split_pe: []
     mail_support: False
     map_ram: False
@@ -27,10 +25,6 @@ method_opts:
     architecture: False
     job_resources: False
   SGE:
-    parallel_envs:
-      - shmem
-    same_node_pes:
-      - shmem
     large_job_split_pe: shmem
 queues:
   short.q:
