@@ -51,7 +51,7 @@ def submit(
     array_task=False,
     array_hold=None,
     array_limit=None,
-    array_stride=1,
+    array_specifier=None,
     parallel_env=None,
     jobram=None,
     jobtime=None,
@@ -78,7 +78,7 @@ def submit(
     logger.debug("Submit called with:")
     logger.debug(
         command, name, threads, queue, jobhold, array_task,
-        array_hold, array_limit, array_stride, parallel_env,
+        array_hold, array_limit, array_specifier, parallel_env,
         jobram, jobtime, resources, ramsplit, priority,
         validate_command, mail_on, mailto, logdir,
         coprocessor, coprocessor_toolkit, coprocessor_class,
@@ -182,7 +182,10 @@ def submit(
         job_type = 'array'
         if validate_command:
             try:
-                check_command_file(command)
+                if not array_specifier:
+                    check_command_file(command)
+                else:
+                    check_command(command)
             except CommandError as e:
                 raise BadSubmission(
                     "Array task definition file fault: " + str(e)
@@ -279,7 +282,7 @@ def submit(
         ", ".join(
             [str(a) for a in [
                 command, task_name, queue, jobhold, array_task,
-                array_hold, array_limit, array_stride, parallel_env,
+                array_hold, array_limit, array_specifier, parallel_env,
                 jobram, jobtime, resources, ramsplit, priority,
                 mail_on, mailto, logdir, coprocessor, coprocessor_toolkit,
                 coprocessor_class, coprocessor_class_strict, coprocessor_multi,
@@ -293,7 +296,7 @@ def submit(
         array_task=array_task,
         array_hold=array_hold,
         array_limit=array_limit,
-        array_stride=array_stride,
+        array_specifier=array_specifier,
         parallel_env=parallel_env,
         jobram=jobram,
         jobtime=jobtime,

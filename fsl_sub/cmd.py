@@ -391,11 +391,10 @@ There are several batch queues configured on the cluster:
         help="Specify a task file of commands to execute in parallel."
     )
     array_g.add_argument(
-        '--array_stride',
-        default=1,
-        type=int,
-        help="For parallel task files, increment of sub-task ID between "
-        "sub-tasks"
+        '--array_specifier',
+        default=None,
+        help="For parallel task files, n[-m[:s]], provide start (n), end (s)"
+        " and increment of sub-task ID between sub-tasks (s)"
     )
     basic_g.add_argument(
         '-T', '--jobtime',
@@ -430,7 +429,7 @@ There are several batch queues configured on the cluster:
     )
     single_g.add_argument(
         'args',
-        nargs='*',
+        nargs=argparse.REMAINDER,
         default=None,
         help="Program (and arguments) to submit to queue "
         "(not used with array tasks).")
@@ -531,7 +530,7 @@ def main(args=None):
             architecture=options['arch'],
             array_hold=options['array_hold'],
             array_limit=options['array_limit'],
-            array_stride=options['array_stride'],
+            array_specifier=options['array_specifier'],
             array_task=array_task,
             coprocessor=options['coprocessor'],
             coprocessor_toolkit=options['coprocessor_toolkit'],
@@ -557,14 +556,14 @@ def main(args=None):
         )
     except BadSubmission as e:
         cmd_parser.exit(
-            message="Error submitting job - " + str(e),
+            message="Error submitting job - " + str(e) + '\n',
             status=SUBMISSION_ERROR)
     except GridOutputError as e:
         cmd_parser.exit(
             message="Error submitting job - output from submission "
-            "not understood. " + str(e),
+            "not understood. " + str(e) + '\n',
             status=RUNNER_ERROR)
     except Exception as e:
         traceback.print_exc(file=sys.stderr)
-        cmd_parser.error("Unexpected error: " + str(e))
+        cmd_parser.error("Unexpected error: " + str(e) + '\n')
     print(job_id)

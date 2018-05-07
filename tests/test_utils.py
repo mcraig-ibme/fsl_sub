@@ -357,5 +357,45 @@ class TestFileIsImage(unittest.TestCase):
         )
 
 
+class TestArraySpec(unittest.TestCase):
+    def test_parse_array_specifier(self):
+        self.assertTupleEqual(
+            fsl_sub.utils.parse_array_specifier('4'),
+            (4, None, None)
+        )
+        self.assertTupleEqual(
+            fsl_sub.utils.parse_array_specifier('1-3'),
+            (1, 3, None)
+        )
+        self.assertTupleEqual(
+            fsl_sub.utils.parse_array_specifier('4-8'),
+            (4, 8, None)
+        )
+        self.assertTupleEqual(
+            fsl_sub.utils.parse_array_specifier('1-4:2'),
+            (1, 4, 2)
+        )
+        self.assertRaises(
+            fsl_sub.utils.BadSubmission,
+            fsl_sub.utils.parse_array_specifier,
+            ''
+        )
+        self.assertRaises(
+            fsl_sub.utils.BadSubmission,
+            fsl_sub.utils.parse_array_specifier,
+            'A'
+        )
+        self.assertRaises(
+            fsl_sub.utils.BadSubmission,
+            fsl_sub.utils.parse_array_specifier,
+            '1-A'
+        )
+        self.assertRaises(
+            fsl_sub.utils.BadSubmission,
+            fsl_sub.utils.parse_array_specifier,
+            '1-2:A'
+        )
+
+
 if __name__ == '__main__':
     unittest.main()

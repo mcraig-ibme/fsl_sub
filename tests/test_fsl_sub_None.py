@@ -53,6 +53,7 @@ class TestNone(unittest.TestCase):
             mock_writer.mock_calls
         )
 
+    @patch.dict('fsl_sub.shell_modules.os.environ', {}, clear=True)
     @patch('fsl_sub.plugins.fsl_sub_None.os.getpid')
     @patch('fsl_sub.plugins.fsl_sub_None.sp.run')
     def test_parallel_submit(self, mock_sprun, mock_getpid):
@@ -96,6 +97,18 @@ mycommand2 arg3 arg4
                 logdir=logdir,
                 array_task=arraytask,
             )
+            self.assertDictEqual({
+                'NONE_TASK_ID': "2",
+                'NONE_TASK_FIRST': '1',
+                'NONE_TASK_LAST': '2',
+                'NONE_TASK_STEPSIZE': '1',
+                'FSLSUB_ARRAYCOUNT_VAR': '',
+                'FSLSUB_ARRAYTASKID_VAR': 'NONE_TASK_ID',
+                'FSLSUB_ARRAYSTARTID_VAR': 'NONE_TASK_FIRST',
+                'FSLSUB_ARRAYENDID_VAR': 'NONE_TASK_LAST',
+                'FSLSUB_ARRAYSTEPSIZE_VAR': 'NONE_TASK_STEPSIZE',
+                },
+                dict(fsl_sub.plugins.fsl_sub_None.os.environ))
             self.assertEqual(job_id, mock_pid)
             expected_calls = [
                 call(command, 'r'),
@@ -119,6 +132,74 @@ mycommand2 arg3 arg4
                 call(logfile_stderr + '.2', 'w'),
             ]
             self.assertEqual(read_calls, m.call_args_list)
+
+    @patch.dict('fsl_sub.shell_modules.os.environ', {}, clear=True)
+    @patch('fsl_sub.plugins.fsl_sub_None.os.getpid')
+    @patch('fsl_sub.plugins.fsl_sub_None.sp.run')
+    def test_parallel_submit_spec(self, mock_sprun, mock_getpid):
+        mock_pid = 12345
+        mock_getpid.return_value = mock_pid
+        logdir = "/tmp/logdir"
+        jobname = "myjob"
+        spec = "4-8:4"
+        logfile_stdout = os.path.join(
+            logdir, jobname + ".o" + str(mock_pid))
+        logfile_stderr = os.path.join(
+            logdir, jobname + ".e" + str(mock_pid))
+
+        self.maxDiff = None
+
+        with patch(
+                'fsl_sub.plugins.fsl_sub_None.open',
+                new_callable=mock_open) as m:
+            writers = [
+                mock_open(), mock_open(),
+                mock_open(), mock_open()]
+            handlers = [
+                m.return_value,
+            ]
+            for w in writers:
+                handlers.append(w.return_value)
+            m.side_effect = handlers
+
+            command = 'acmd'
+            arraytask = True
+
+            mock_sprun.return_value = subprocess.CompletedProcess(
+                'acmd', 0, "")
+            job_id = fsl_sub.plugins.fsl_sub_None.submit(
+                command=command,
+                job_name=jobname,
+                queue='myq',
+                logdir=logdir,
+                array_task=arraytask,
+                array_specifier=spec
+            )
+            self.assertDictEqual({
+                'NONE_TASK_ID': "8",
+                'NONE_TASK_FIRST': '4',
+                'NONE_TASK_LAST': '8',
+                'NONE_TASK_STEPSIZE': '4',
+                'FSLSUB_ARRAYCOUNT_VAR': '',
+                'FSLSUB_ARRAYTASKID_VAR': 'NONE_TASK_ID',
+                'FSLSUB_ARRAYSTARTID_VAR': 'NONE_TASK_FIRST',
+                'FSLSUB_ARRAYENDID_VAR': 'NONE_TASK_LAST',
+                'FSLSUB_ARRAYSTEPSIZE_VAR': 'NONE_TASK_STEPSIZE',
+                },
+                dict(fsl_sub.plugins.fsl_sub_None.os.environ))
+            self.assertEqual(job_id, mock_pid)
+            expected_calls = [
+                call(logfile_stdout + '.4', 'w'),
+                call().__enter__(),
+                call(logfile_stderr + '.4', 'w'),
+                call().__exit__(None, None, None),
+                call(logfile_stdout + '.8', 'w'),
+                call(logfile_stderr + '.8', 'w'),
+            ]
+            self.assertEqual(
+                expected_calls,
+                m.mock_calls
+            )
 
 
 if __name__ == '__main__':

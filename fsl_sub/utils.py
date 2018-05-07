@@ -8,6 +8,7 @@ import sys
 from math import ceil
 from fsl_sub.exceptions import (
     CommandError,
+    BadSubmission,
 )
 from fsl_sub.system import (
     system_stdout,
@@ -129,7 +130,7 @@ def check_command_file(cmds):
                 except CommandError:
                     raise CommandError(
                         "Cannot find script/binary {0} on line {1}"
-                        "of {2}".format(cmd, lineno + 1, cmd_file.name))
+                        " of {2}".format(cmd, lineno + 1, cmd_file.name))
     except (IOError, FileNotFoundError) as e:
         raise CommandError("Unable to read '{}'".format(cmds))
     return lineno + 1
@@ -165,3 +166,33 @@ def file_is_image(filename):
                 "Error trying to check image file - " +
                 str(e))
     return False
+
+
+def parse_array_specifier(spec):
+    if ':' in spec:
+        (jrange, step) = spec.split(':')
+        try:
+            step = int(step)
+        except ValueError:
+            raise BadSubmission("Array step must be an integer")
+    else:
+        step = None
+        jrange = spec
+    if '-' in jrange:
+        (jstart, jend) = jrange.split("-")
+        try:
+            jstart = int(jstart)
+        except ValueError:
+            raise BadSubmission("Array start index must be an integer")
+        try:
+            jend = int(jend)
+        except ValueError:
+            raise BadSubmission("Array end index must be an integer")
+    else:
+        jstart = spec
+        try:
+            jstart = int(jstart)
+        except ValueError:
+            raise BadSubmission("Array number of tasks must be an integer")
+        jend = None
+    return (jstart, jend, step)

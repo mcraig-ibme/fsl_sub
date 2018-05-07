@@ -20,6 +20,7 @@ from fsl_sub.config import (
 from fsl_sub.utils import (
     split_ram_by_slots,
     human_to_ram,
+    parse_array_specifier,
 )
 
 
@@ -79,7 +80,7 @@ def submit(
         jobhold=None,
         array_hold=None,
         array_limit=None,
-        array_stride=1,
+        array_specifier=None,
         parallel_env=None,
         jobram=None,
         jobtime=None,
@@ -102,7 +103,9 @@ def submit(
     Requires:
 
     command - string or list containing command to run
-                or the file name of the array task file
+                or the file name of the array task file.
+                If array_specifier is given then this must be
+                a string/list containing the command to run.
     job_name - Symbolic name for task
     queue - Queue to submit to
 
@@ -112,8 +115,8 @@ def submit(
     array_hold - complex hold string
     array_limit - limit concurrently scheduled array
             tasks to specified number
-    array_stride - each subtask should be X slots on,
-            defaults to 1
+    array_specifier - n[-m[:s]] n subtasks or starts at n, ends at m with
+            a step of s
     parallelenv - parallel environment name
     jobram - RAM required by job (total of all threads)
     jobtime - time (in minutes for task)
@@ -147,6 +150,12 @@ def submit(
         logdir = os.getcwd()
     if isinstance(resources, str):
         resources = [resources, ]
+
+    os.environ['FSLSUB_ARRAYTASKID_VAR'] = 'SLURM_ARRAY_TASK_ID'
+    os.environ['FSLSUB_ARRAYSTARTID_VAR'] = 'SLURM_ARRAY_TASK_MIN'
+    os.environ['FSLSUB_ARRAYENDID_VAR'] = 'SLURM_ARRAY_TASK_MAX'
+    os.environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = ''
+    os.environ['FSLSUB_ARRAYCOUNT_VAR'] = 'SLURM_ARRAY_TASK_COUNT'
 
     gres = []
     if usescript:
@@ -341,14 +350,34 @@ def submit(
 
         if array_task:
             # Submit array task file
-            with open(command, 'r') as cmd_f:
-                array_slots = len(cmd_f.readlines())
-            command_args.append(
-                "=".join((
-                    '--array', "1-{0}:{1}{2}".format(
-                        array_slots * array_stride,
-                        array_stride,
-                        array_limit_modifier))))
+            if array_specifier:
+                (
+                    array_start,
+                    array_end,
+                    array_stride
+                    ) = parse_array_specifier(array_specifier)
+                if not array_start:
+                    raise BadSubmission("array_specifier doesn't make sense")
+                array_spec = "{0}". format(array_start)
+                if array_end:
+                    array_spec += "-{0}".format(array_end)
+                if array_stride:
+                    array_spec += ":{0}".format(array_stride)
+                command_args.append(
+                    "=".join('--array', "{0}{1}".format(
+                        array_spec,
+                        array_limit_modifier)))
+                if isinstance(command, str):
+                    command = shlex.split(command)
+                command_args.extend(command)
+            else:
+                with open(command, 'r') as cmd_f:
+                    array_slots = len(cmd_f.readlines())
+                command_args.append(
+                    "=".join((
+                        '--array', "1-{0}{2}".format(
+                            array_slots,
+                            array_limit_modifier))))
         else:
             # Submit single script/binary
             if isinstance(command, str):
@@ -374,7 +403,7 @@ def submit(
     {0}
     '''.format('\n'.join([slurm_option(x) for x in command_args]))
         logger.info("Passing command script to STDIN")
-        if array_task:
+        if array_task and not array_specifier:
             logger.info("executing array task")
             scriptcontents += '''
 the_command=$(sed -n -e "${{SLURM_ARRAY_TASK_ID}}p" {0})
@@ -389,7 +418,14 @@ exec /bin/bash -c "$the_command"
                 stdout=sp.PIPE, stderr=sp.PIPE
             )
         else:
-            logger.info("executing single task")
+            if array_specifier:
+                logger.info("excuting array task {0}-{1}:{2}".format(
+                    array_start,
+                    array_end,
+                    array_stride
+                ))
+            else:
+                logger.info("executing single task")
             scriptcontents += '''
 {}
 '''.format(' '.join([shlex.quote(x) for x in command]))

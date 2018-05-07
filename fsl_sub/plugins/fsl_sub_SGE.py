@@ -24,6 +24,7 @@ from fsl_sub.config import (
 )
 from fsl_sub.utils import (
     split_ram_by_slots,
+    parse_array_specifier,
 )
 
 
@@ -136,7 +137,7 @@ def submit(
         jobhold=None,
         array_hold=None,
         array_limit=None,
-        array_stride=1,
+        array_specifier=None,
         parallel_env=None,
         jobram=None,
         jobtime=None,
@@ -159,7 +160,9 @@ def submit(
     Requires:
 
     command - string or list containing command to run
-                or the file name of the array task file
+                or the file name of the array task file.
+                If array_specifier is given then this must be
+                a string/list containing the command to run.
     job_name - Symbolic name for task
     queue - Queue to submit to
 
@@ -169,8 +172,8 @@ def submit(
     array_hold - complex hold string
     array_limit - limit concurrently scheduled array
             tasks to specified number
-    array_stride - each subtask should be X slots on,
-            defaults to 1
+    array_specifier - n[-m[:s]] n subtasks or starts at n, ends at m with
+            a step of s.
     parallelenv - parallel environment name
     jobram - RAM required by job (total of all threads)
     jobtime - time (in minutes for task)
@@ -203,6 +206,12 @@ def submit(
 
     if isinstance(resources, str):
         resources = [resources, ]
+
+    os.environ['FSLSUB_ARRAYTASKID_VAR'] = 'SGE_TASK_ID'
+    os.environ['FSLSUB_ARRAYSTARTID_VAR'] = 'SGE_TASK_FIRST'
+    os.environ['FSLSUB_ARRAYENDID_VAR'] = 'SGE_TASK_LAST'
+    os.environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SGE_TASK_STEPSIZE'
+    os.environ['FSLSUB_ARRAYCOUNT_VAR'] = ''
 
     if usescript:
         if not isinstance(command, str):
@@ -356,13 +365,27 @@ def submit(
             )
         if array_task:
             # Submit array task file
-            with open(command, 'r') as cmd_f:
-                array_slots = len(cmd_f.readlines())
-            command_args.extend(
-                ['-t', "1-{0}:{1}".format(
-                    array_slots * array_stride,
-                    array_stride)])
-        else:
+            if array_specifier:
+                (
+                    array_start,
+                    array_end,
+                    array_stride
+                    ) = parse_array_specifier(array_specifier)
+                if not array_start:
+                    raise BadSubmission("array_specifier doesn't make sense")
+                array_spec = "{0}". format(array_start)
+                if array_end:
+                    array_spec += "-{0}".format(array_end)
+                if array_stride:
+                    array_spec += ":{0}".format(array_stride)
+                command_args.extend(['-t', array_spec])
+            else:
+                with open(command, 'r') as cmd_f:
+                    array_slots = len(cmd_f.readlines())
+                command_args.extend(
+                    ['-t', "1-{0}".format(
+                        array_slots)])
+        if not array_task or array_specifier:
             # Submit single script/binary
             command_args.extend(
                 ['-shell', 'n',
@@ -374,7 +397,7 @@ def submit(
     logger.info("sge_args: " + " ".join(
         [str(a) for a in command_args if a != qsub]))
 
-    if array_task:
+    if array_task and not array_specifier:
         logger.info("executing array task")
         scriptcontents = '''#!/bin/bash
 
@@ -395,14 +418,21 @@ exec /bin/bash -c "$the_command"
         if usescript:
             logger.info("executing cluster script")
         else:
-            logger.info("executing single task")
+            if array_specifier:
+                logger.info("excuting array task {0}-{1}:{2}".format(
+                    array_start,
+                    array_end,
+                    array_stride
+                ))
+            else:
+                logger.info("executing single task")
             logger.info(" ".join([str(a) for a in command_args]))
     logger.debug(type(command_args))
     logger.debug(command_args)
     result = sp.run(
         command_args, universal_newlines=True,
         stdout=sp.PIPE, stderr=sp.PIPE)
-    if array_task:
+    if array_task and not array_specifier:
         os.remove(script.name)
     if result.returncode != 0:
         raise BadSubmission(result.stderr)

@@ -353,9 +353,6 @@ class TestCheckPE(unittest.TestCase):
     return_value=conf_dict
 )
 @patch(
-    'fsl_sub.plugins.fsl_sub_SGE.shlex.split',
-    autospec=True)
-@patch(
     'fsl_sub.plugins.fsl_sub_SGE.check_pe',
     autospec=True
 )
@@ -382,7 +379,7 @@ class TestSubmit(unittest.TestCase):
     def test_empty_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         self.assertRaises(
             self.plugin.BadSubmission,
             self.plugin.submit,
@@ -392,7 +389,7 @@ class TestSubmit(unittest.TestCase):
     def test_submit_basic(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -478,7 +475,7 @@ class TestSubmit(unittest.TestCase):
     def test_submit_requeueable(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -519,7 +516,7 @@ class TestSubmit(unittest.TestCase):
     def test_submit_logdir(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -563,7 +560,7 @@ class TestSubmit(unittest.TestCase):
     def test_no_env_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         test_dict = dict(mconf_dict)
         test_dict['copy_environment'] = False
         mock_mconf.return_value = test_dict
@@ -605,7 +602,7 @@ class TestSubmit(unittest.TestCase):
     def test_no_affinity_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         test_dict = dict(mconf_dict)
         test_dict['affinity_type'] = None
         mock_mconf.return_value = test_dict
@@ -646,7 +643,7 @@ class TestSubmit(unittest.TestCase):
     def test_priority_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
             job_name = 'test_job'
             queue = 'a.q'
             cmd = ['acmd', 'arg1', 'arg2', ]
@@ -796,7 +793,7 @@ class TestSubmit(unittest.TestCase):
     def test_resources_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
             job_name = 'test_job'
             queue = 'a.q'
             cmd = ['acmd', 'arg1', 'arg2', ]
@@ -872,7 +869,7 @@ class TestSubmit(unittest.TestCase):
     def test_job_hold_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -915,7 +912,7 @@ class TestSubmit(unittest.TestCase):
     def test_no_array_hold_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -932,7 +929,7 @@ class TestSubmit(unittest.TestCase):
     def test_no_array_limit_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -949,7 +946,7 @@ class TestSubmit(unittest.TestCase):
     def test_jobram_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         jid = 123456
@@ -1140,7 +1137,7 @@ class TestSubmit(unittest.TestCase):
     def test_mail_support(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         jid = 123456
@@ -1268,7 +1265,7 @@ class TestSubmit(unittest.TestCase):
     def test_coprocessor_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         jid = 123456
@@ -1462,7 +1459,7 @@ class TestSubmit(unittest.TestCase):
     def test_parallel_env_submit(
             self, mock_qconf, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         mock_qconf.return_value = '/usr/bin/qconf'
         job_name = 'test_job'
         queue = 'a.q'
@@ -1552,7 +1549,7 @@ class TestSubmit(unittest.TestCase):
     def test_array_hold_on_non_array_submit(
             self, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         cmd = ['acmd', 'arg1', 'arg2', ]
@@ -1571,7 +1568,7 @@ class TestSubmit(unittest.TestCase):
     def test_array_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1591,7 +1588,7 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
-            '-t', "1-4:1",
+            '-t', "1-4",
             tmp_file
         ]
         mock_tmpfile = mock_ntf.return_value.__enter__.return_value
@@ -1638,7 +1635,7 @@ exec /bin/bash -c "$the_command"
     def test_array_submit_fails(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1658,7 +1655,7 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
-            '-t', "1-4:1",
+            '-t', "1-4",
             tmp_file
         ]
         mock_tmpfile = mock_ntf.return_value.__enter__.return_value
@@ -1700,19 +1697,13 @@ exec /bin/bash -c "$the_command"
             mock_osr.assert_called_once_with(tmp_file)
 
     @patch('fsl_sub.plugins.fsl_sub_SGE.os.remove', autospec=True)
-    def test_array_submit_stride(
+    def test_array_submit_specifier(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
-        job_file = '''
-acmd 1 2 3
-acmd 4 5 6
-acmd 6 7 8
-'''
         job_file_name = 'll_job'
-        tmp_file = 'atmpfile'
         jid = 12344
         qsub_out = 'Your job ' + str(jid) + ' ("test_job") has been submitted'
         expected_cmd = [
@@ -1724,54 +1715,34 @@ acmd 6 7 8
             '-cwd', '-q', 'a.q',
             '-r', 'y',
             '-t', "1-8:2",
-            tmp_file
+            '-shell', 'n', '-b', 'y',
+            job_file_name
         ]
-        mock_tmpfile = mock_ntf.return_value.__enter__.return_value
-        mock_tmpfile.name = tmp_file
-        mock_write = mock_tmpfile.write
-        with patch(
-                'fsl_sub.plugins.fsl_sub_SGE.open',
-                new_callable=mock_open, read_data=job_file) as m:
-            m.return_value.__iter__.return_value = job_file.splitlines()
-            mock_sprun.return_value = subprocess.CompletedProcess(
+        mock_sprun.return_value = subprocess.CompletedProcess(
                 expected_cmd, 0,
                 stdout=qsub_out, stderr=None)
-            self.assertEqual(
-                jid,
-                self.plugin.submit(
-                    command=job_file_name,
-                    job_name=job_name,
-                    queue=queue,
-                    array_task=True,
-                    array_stride=2
-                )
+        self.assertEqual(
+            jid,
+            self.plugin.submit(
+                command=job_file_name,
+                job_name=job_name,
+                queue=queue,
+                array_task=True,
+                array_specifier='1-8:2'
             )
-            mock_sprun.assert_called_once_with(
-                expected_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True
-            )
-            mock_ntf.assert_called_once_with(
-                delete=False, mode='wt'
-            )
-            mock_write.assert_called_once_with(
-                '''#!/bin/bash
-
-#$ -S /bin/bash
-
-the_command=$(sed -n -e "${{SGE_TASK_ID}}p" {0})
-
-exec /bin/bash -c "$the_command"
-'''.format(job_file_name)
-            )
-            mock_osr.assert_called_once_with(tmp_file)
+        )
+        mock_sprun.assert_called_once_with(
+            expected_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
 
     @patch('fsl_sub.plugins.fsl_sub_SGE.os.remove', autospec=True)
     def test_array_limit_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1793,7 +1764,7 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
-            '-t', "1-4:1",
+            '-t', "1-4",
             tmp_file
         ]
         mock_tmpfile = mock_ntf.return_value.__enter__.return_value
@@ -1841,7 +1812,7 @@ exec /bin/bash -c "$the_command"
     def test_array_limit_disabled_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1864,7 +1835,7 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
-            '-t', "1-4:1",
+            '-t', "1-4",
             tmp_file
         ]
         mock_tmpfile = mock_ntf.return_value.__enter__.return_value
@@ -1912,7 +1883,7 @@ exec /bin/bash -c "$the_command"
     def test_array_hold_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -1934,7 +1905,7 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
-            '-t', "1-4:1",
+            '-t', "1-4",
             tmp_file
         ]
         mock_tmpfile = mock_ntf.return_value.__enter__.return_value
@@ -1982,7 +1953,7 @@ exec /bin/bash -c "$the_command"
     def test_array_hold_disabled_submit(
             self, mock_osr, mock_sprun, mock_ntf, mock_cpconf,
             mock_srbs, mock_mconf, mock_qsub,
-            mock_getcwd, mock_check_pe, mock_shlex, mock_readconf):
+            mock_getcwd, mock_check_pe, mock_readconf):
         job_name = 'test_job'
         queue = 'a.q'
         job_file = '''
@@ -2007,7 +1978,7 @@ acmd 6 7 8
             '-N', 'test_job',
             '-cwd', '-q', 'a.q',
             '-r', 'y',
-            '-t', "1-4:1",
+            '-t', "1-4",
             tmp_file
         ]
         mock_tmpfile = mock_ntf.return_value.__enter__.return_value
