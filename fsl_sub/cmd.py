@@ -25,6 +25,9 @@ from fsl_sub.exceptions import (
     BadSubmission,
     GridOutputError,
     NoModule,
+    CONFIG_ERROR,
+    SUBMISSION_ERROR,
+    RUNNER_ERROR,
 )
 from fsl_sub.shell_modules import (
     get_modules,
@@ -454,9 +457,12 @@ def main(args=None):
     plugin_logger = logging.getLogger('fsl_sub.plugins')
     logger.addHandler(lhdr)
     plugin_logger.addHandler(lhdr)
-    config = read_config()
-
-    cp_info = coproc_info()
+    try:
+        config = read_config()
+        cp_info = coproc_info()
+    except BadConfiguration as e:
+        logger.error("Error in fsl_sub configuration - " + str(e))
+        sys.exit(CONFIG_ERROR)
     cmd_parser = build_parser(config, cp_info)
     options = vars(cmd_parser.parse_args(args=args))
     if not cp_info['available']:
@@ -550,11 +556,14 @@ def main(args=None):
             requeueable=not options['not_requeueable']
         )
     except BadSubmission as e:
-        cmd_parser.error("Error submitting job - " + str(e))
+        cmd_parser.exit(
+            message="Error submitting job - " + str(e),
+            status=SUBMISSION_ERROR)
     except GridOutputError as e:
-        cmd_parser.error(
-            "Error submitting job - output from submission "
-            "not understood. " + str(e))
+        cmd_parser.exit(
+            message="Error submitting job - output from submission "
+            "not understood. " + str(e),
+            status=RUNNER_ERROR)
     except Exception as e:
         traceback.print_exc(file=sys.stderr)
         cmd_parser.error("Unexpected error: " + str(e))

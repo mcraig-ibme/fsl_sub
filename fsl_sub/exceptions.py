@@ -36,3 +36,8 @@ class GridOutputError(Exception):
 
 class CommandError(Exception):
     pass
+
+
+CONFIG_ERROR = 1
+SUBMISSION_ERROR = 2
+RUNNER_ERROR = 3
