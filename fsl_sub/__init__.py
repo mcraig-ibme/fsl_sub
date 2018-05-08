@@ -131,6 +131,8 @@ def submit(
         )
 
     mconfig = method_config(config['method'])
+    parallel_env_requested = parallel_env
+    
     if logdir is not None and logdir != "/dev/null":
         try:
             os.makedirs(logdir)
@@ -250,7 +252,7 @@ def submit(
 
     control_threads(config['thread_control'], threads)
 
-    if threads == 1 and parallel_env is not None:
+    if threads == 1 and parallel_env_requested is None:
         parallel_env = None
     if threads > 1 and parallel_env is None:
         raise BadSubmission(
