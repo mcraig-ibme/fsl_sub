@@ -95,7 +95,7 @@ def get_modules(module_parent):
             "module -t avail " + shlex.quote(module_parent),
             shell=True)
         if available_modules:
-            for line in available_modules.splitlines():
+            for line in available_modules:
                 line = line.strip()
                 if not line:
                     continue
