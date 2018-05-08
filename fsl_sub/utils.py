@@ -159,7 +159,7 @@ def file_is_image(filename):
                         'bin',
                         'imtest'),
                     filename
-                    ]).strip() == '1':
+                    ])[0] == '1':
                 return True
         except subprocess.CalledProcessError as e:
             raise CommandError(

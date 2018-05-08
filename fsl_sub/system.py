@@ -9,7 +9,7 @@ def system_stdout(
             shell=shell, cwd=cwd, timeout=timeout,
             check=check, universal_newlines=True)
 
-    return result.stdout
+    return result.stdout.split('\n')
 
 
 def system_stderr(
@@ -20,7 +20,7 @@ def system_stderr(
             shell=shell, cwd=cwd, timeout=timeout,
             check=check, universal_newlines=True)
 
-    return result.stderr
+    return result.stderr.split('\n')
 
 
 def system(

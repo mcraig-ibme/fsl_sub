@@ -63,10 +63,10 @@ class TestModuleSupport(unittest.TestCase):
             mock_system_stdout,
             mock_find_module_cmd):
         mcmd = '/usr/bin/modulecmd'
-        mock_system_stdout.return_value = '''
-os.environ['PATH']='/usr/bin:/usr/sbin:/usr/local/bin'
-os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
-'''
+        mock_system_stdout.return_value = [
+            "os.environ['PATH']='/usr/bin:/usr/sbin:/usr/local/bin'",
+            "os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'"
+            ]
         mock_find_module_cmd.return_value = mcmd
         mock_read_module_environment.return_value = 'some text'
         with self.subTest('Test 1'):
@@ -75,11 +75,10 @@ os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
                 'some text'
             )
             mock_find_module_cmd.assert_called_once_with()
-            mock_read_module_environment.assert_called_once_with(
-                '''
-os.environ['PATH']='/usr/bin:/usr/sbin:/usr/local/bin'
-os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'
-'''
+            mock_read_module_environment.assert_called_once_with([
+                "os.environ['PATH']='/usr/bin:/usr/sbin:/usr/local/bin'",
+                "os.environ['LD_LIBRARY_PATH']='/usr/lib64:/usr/local/lib64'"
+                ]
             )
             mock_system_stdout.assert_called_once_with(
                 [mcmd, "python", "add", 'amodule', ])

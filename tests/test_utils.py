@@ -344,9 +344,9 @@ class TestFileIsImage(unittest.TestCase):
         mock_isfile.return_value = False
         self.assertFalse(fsl_sub.utils.file_is_image('a'))
         mock_isfile.return_value = True
-        mock_sstdout.return_value = '1\n'
+        mock_sstdout.return_value = ['1', ]
         self.assertTrue(fsl_sub.utils.file_is_image('a'))
-        mock_sstdout.return_value = '0\n'
+        mock_sstdout.return_value = ['0', ]
         self.assertFalse(fsl_sub.utils.file_is_image('a'))
         mock_sstdout.side_effect = subprocess.CalledProcessError(
             1, 'a', "failed")
