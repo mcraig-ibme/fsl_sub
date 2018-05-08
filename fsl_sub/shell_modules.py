@@ -7,12 +7,22 @@ from fsl_sub.exceptions import (
     LoadModuleError,
     NoModule,
 )
+from fsl_sub.config import (
+    read_config,
+)
 from fsl_sub.system import system_stdout, system_stderr
 
 
 def find_module_cmd():
     '''Locate the 'modulecmd' binary'''
-    return shutil.which('modulecmd')
+    mcmd = shutil.which('modulecmd')
+    if mcmd is None:
+        config = read_config()
+        if config['modulecmd']:
+            mcmd = config['modulecmd']
+        else:
+            mcmd = False
+    return mcmd
 
 
 def read_module_environment(lines):

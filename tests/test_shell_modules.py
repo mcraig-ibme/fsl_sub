@@ -13,6 +13,35 @@ class TestModuleSupport(unittest.TestCase):
             fsl_sub.shell_modules.find_module_cmd(),
             '/usr/bin/modulecmd')
         mock_which.assert_called_once_with('modulecmd')
+        mock_which.reset_mock()
+        with patch(
+                'fsl_sub.shell_modules.read_config',
+                return_value={'modulecmd': '/opt/bin/modulecmd', },
+                autospec=True):
+            mock_which.return_value = '/opt/bin/modulecmd'
+            self.assertEqual(
+                fsl_sub.shell_modules.find_module_cmd(),
+                '/opt/bin/modulecmd')
+            mock_which.assert_called_once_with('modulecmd')        
+        mock_which.reset_mock()
+        with patch(
+                'fsl_sub.shell_modules.read_config',
+                return_value={'modulecmd': '/usr/local/bin/modulecmd', },
+                autospec=True):
+            mock_which.return_value = None
+            self.assertEqual(
+                fsl_sub.shell_modules.find_module_cmd(),
+                '/usr/local/bin/modulecmd'
+            )
+        mock_which.reset_mock()
+        with patch(
+                'fsl_sub.shell_modules.read_config',
+                return_value={'modulecmd': None, },
+                autospec=True):
+            mock_which.return_value = None
+            self.assertFalse(
+                fsl_sub.shell_modules.find_module_cmd()
+            )
 
     def test_read_module_environment(self):
         lines = [
