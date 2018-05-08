@@ -174,7 +174,7 @@ def submit(
             tasks to specified number
     array_specifier - n[-m[:s]] n subtasks or starts at n, ends at m with
             a step of s.
-    parallelenv - parallel environment name
+    parallel_env - parallel environment name
     jobram - RAM required by job (total of all threads)
     jobtime - time (in minutes for task)
     requeueable - job may be requeued on node failure
