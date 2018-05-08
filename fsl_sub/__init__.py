@@ -77,13 +77,18 @@ def submit(
     logger = logging.getLogger(__name__)
     logger.debug("Submit called with:")
     logger.debug(
-        command, name, threads, queue, jobhold, array_task,
-        array_hold, array_limit, array_specifier, parallel_env,
-        jobram, jobtime, resources, ramsplit, priority,
-        validate_command, mail_on, mailto, logdir,
-        coprocessor, coprocessor_toolkit, coprocessor_class,
-        coprocessor_class_strict, coprocessor_multi,
-        usescript, architecture, requeueable
+        " ".join(
+            [str(a) for a in [
+                command, name, threads, queue, jobhold, array_task,
+                array_hold, array_limit, array_specifier, parallel_env,
+                jobram, jobtime, resources, ramsplit, priority,
+                validate_command, mail_on, mailto, logdir,
+                coprocessor, coprocessor_toolkit, coprocessor_class,
+                coprocessor_class_strict, coprocessor_multi,
+                usescript, architecture, requeueable
+            ]
+            ]
+        )
     )
     PLUGINS = load_plugins()
 
