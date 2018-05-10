@@ -260,7 +260,7 @@ def submit(
                             l)
                         )
             command_args.extend(
-                ['-o' + logs['o'], '-e' + logs['e']]
+                ['-o ' + logs['o'], '-e ' + logs['e']]
             )
 
         if array_task is not None and array_hold:
