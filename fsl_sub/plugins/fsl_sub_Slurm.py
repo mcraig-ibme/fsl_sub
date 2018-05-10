@@ -404,7 +404,7 @@ def submit(
         )
     else:
         scriptcontents = '''#!/bin/bash
-    {0}
+{0}
     '''.format('\n'.join([slurm_option(x) for x in command_args]))
         logger.info("Passing command script to STDIN")
         if array_task and not array_specifier:
