@@ -9,6 +9,7 @@ from unittest.mock import patch
 YAML_CONF = '''---
 method: SGE
 ram_units: G
+modulecmd: /usr/bin/modulecmd
 method_opts:
     SGE:
         large_job_split_pe: shmem
@@ -166,6 +167,10 @@ USER_EMAIL = "{username}@{hostname}".format(
                 )
 
 
+@patch(
+    'fsl_sub.shell_modules.read_config',
+    autospec=True,
+    return_value=yaml.load(YAML_CONF))
 @patch(
     'fsl_sub.cmd.read_config',
     autospec=True,
@@ -546,12 +551,12 @@ class TestMain(unittest.TestCase):
             validate_command=True
         )
 
-    def test_array_specifier(self, *args):
+    def test_array_native(self, *args):
         fsl_sub.cmd.main(
-            ['--array_task', 'commandfile', '--array_specifier', '1-4:2', ])
+            ['--array_native', '1-4:2', 'command', ])
 
         args[2].assert_called_with(
-            'commandfile',
+            ['command'],
             architecture=None,
             array_hold=None,
             array_limit=None,

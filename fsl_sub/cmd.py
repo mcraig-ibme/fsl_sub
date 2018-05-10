@@ -391,10 +391,17 @@ There are several batch queues configured on the cluster:
         help="Specify a task file of commands to execute in parallel."
     )
     array_g.add_argument(
-        '--array_specifier',
+        '--array_native',
         default=None,
-        help="For parallel task files, n[-m[:s]], provide start (n), end (s)"
-        " and increment of sub-task ID between sub-tasks (s)"
+        help="Binary/Script will handle array task internally. "
+        "Mutually exclusive with --array_task. Requires "
+        " and argument n[-m[:s]] which provides number of tasks (n) or "
+        "start (n), end (m) and increment of sub-task ID between sub-tasks "
+        "(s). Binary/script can use FSLSUB_ARRAYTASKID_VAR, "
+        "FSLSUB_ARRAYSTARTID_VAR, FSLSUB_ARRAYENDID_VAR, "
+        "FSLSUB_ARRAYSTEPSIZE_VAR, FSLSUB_ARRAYCOUNT_VAR environment "
+        "variables to identify the environment variables that are set by "
+        "the cluster manager to identify the sub-task that is running."
     )
     basic_g.add_argument(
         '-T', '--jobtime',
@@ -506,15 +513,22 @@ def main(args=None):
         pe_name, threads = (None, 1, )
 
     if options['array_task'] is not None:
+        if options['array_native']:
+            cmd_parser.error(
+                "Array task files mutually exclusive with"
+                " array native mode.")
         array_task = True
         command = options['array_task']
-    else:
+    elif options['array_native'] is None:
         array_task = False
         if (
                 options['array_hold'] is not None or
                 options['array_limit'] is not None):
             cmd_parser.error(
                 "Array controls not applicable to non-array tasks")
+        command = options['args']
+    else:
+        array_task = True
         command = options['args']
     if not command:
         cmd_parser.error("No command or array task file provided")
@@ -530,7 +544,7 @@ def main(args=None):
             architecture=options['arch'],
             array_hold=options['array_hold'],
             array_limit=options['array_limit'],
-            array_specifier=options['array_specifier'],
+            array_specifier=options['array_native'],
             array_task=array_task,
             coprocessor=options['coprocessor'],
             coprocessor_toolkit=options['coprocessor_toolkit'],
