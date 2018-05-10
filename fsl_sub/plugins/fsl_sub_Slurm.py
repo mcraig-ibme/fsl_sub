@@ -322,7 +322,7 @@ def submit(
             command_args.append(
                 '='.join((
                     '--mem-per-cpu',
-                    mem_in_mb
+                    str(int(mem_in_mb))
                 ))
             )
 
