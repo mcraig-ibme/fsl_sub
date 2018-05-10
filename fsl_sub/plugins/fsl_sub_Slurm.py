@@ -344,8 +344,7 @@ def submit(
                 '--job-name', job_name, ))
         )
 
-        command_args.extend(
-            ['-p', queue, ])
+        command_args.append('-p ' + queue)
 
         command_args.append('--parsable')
 
