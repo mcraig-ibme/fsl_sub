@@ -434,7 +434,8 @@ exec /bin/bash -c "$the_command"
 '''.format(' '.join([shlex.quote(x) for x in command]))
             logger.debug(scriptcontents)
             result = sp.run(
-                command_args,
+                qsub,
+                input=scriptcontents,
                 universal_newlines=True,
                 stdout=sp.PIPE,
                 stderr=sp.PIPE)
