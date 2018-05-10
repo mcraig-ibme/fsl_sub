@@ -22,7 +22,7 @@ class TestModuleSupport(unittest.TestCase):
             self.assertEqual(
                 fsl_sub.shell_modules.find_module_cmd(),
                 '/opt/bin/modulecmd')
-            mock_which.assert_called_once_with('modulecmd')        
+            mock_which.assert_called_once_with('modulecmd')
         mock_which.reset_mock()
         with patch(
                 'fsl_sub.shell_modules.read_config',
@@ -151,24 +151,23 @@ class TestModuleSupport(unittest.TestCase):
 
     @patch('fsl_sub.shell_modules.system_stderr', auto_spec=True)
     def test_get_modules(self, mock_system_stderr):
-        mock_system_stderr.return_value = '''
-/usr/local/etc/ShellModules:
-amodule/5.0
-amodule/5.5
-/usr/share/Modules/modulefiles:
-/etc/modulefiles:
-'''
+        mock_system_stderr.return_value = [
+            "/usr/local/etc/ShellModules:",
+            "amodule/5.0",
+            "amodule/5.5",
+            "/usr/share/Modules/modulefiles:",
+            "/etc/modulefiles:",
+        ]
         with self.subTest('Test 1'):
             self.assertListEqual(
                 fsl_sub.shell_modules.get_modules('amodule'),
                 ['5.0', '5.5', ])
         with self.subTest('Test 1b'):
             mock_system_stderr.reset_mock()
-            mock_system_stderr.return_value = '''
-/usr/local/etc/ShellModules:
-bmodule
-'''
-
+            mock_system_stderr.return_value = [
+                "/usr/local/etc/ShellModules:",
+                "bmodule",
+            ]
             self.assertListEqual(
                 fsl_sub.shell_modules.get_modules('bmodule'),
                 ['bmodule', ])
