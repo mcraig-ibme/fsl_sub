@@ -309,7 +309,7 @@ def submit(
             if ramsplit:
                 jobram = split_ram_by_slots(jobram, threads)
                 # mem-per-cpu if dividing RAM up, otherwise mem
-            ram_units = read_config['ram_units']
+            ram_units = read_config()['ram_units']
 
             # RAM is specified in megabytes
             try:
