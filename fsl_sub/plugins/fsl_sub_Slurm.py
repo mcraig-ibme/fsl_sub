@@ -378,7 +378,7 @@ def submit(
                     array_slots = len(cmd_f.readlines())
                 command_args.append(
                     "=".join((
-                        '--array', "1-{0}{2}".format(
+                        '--array', "1-{0}{1}".format(
                             array_slots,
                             array_limit_modifier))))
         else:
