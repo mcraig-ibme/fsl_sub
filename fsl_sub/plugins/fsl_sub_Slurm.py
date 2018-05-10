@@ -147,7 +147,7 @@ def submit(
     mconf = defaultdict(lambda: False, method_config('Slurm'))
     qsub = qsub_cmd()
     command_args = []
-    
+
     if logdir is None:
         logdir = os.getcwd()
     if isinstance(resources, str):
@@ -225,7 +225,6 @@ def submit(
                     ":".join(
                         (
                             cpconf['resource'],
-                            copro_class,
                             str(coprocessor_multi))
                     )
                 )
