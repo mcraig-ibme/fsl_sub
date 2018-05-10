@@ -247,7 +247,7 @@ def submit(
                 ['-o', logdir, '-e', logdir]
             )
         else:
-            logs = []
+            logs = {}
             for l in ['o', 'e']:
                 if array_task:
                     logtemplate = '{0}.{1}%A.%a'
