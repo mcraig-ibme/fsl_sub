@@ -146,6 +146,8 @@ def submit(
 
     mconf = defaultdict(lambda: False, method_config('Slurm'))
     qsub = qsub_cmd()
+    command_args = []
+    
     if logdir is None:
         logdir = os.getcwd()
     if isinstance(resources, str):
@@ -159,6 +161,9 @@ def submit(
 
     gres = []
     if usescript:
+        if not isinstance(command, str):
+            raise BadSubmission(
+                "Command should be a grid submission script (no arguments)")
         command_args = [command]
     else:
         # Check Parallel Environment is available
