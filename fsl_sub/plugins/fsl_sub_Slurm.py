@@ -144,7 +144,7 @@ def submit(
         raise BadSubmission(
             "Must provide command line or array task file name")
 
-    mconf = defaultdict(lambda: False, method_config('SLURM'))
+    mconf = defaultdict(lambda: False, method_config('Slurm'))
     qsub = qsub_cmd()
     if logdir is None:
         logdir = os.getcwd()
