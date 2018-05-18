@@ -9,5 +9,12 @@ fsl_sub_SLURM.yml
 bin/qconf
 bin/qsub
 build
-fsl_sub.yml
-fsl_sub_FMRIB.yml
+MANIFEST.IN
+*.egg-info
+dist
+build
+bin
+1
+2
+3
+4
