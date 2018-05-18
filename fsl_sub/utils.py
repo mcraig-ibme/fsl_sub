@@ -1,3 +1,6 @@
+# fsl_sub python module
+# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+
 import importlib
 import os
 import pkgutil
@@ -9,6 +12,7 @@ from math import ceil
 from fsl_sub.exceptions import (
     CommandError,
     BadSubmission,
+    BadConfiguration,
 )
 from fsl_sub.system import (
     system_stdout,
@@ -32,11 +36,37 @@ def load_plugins():
     plugin_dict = {
         name: importlib.import_module(name)
         for finder, name, ispkg
-        in pkgutil.iter_modules(path=plugin_path)
-        if name.startswith('fsl_sub_')
+        in pkgutil.iter_modules()
+        if name.startswith('fsl_sub_plugin')
     }
     sys.path = sys_path
     return plugin_dict
+
+
+def available_plugins():
+    PLUGINS = load_plugins()
+
+    plugs = []
+    for p in PLUGINS.keys():
+        (_, plugin_name) = p.split('plugins_')
+        plugs.append(plugin_name)
+
+    return plugs
+
+
+def get_plugin_example_conf(plugin_name):
+    PLUGINS = load_plugins()
+    grid_module = 'fsl_sub_' + plugin_name
+
+    if grid_module not in PLUGINS:
+        raise CommandError("Plugin {} not found". format(plugin_name))
+
+    try:
+        return PLUGINS[grid_module].example_conf()
+    except AttributeError as e:
+        raise BadConfiguration(
+            "Plugin doesn't provide an example configuration."
+        )
 
 
 def minutes_to_human(minutes):

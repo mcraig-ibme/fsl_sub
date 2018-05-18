@@ -1,3 +1,6 @@
+# fsl_sub python module
+# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+
 import os
 import re
 import shlex

@@ -1,3 +1,7 @@
+# fsl_sub python module
+# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+
+
 class ArgumentError(Exception):
     pass
 

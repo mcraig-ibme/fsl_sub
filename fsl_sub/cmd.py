@@ -1,4 +1,8 @@
 #!/usr/bin/python
+
+# fsl_sub python module
+# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+
 import argparse
 import getpass
 import logging
@@ -38,8 +42,10 @@ from fsl_sub.parallel import (
     process_pe_def,
 )
 from fsl_sub.utils import (
-    minutes_to_human,
+    available_plugins,
     file_is_image,
+    get_plugin_example_conf,
+    minutes_to_human,
 )
 
 
@@ -60,7 +66,8 @@ def build_parser(config=None, cp_info=None):
 
     # Build the epilog...
     epilog = ''
-    if config['method'] != 'None':
+    mconf = method_config(config['method'])
+    if mconf['queues']:
         epilog += '''
 Queues:
 
@@ -95,7 +102,6 @@ There are several batch queues configured on the cluster:
                     pad + "Supports splitting into multiple slots." + '\n'
                 )
             epilog += '\n'
-    mconf = method_config(config['method'])
     if cp_info['available']:
         epilog += "Co-processors available:"
         for cp in cp_info['available']:
@@ -344,12 +350,19 @@ There are several batch queues configured on the cluster:
             type=int,
             help="Not supported on this platform."
         )
-    basic_g.add_argument(
-        '-q', '--queue',
-        default=None,
-        help="Select a particular queue - see below for details. "
-        "Instead of choosing a queue try to specify the time required."
-    )
+    if mconf['queues']:
+        basic_g.add_argument(
+            '-q', '--queue',
+            default=None,
+            help="Select a particular queue - see below for details. "
+            "Instead of choosing a queue try to specify the time required."
+        )
+    else:
+        basic_g.add_argument(
+            '-q', '--queue',
+            default=None,
+            help="Not relevant when not running in a cluster environment"
+        )
     advanced_g.add_argument(
         '-r', '--resource',
         default=None,
@@ -378,6 +391,13 @@ There are several batch queues configured on the cluster:
         "Some schedulers only support the threads part so specify "
         "'threads' as a <pename>.".format(
             pe_name=ll_envs[0])
+    )
+    advanced_g.add_argument(
+        '--native_holds',
+        action="store_true",
+        help="If specified then the hold/parallel hold are taken to be "
+        "cluster native hold specifiers and will not be interpreted by "
+        "fsl_sub."
     )
     basic_g.add_argument(
         '-S', '--noramsplit',
@@ -443,6 +463,28 @@ There are several batch queues configured on the cluster:
     return parser
 
 
+def example_config_parser():
+    '''Parse the command line, returns a dict keyed on option'''
+    logger = logging.getLogger(__name__)
+    plug_ins = available_plugins()
+
+    logger.debug("plugins found:")
+    logger.debug(plug_ins)
+
+    parser = argparse.ArgumentParser(
+        prog="fsl_sub_config",
+        description='FSL cluster submission configuration examples.',
+        )
+    parser.add_argument(
+            'plugin',
+            default='None',
+            choices=plug_ins,
+            help="Output an example fsl_sub configuration which may be "
+            "customised for your system."
+        )
+    return parser
+
+
 class LogFormatter(logging.Formatter):
 
     default_fmt = logging.Formatter('%(levelname)s:%(name)s: %(message)s')
@@ -453,6 +495,17 @@ class LogFormatter(logging.Formatter):
             return self.info_fmt.format(record)
         else:
             return self.default_fmt.format(record)
+
+
+def example_config(args=None):
+    lhdr = logging.StreamHandler()
+    fmt = LogFormatter()
+    lhdr.setFormatter(fmt)
+    logger = logging.getLogger('fsl_sub')
+    logger.addHandler(lhdr)
+    example_parser = example_config_parser()
+    options = example_parser.parse_args(args=args)
+    print(get_plugin_example_conf(options.plugin))
 
 
 def main(args=None):
@@ -533,6 +586,10 @@ def main(args=None):
     if not command:
         cmd_parser.error("No command or array task file provided")
 
+    for hold_spec in ['jobhold', 'array_hold']:
+        if options[hold_spec] and not options['native_holds']:
+            options[hold_spec] = options[hold_spec].split(',')
+
     if 'mailoptions' not in options:
         options['mailoptions'] = None
     if 'mailto' not in options:
@@ -566,7 +623,9 @@ def main(args=None):
             resources=options['resource'],
             usescript=options['usescript'],
             validate_command=not options['novalidation'],
-            requeueable=not options['not_requeueable']
+            requeueable=not options['not_requeueable'],
+            native_holds=options['native_holds'],
+            as_tuple=False
         )
     except BadSubmission as e:
         cmd_parser.exit(

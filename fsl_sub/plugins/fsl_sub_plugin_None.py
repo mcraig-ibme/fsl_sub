@@ -1,3 +1,6 @@
+# fsl_sub python module
+# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+
 # fsl_sub plugin for running directly on this computer
 import logging
 import os
@@ -21,7 +24,7 @@ def queue_exists(qname, qtest=qtest()):
 def submit(
         command,
         job_name,
-        queue,
+        queue=None,
         threads=1,
         array_task=False,
         array_specifier=None,
@@ -128,3 +131,14 @@ def submit(
             raise BadSubmission from e
 
     return pid
+
+
+def example_conf():
+    '''Returns a string containing the example configuration for this
+    cluster plugin.'''
+
+    here = os.path.realpath(__file__)
+    with open(os.path.join(here, 'fsl_sub_None.yml')) as e_conf_f:
+        e_conf = e_conf_f.readlines()
+
+    return '\n'.join(e_conf)

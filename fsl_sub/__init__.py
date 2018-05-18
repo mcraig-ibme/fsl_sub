@@ -1,4 +1,8 @@
 #!/usr/bin/env fslpython
+
+# fsl_sub python module
+# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+
 import errno
 import getpass
 import logging
@@ -71,9 +75,58 @@ def submit(
     coprocessor_multi="1",
     usescript=False,
     architecture=None,
-    requeueable=True
+    requeueable=True,
+    native_holds=False,
+    as_tuple=True
 ):
-    '''Submit job(s) to a queue'''
+    '''Submit job(s) to a queue, returns the job id as a single value tuple
+    (default) or int (as_tuple=False).
+    Single tasks require a command in the form of a list [command, arg1,
+    arg2, ...] or simple string "command arg1 arg2".
+    Array tasks (array_task=True) require a file name of the array task table
+    file unless array_specifier(=n[-m[:s]]) is specified in which case command
+    is as per a single task.
+
+    Requires:
+
+    command - string or list containing command to run
+                or the file name of the array task file.
+                If array_specifier is given then this must be
+                a string/list containing the command to run.
+
+    Optional:
+    job_name - Symbolic name for task (defaults to first component of command)
+    array_task - is the command is an array task (defaults to False)
+    jobhold - id(s) of jobs to hold for (string or list)
+    array_hold - complex hold string
+    array_limit - limit concurrently scheduled array
+            tasks to specified number
+    array_specifier - n[-m[:s]] n subtasks or starts at n, ends at m with
+            a step of s.
+    as_tuple - if true then return job ID as a single value tuple
+    parallel_env - parallel environment name
+    jobram - RAM required by job (total of all threads)
+    jobtime - time (in minutes for task)
+    requeueable - job may be requeued on node failure
+    resources - list of resource request strings
+    ramsplit - break tasks into multiple slots to meet RAM constraints
+    priority - job priority (0-1023)
+    mail_on - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
+            's'uspended, 'n'o mail
+    mailto - email address to receive job info
+    native_holds - whether to process the jobhold or array_hold input
+    logdir - directory to put log files in
+    coprocessor - name of coprocessor required
+    coprocessor_toolkit - coprocessor toolkit version
+    coprocessor_class - class of coprocessor required
+    coprocessor_class_strict - whether to choose only this class
+            or all more capable
+    coprocessor_multi - how many coprocessors you need (or
+            complex description) (string)
+    queue - Explicit queue to submit to - use jobram/jobtime in preference to
+            this
+    usescript - queue config is defined in script
+    '''
     logger = logging.getLogger(__name__)
     logger.debug("Submit called with:")
     logger.debug(
@@ -107,7 +160,7 @@ def submit(
                 'Warning: job on queue attempted to submit parallel jobs -'
                 'running jobs serially instead.'
             )
-    grid_module = 'fsl_sub_' + config['method']
+    grid_module = 'fsl_sub_plugin_' + config['method']
     if grid_module not in PLUGINS:
         raise BadConfiguration(
             "{} not a supported method".format(config['method']))
@@ -132,7 +185,7 @@ def submit(
 
     mconfig = method_config(config['method'])
     parallel_env_requested = parallel_env
-    
+
     if logdir is not None and logdir != "/dev/null":
         try:
             os.makedirs(logdir)
@@ -162,6 +215,23 @@ def submit(
                 raise BadSubmission(
                         "Unrecognised mail mode " + mail_on)
 
+    # For simple numbers pass these in as list, if they are strings
+    # then leave them alone
+    if jobhold is not None:
+        if not isinstance(jobhold, (str, int, list, tuple)):
+            raise BadSubmission(
+                "jobhold must be a string, int, list or tuple")
+        if not native_holds:
+            if isinstance(jobhold, str):
+                jobhold = jobhold.split(',')
+    if array_hold is not None:
+        if not isinstance(array_hold, (str, int, list, tuple)):
+            raise BadSubmission(
+                "array_hold must be a string, int, list or tuple")
+        if not native_holds:
+            array_hold = array_hold.split(',')
+
+    validate_type = 'command'
     if array_task is False:
         if isinstance(command, list):
             # command is the command line to run as a list
@@ -174,9 +244,25 @@ def submit(
             raise BadSubmission("Command should be a list or string")
         if (
                 array_hold is not None or
-                array_limit is not None):
+                array_limit is not None or
+                array_specifier is not None):
             raise BadSubmission(
                 "Array controls not applicable to non-array tasks")
+        job_args = command
+    elif array_specifier is None:
+        job_type = 'array file'
+        validate_type = 'array'
+        job_args = [command, ]
+        if name is None:
+            name = os.path.basename(command)
+    else:
+        job_type = 'array aware command'
+        validate_type = 'command'
+        if isinstance(command, str):
+            # command is a basic string
+            command = shlex.split(command)
+        else:
+            raise BadSubmission("Command should be a list or string")
         if validate_command:
             try:
                 check_command(command[0])
@@ -185,21 +271,25 @@ def submit(
                     "Problem with task command: " + str(e)
                 )
         job_args = command
-    else:
-        job_type = 'array'
-        if validate_command:
+
+    if validate_command:
+        if validate_type == 'array':
             try:
-                if not array_specifier:
-                    check_command_file(command)
-                else:
-                    check_command(command)
+                check_command_file(command)
             except CommandError as e:
                 raise BadSubmission(
                     "Array task definition file fault: " + str(e)
                 )
-        job_args = [command, ]
-        if name is None:
-            name = os.path.basename(command)
+        elif validate_type == 'command':
+            try:
+                check_command(command)
+            except CommandError as e:
+                raise BadSubmission(
+                    "Command not usable: " + str(e)
+                )
+        else:
+            raise BadConfiguration(
+                "Unknown validation type: " + validate_type)
     logger.info(
         "METHOD={0} : TYPE={1} : args={2}".format(
             config['method'],
@@ -217,62 +307,69 @@ def submit(
     else:
         task_name = name
 
-    split_on_ram = mconfig['map_ram'] and ramsplit
+    if not mconfig['queues']:
+        queue = None
+        split_on_ram = None
 
-    if (split_on_ram and
-            parallel_env is None and
-            'large_job_split_pe' in mconfig):
-        parallel_env = mconfig['large_job_split_pe']
-
-    if queue is None:
-        queue_details = getq_and_slots(
-                job_time=jobtime,
-                job_ram=jobram,
-                job_threads=threads,
-                queues=config['queues'],
-                coprocessor=coprocessor,
-                ll_env=parallel_env
-                )
-        logger.debug("Automatic queue selection:")
-        logger.debug(queue_details)
-        if queue_details is None:
-            raise BadSubmission("Unable to find a queue with these parameters")
-        else:
-            (queue, slots_required) = queue_details
     else:
-        if not queue_exists(queue) or queue not in config['queues']:
-            raise BadSubmission("Unrecognised queue " + queue)
-        logger.debug("Specific queue: " + queue)
-        slots_required = calc_slots(
-            jobram,
-            config['queues'][queue]['slot_size'],
-            threads)
+        split_on_ram = mconfig['map_ram'] and ramsplit
 
-    threads = max(slots_required, threads)
+        if (split_on_ram and
+                parallel_env is None and
+                'large_job_split_pe' in mconfig):
+            parallel_env = mconfig['large_job_split_pe']
 
-    control_threads(config['thread_control'], threads)
+        if queue is None:
+            queue_details = getq_and_slots(
+                    job_time=jobtime,
+                    job_ram=jobram,
+                    job_threads=threads,
+                    queues=config['queues'],
+                    coprocessor=coprocessor,
+                    ll_env=parallel_env
+                    )
+            logger.debug("Automatic queue selection:")
+            logger.debug(queue_details)
+            if queue_details is None:
+                raise BadSubmission(
+                    "Unable to find a queue with these parameters")
+            else:
+                (queue, slots_required) = queue_details
+        else:
+            if not queue_exists(queue) or queue not in config['queues']:
+                raise BadSubmission("Unrecognised queue " + queue)
+            logger.debug("Specific queue: " + queue)
+            slots_required = calc_slots(
+                jobram,
+                config['queues'][queue]['slot_size'],
+                threads)
 
-    if threads == 1 and parallel_env_requested is None:
-        parallel_env = None
-    if threads > 1 and parallel_env is None:
-        raise BadSubmission(
-                "Job requires {} slots but no parallel envrionment "
-                "available or requested".format(threads))
-    if threads > 1 and mconfig['thread_ram_divide'] and not split_on_ram:
-        split_on_ram = True
+        threads = max(slots_required, threads)
+
+        control_threads(config['thread_control'], threads)
+
+        if threads == 1 and parallel_env_requested is None:
+            parallel_env = None
+        if threads > 1 and parallel_env is None:
+            raise BadSubmission(
+                    "Job requires {} slots but no parallel envrionment "
+                    "available or requested".format(threads))
+        if threads > 1 and mconfig['thread_ram_divide'] and not split_on_ram:
+            split_on_ram = True
 
     if coprocessor:
-        if coprocessor_multi != '1':
-            try:
-                if int(coprocessor_multi) > max_coprocessors(coprocessor):
-                    raise BadSubmission(
-                        "Unable to provide {} coprocessors for job".format(
-                            coprocessor_multi
-                        ))
+        if mconfig['queues']:
+            if coprocessor_multi != '1':
+                try:
+                    if int(coprocessor_multi) > max_coprocessors(coprocessor):
+                        raise BadSubmission(
+                            "Unable to provide {} coprocessors for job".format(
+                                coprocessor_multi
+                            ))
 
-            except ValueError:
-                # Complex coprocessor_multi passed - do not validate
-                pass
+                except ValueError:
+                    # Complex coprocessor_multi passed - do not validate
+                    pass
         if coprocessor_toolkit:
             logger.debug("Attempting to load coprocessor toolkit")
             logger.debug(":".join((coprocessor, coprocessor_toolkit)))
@@ -294,6 +391,7 @@ def submit(
                 mail_on, mailto, logdir, coprocessor, coprocessor_toolkit,
                 coprocessor_class, coprocessor_class_strict, coprocessor_multi,
                 usescript, architecture, requeueable]]))
+    # return job id as tuple
     job_id = queue_submit(
         command,
         job_name=task_name,
@@ -322,7 +420,10 @@ def submit(
         architecture=architecture,
         requeueable=requeueable)
 
-    return job_id
+    if as_tuple:
+        return (job_id,)
+    else:
+        return job_id
 
 
 def calc_slots(job_ram, slot_size, job_threads):

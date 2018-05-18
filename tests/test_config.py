@@ -1,71 +1,89 @@
 #!/usr/bin/env python
 import unittest
 import fsl_sub.config
+import os
+import shutil
+import tempfile
 
 from unittest.mock import patch
 
 
 class TestConfig(unittest.TestCase):
     @patch('fsl_sub.config.os.path.expanduser', autospec=True)
-    @patch('fsl_sub.config.os.path.exists', autospec=True)
     def test_find_config_file(
-            self, mock_exists, mock_expanduser):
-        with self.subTest('Expand user'):
-            mock_exists.side_effect = [True]
-            mock_expanduser.return_value = '/home/auser'
-            self.assertEqual(
-                fsl_sub.config.find_config_file(),
-                '/home/auser/.fsl_sub.yml'
-            )
-        mock_exists.reset_mock()
-        with patch.dict(
-                'fsl_sub.config.os.environ',
-                {'FSLDIR': '/usr/local/fsl', },
-                clear=True):
-            with self.subTest('FSLDIR'):
-                mock_exists.side_effect = [False, True]
-                self.assertEqual(
-                    fsl_sub.config.find_config_file(),
-                    '/usr/local/fsl/etc/fslconf/fsl_sub.yml'
-                )
-        mock_exists.reset_mock()
-        with self.subTest('Missing configuration'):
-            mock_exists.side_effect = [False, False]
-            self.assertRaises(
-                fsl_sub.config.BadConfiguration,
-                fsl_sub.config.find_config_file
-            )
-        mock_exists.reset_mock()
-        mock_exists.side_effect = [False, False]
-        with self.subTest('Environment variable'):
+            self, mock_expanduser):
+        test_dir = tempfile.mkdtemp()
+        try:
+            test_file = os.path.join(test_dir, '.fsl_sub.yml')
+            open(test_file, 'w').close()
+
             with patch.dict(
                     'fsl_sub.config.os.environ',
-                    {'FSLSUB_CONF': '/etc/fsl_sub.yml', },
+                    {'RANDOMENV': 'A', },
                     clear=True):
-                self.assertEqual(
-                    fsl_sub.config.find_config_file(),
-                    '/etc/fsl_sub.yml'
-                )
-        mock_exists.reset_mock()
-        with self.subTest('No FSLDIR'):
+                with self.subTest('Expand user'):
+                    mock_expanduser.return_value = test_dir
+                    self.assertEqual(
+                        fsl_sub.config.find_config_file(),
+                        test_file
+                    )
+            os.unlink(test_file)
+            test_file = os.path.join(test_dir, 'fsl_sub.yml')
+            open(test_file, 'w').close()
+            with self.subTest('Environment variable'):
+
+                with patch.dict(
+                        'fsl_sub.config.os.environ',
+                        {'FSLSUB_CONF': test_file, },
+                        clear=True):
+                    self.assertEqual(
+                        fsl_sub.config.find_config_file(),
+                        test_file
+                    )
+            os.unlink(test_file)
+            fsl_dir = os.path.join(test_dir, 'etc', 'fslconf')
+            os.makedirs(fsl_dir)
+            test_file = os.path.join(fsl_dir, 'fsl_sub.yml')
+            open(test_file, 'w').close()
             with patch.dict(
                     'fsl_sub.config.os.environ',
+                    {'FSLDIR': test_dir, },
                     clear=True):
-                mock_exists.side_effect = [False, True]
-                self.assertEqual(
-                    fsl_sub.config.find_config_file(),
-                    '/etc/fslconf/fsl_sub.yml'
-                )
-        mock_exists.reset_mock()
-        with self.subTest('No FSLDIR - no /etc conf'):
-            mock_exists.side_effect = [False, False]
-            with patch.dict(
-                    'fsl_sub.config.os.environ',
-                    clear=True):
-                self.assertRaises(
-                    fsl_sub.config.BadConfiguration,
-                    fsl_sub.config.find_config_file,
-                )
+                with self.subTest('FSLDIR'):
+                    self.assertEqual(
+                        fsl_sub.config.find_config_file(),
+                        os.path.realpath(test_file)
+                    )
+            shutil.rmtree(os.path.join(test_dir, 'etc'))
+
+            with self.subTest('Missing configuration'):
+                with patch(
+                        'fsl_sub.config.os.path.exists',
+                        return_value=False):
+                    self.assertRaises(
+                        fsl_sub.config.BadConfiguration,
+                        fsl_sub.config.find_config_file
+                    )
+
+            with self.subTest('No FSLDIR'):
+                with patch.dict(
+                        'fsl_sub.config.os.environ',
+                        clear=True):
+                    location = os.path.abspath(
+                        os.path.join(
+                            __file__,
+                            '..',
+                            '..',
+                            'fsl_sub',
+                            'fsl_sub.yml')
+                    )
+
+                    self.assertEqual(
+                        fsl_sub.config.find_config_file(),
+                        location
+                    )
+        finally:
+            shutil.rmtree(test_dir)
 
     @patch('fsl_sub.config.find_config_file', auto_spec=True)
     def test_read_config(self, mock_find_config_file):

@@ -1,4 +1,5 @@
-#!/usr/bin/python
+# fsl_sub python module
+# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
 
 from fsl_sub.config import (
     queue_config,

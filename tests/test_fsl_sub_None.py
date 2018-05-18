@@ -2,13 +2,13 @@
 import os
 import subprocess
 import unittest
-import fsl_sub.plugins.fsl_sub_None
+import fsl_sub.plugins.fsl_sub_plugin_None
 from unittest.mock import (patch, mock_open, call)
 
 
 class TestNone(unittest.TestCase):
-    @patch('fsl_sub.plugins.fsl_sub_None.os.getpid', autospec=True)
-    @patch('fsl_sub.plugins.fsl_sub_None.sp.run', autospec=True)
+    @patch('fsl_sub.plugins.fsl_sub_plugin_None.os.getpid', autospec=True)
+    @patch('fsl_sub.plugins.fsl_sub_plugin_None.sp.run', autospec=True)
     def test_submit(self, mock_sprun, mock_getpid):
         mock_pid = 12345
         mock_getpid.return_value = mock_pid
@@ -24,8 +24,8 @@ class TestNone(unittest.TestCase):
                 args, 0, "")
 
         mock_writer = mock_open()
-        with patch('fsl_sub.plugins.fsl_sub_None.open', mock_writer):
-            job_id = fsl_sub.plugins.fsl_sub_None.submit(
+        with patch('fsl_sub.plugins.fsl_sub_plugin_None.open', mock_writer):
+            job_id = fsl_sub.plugins.fsl_sub_plugin_None.submit(
                 command=args,
                 job_name=jobname,
                 queue="my.q",
@@ -53,8 +53,8 @@ class TestNone(unittest.TestCase):
         )
 
     @patch.dict('fsl_sub.shell_modules.os.environ', {}, clear=True)
-    @patch('fsl_sub.plugins.fsl_sub_None.os.getpid')
-    @patch('fsl_sub.plugins.fsl_sub_None.sp.run')
+    @patch('fsl_sub.plugins.fsl_sub_plugin_None.os.getpid')
+    @patch('fsl_sub.plugins.fsl_sub_plugin_None.sp.run')
     def test_parallel_submit(self, mock_sprun, mock_getpid):
         mock_pid = 12345
         mock_getpid.return_value = mock_pid
@@ -72,7 +72,7 @@ mycommand2 arg3 arg4
         self.maxDiff = None
 
         with patch(
-                'fsl_sub.plugins.fsl_sub_None.open',
+                'fsl_sub.plugins.fsl_sub_plugin_None.open',
                 new_callable=mock_open, read_data=ll_tests) as m:
             m.return_value.__iter__.return_value = ll_tests.splitlines()
             writers = [
@@ -89,7 +89,7 @@ mycommand2 arg3 arg4
 
             mock_sprun.return_value = subprocess.CompletedProcess(
                 'acmd', 0, "")
-            job_id = fsl_sub.plugins.fsl_sub_None.submit(
+            job_id = fsl_sub.plugins.fsl_sub_plugin_None.submit(
                 command=command,
                 job_name=jobname,
                 queue='myq',
@@ -107,7 +107,7 @@ mycommand2 arg3 arg4
                 'FSLSUB_ARRAYENDID_VAR': 'NONE_TASK_LAST',
                 'FSLSUB_ARRAYSTEPSIZE_VAR': 'NONE_TASK_STEPSIZE',
                 },
-                dict(fsl_sub.plugins.fsl_sub_None.os.environ))
+                dict(fsl_sub.plugins.fsl_sub_plugin_None.os.environ))
             self.assertEqual(job_id, mock_pid)
             expected_calls = [
                 call(command, 'r'),
@@ -133,8 +133,8 @@ mycommand2 arg3 arg4
             self.assertEqual(read_calls, m.call_args_list)
 
     @patch.dict('fsl_sub.shell_modules.os.environ', {}, clear=True)
-    @patch('fsl_sub.plugins.fsl_sub_None.os.getpid')
-    @patch('fsl_sub.plugins.fsl_sub_None.sp.run')
+    @patch('fsl_sub.plugins.fsl_sub_plugin_None.os.getpid')
+    @patch('fsl_sub.plugins.fsl_sub_plugin_None.sp.run')
     def test_parallel_submit_spec(self, mock_sprun, mock_getpid):
         mock_pid = 12345
         mock_getpid.return_value = mock_pid
@@ -149,7 +149,7 @@ mycommand2 arg3 arg4
         self.maxDiff = None
 
         with patch(
-                'fsl_sub.plugins.fsl_sub_None.open',
+                'fsl_sub.plugins.fsl_sub_plugin_None.open',
                 new_callable=mock_open) as m:
             writers = [
                 mock_open(), mock_open(),
@@ -166,7 +166,7 @@ mycommand2 arg3 arg4
 
             mock_sprun.return_value = subprocess.CompletedProcess(
                 'acmd', 0, "")
-            job_id = fsl_sub.plugins.fsl_sub_None.submit(
+            job_id = fsl_sub.plugins.fsl_sub_plugin_None.submit(
                 command=command,
                 job_name=jobname,
                 queue='myq',
@@ -185,7 +185,7 @@ mycommand2 arg3 arg4
                 'FSLSUB_ARRAYENDID_VAR': 'NONE_TASK_LAST',
                 'FSLSUB_ARRAYSTEPSIZE_VAR': 'NONE_TASK_STEPSIZE',
                 },
-                dict(fsl_sub.plugins.fsl_sub_None.os.environ))
+                dict(fsl_sub.plugins.fsl_sub_plugin_None.os.environ))
             self.assertEqual(job_id, mock_pid)
             expected_calls = [
                 call(logfile_stdout + '.4', 'w'),

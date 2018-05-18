@@ -110,15 +110,15 @@ class TestPlugins(unittest.TestCase):
             'finder1', 'finder2',
         ]
         mock_iter_modules.return_value = [
-            ('finder1', 'fsl_sub_1', True, ),
-            ('finder2', 'fsl_sub_2', True, ),
+            ('finder1', 'fsl_sub_plugin_1', True, ),
+            ('finder2', 'fsl_sub_plugin_2', True, ),
             ('nothing', 'notfsl', True, ),
             ]
         s_path = sys.path
         self.assertDictEqual(
             fsl_sub.utils.load_plugins(),
-            {'fsl_sub_1': 'finder1',
-             'fsl_sub_2': 'finder2', }
+            {'fsl_sub_plugin_1': 'finder1',
+             'fsl_sub_plugin_2': 'finder2', }
         )
         self.assertListEqual(
             s_path,

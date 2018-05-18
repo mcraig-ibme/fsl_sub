@@ -1,3 +1,6 @@
+# fsl_sub python module
+# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+
 import os
 import yaml
 
@@ -7,29 +10,41 @@ from functools import lru_cache
 
 def find_config_file():
     # Find most appropriate config file
-    user_home = os.path.expanduser("~")
-    personal_config = os.path.join(user_home, '.fsl_sub.yml')
-    if os.path.exists(personal_config):
-        return personal_config
-
+    search_path = []
     try:
         env_config = os.environ['FSLSUB_CONF']
-        return env_config
+        search_path.append(env_config)
     except KeyError:
         pass
 
-    try:
-        default_conf = os.environ['FSLDIR']
-    except KeyError:
-        default_conf = os.sep
-    default_conf = os.path.abspath(
+    search_path.append(
         os.path.join(
-            default_conf, 'etc',
-            'fslconf'))
-    if os.path.exists(default_conf):
-        return os.path.join(default_conf, 'fsl_sub.yml')
-    else:
-        raise BadConfiguration("Unable to find fsl_sub config")
+            os.path.expanduser("~"),
+            '.fsl_sub.yml')
+    )
+
+    try:
+        fsl_dir = os.environ['FSLDIR']
+        default_conf = os.path.realpath(
+            os.path.join(fsl_dir, 'etc', 'fslconf', 'fsl_sub.yml')
+        )
+        search_path.append(
+            os.path.abspath(default_conf)
+        )
+    except KeyError:
+        pass
+    search_path.append(
+        os.path.abspath(
+            os.path.join(
+                os.path.realpath(__file__),
+                os.path.pardir,
+                'fsl_sub.yml')))
+
+    for p in search_path:
+        if os.path.exists(p):
+            return p
+
+    raise BadConfiguration("Unable to find fsl_sub config")
 
 
 @lru_cache()

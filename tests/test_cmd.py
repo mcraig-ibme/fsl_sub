@@ -12,6 +12,7 @@ ram_units: G
 modulecmd: /usr/bin/modulecmd
 method_opts:
     SGE:
+        queues: True
         large_job_split_pe: shmem
         copy_environment: True
         affinity_type: linear
@@ -220,7 +221,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_parallelenv(self, *args):
@@ -253,7 +256,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
         args[2].reset_mock()
         fsl_sub.cmd.main(['-s', 'shmem,2', '1', '2', ])
@@ -285,7 +290,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_mailoptions(self, *args):
@@ -318,7 +325,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_mailto(self, *args):
@@ -351,7 +360,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
         args[2].reset_mock()
         fsl_sub.cmd.main(['-M', 'user@test.com', '1', '2', ])
@@ -383,7 +394,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_array_task(self, *args):
@@ -416,7 +429,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
         args[2].reset_mock()
         fsl_sub.cmd.main(['-t', 'taskfile', ])
@@ -448,7 +463,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_array_limit(self, *args):
@@ -482,7 +499,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
         args[2].reset_mock()
         fsl_sub.cmd.main(['-x', '2', '--array_task', 'commandfile', ])
@@ -514,7 +533,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_array_hold(self, *args):
@@ -524,7 +545,7 @@ class TestMain(unittest.TestCase):
         args[2].assert_called_with(
             'commandfile',
             architecture=None,
-            array_hold='20002',
+            array_hold=['20002'],
             array_limit=None,
             array_specifier=None,
             array_task=True,
@@ -548,7 +569,119 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
+        )
+
+    def test_array_hold_native(self, *args):
+        fsl_sub.cmd.main(
+            [
+                '--array_task', 'commandfile',
+                '--array_hold', '20002:aa', '--native_holds', ])
+
+        args[2].assert_called_with(
+            'commandfile',
+            architecture=None,
+            array_hold='20002:aa',
+            array_limit=None,
+            array_specifier=None,
+            array_task=True,
+            coprocessor=None,
+            coprocessor_toolkit=None,
+            coprocessor_class=None,
+            coprocessor_class_strict=False,
+            coprocessor_multi=1,
+            name=None,
+            parallel_env=None,
+            queue=None,
+            threads=1,
+            jobhold=None,
+            jobram=None,
+            jobtime=None,
+            logdir=None,
+            mail_on=None,
+            mailto=USER_EMAIL,
+            priority=None,
+            ramsplit=True,
+            requeueable=True,
+            resources=None,
+            usescript=False,
+            validate_command=True,
+            native_holds=True,
+            as_tuple=False
+        )
+
+    def test_job_hold(self, *args):
+        fsl_sub.cmd.main(
+            ['--jobhold', '20002', 'commandfile'])
+
+        args[2].assert_called_with(
+            ['commandfile'],
+            architecture=None,
+            array_hold=None,
+            array_limit=None,
+            array_specifier=None,
+            array_task=False,
+            coprocessor=None,
+            coprocessor_toolkit=None,
+            coprocessor_class=None,
+            coprocessor_class_strict=False,
+            coprocessor_multi=1,
+            name=None,
+            parallel_env=None,
+            queue=None,
+            threads=1,
+            jobhold=['20002'],
+            jobram=None,
+            jobtime=None,
+            logdir=None,
+            mail_on=None,
+            mailto=USER_EMAIL,
+            priority=None,
+            ramsplit=True,
+            requeueable=True,
+            resources=None,
+            usescript=False,
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
+        )
+
+    def test_job_hold_native(self, *args):
+        fsl_sub.cmd.main(
+            ['--jobhold', '20002:aa', '--native_holds', 'commandfile', ])
+
+        args[2].assert_called_with(
+            ['commandfile'],
+            architecture=None,
+            array_hold=None,
+            array_limit=None,
+            array_specifier=None,
+            array_task=False,
+            coprocessor=None,
+            coprocessor_toolkit=None,
+            coprocessor_class=None,
+            coprocessor_class_strict=False,
+            coprocessor_multi=1,
+            name=None,
+            parallel_env=None,
+            queue=None,
+            threads=1,
+            jobhold='20002:aa',
+            jobram=None,
+            jobtime=None,
+            logdir=None,
+            mail_on=None,
+            mailto=USER_EMAIL,
+            priority=None,
+            ramsplit=True,
+            requeueable=True,
+            resources=None,
+            usescript=False,
+            validate_command=True,
+            native_holds=True,
+            as_tuple=False
         )
 
     def test_array_native(self, *args):
@@ -582,7 +715,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_coprocessor(self, *args):
@@ -615,7 +750,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_coprocessor_toolkit(self, *args):
@@ -651,7 +788,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_coprocessor_class(self, *args):
@@ -687,7 +826,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_coprocessor_class_strict(self, *args):
@@ -724,7 +865,9 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )
 
     def test_coprocessor_multi(self, *args):
@@ -760,5 +903,7 @@ class TestMain(unittest.TestCase):
             requeueable=True,
             resources=None,
             usescript=False,
-            validate_command=True
+            validate_command=True,
+            native_holds=False,
+            as_tuple=False
         )

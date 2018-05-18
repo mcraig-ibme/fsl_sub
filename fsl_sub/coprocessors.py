@@ -1,3 +1,6 @@
+# fsl_sub python module
+# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+
 import sys
 from collections import defaultdict
 from fsl_sub.config import (
