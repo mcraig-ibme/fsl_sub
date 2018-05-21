@@ -48,7 +48,7 @@ def available_plugins():
 
     plugs = []
     for p in PLUGINS.keys():
-        (_, plugin_name) = p.split('plugins_')
+        (_, plugin_name) = p.split('plugin_')
         plugs.append(plugin_name)
 
     return plugs
@@ -56,7 +56,7 @@ def available_plugins():
 
 def get_plugin_example_conf(plugin_name):
     PLUGINS = load_plugins()
-    grid_module = 'fsl_sub_' + plugin_name
+    grid_module = 'fsl_sub_plugin_' + plugin_name
 
     if grid_module not in PLUGINS:
         raise CommandError("Plugin {} not found". format(plugin_name))

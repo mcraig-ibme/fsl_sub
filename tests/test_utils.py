@@ -125,6 +125,18 @@ class TestPlugins(unittest.TestCase):
             sys.path
         )
 
+    @patch('fsl_sub.utils.load_plugins')
+    def test_available_plugins(self, mock_load_plugins):
+        mock_load_plugins.return_value = {
+            'fsl_sub_plugin_1': 'finder1',
+            'fsl_sub_plugin_2': 'finder2', }
+        plugins = fsl_sub.utils.available_plugins()
+        plugins.sort()
+        self.assertListEqual(
+            ['1', '2', ],
+            plugins
+        )
+
 
 class TestAffimativeNegative(unittest.TestCase):
     def test_affirmative(self):

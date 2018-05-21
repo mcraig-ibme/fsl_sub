@@ -463,7 +463,7 @@ There are several batch queues configured on the cluster:
     return parser
 
 
-def example_config_parser():
+def example_config_parser(parser_class=argparse.ArgumentParser):
     '''Parse the command line, returns a dict keyed on option'''
     logger = logging.getLogger(__name__)
     plug_ins = available_plugins()
@@ -471,13 +471,12 @@ def example_config_parser():
     logger.debug("plugins found:")
     logger.debug(plug_ins)
 
-    parser = argparse.ArgumentParser(
+    parser = parser_class(
         prog="fsl_sub_config",
         description='FSL cluster submission configuration examples.',
         )
     parser.add_argument(
             'plugin',
-            default='None',
             choices=plug_ins,
             help="Output an example fsl_sub configuration which may be "
             "customised for your system."
