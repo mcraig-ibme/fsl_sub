@@ -42,6 +42,10 @@ class CommandError(Exception):
     pass
 
 
+class UnknownJobId(Exception):
+    pass
+
+
 CONFIG_ERROR = 1
 SUBMISSION_ERROR = 2
 RUNNER_ERROR = 3
