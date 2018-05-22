@@ -138,7 +138,7 @@ def example_conf():
     cluster plugin.'''
 
     here = os.path.realpath(os.path.dirname(__file__))
-    with open(os.path.join(here, 'fsl_sub_None.yml')) as e_conf_f:
+    with open(os.path.join(here, 'fsl_sub_none.yml')) as e_conf_f:
         e_conf = e_conf_f.read()
 
     return e_conf

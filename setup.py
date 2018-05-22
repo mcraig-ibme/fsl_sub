@@ -33,7 +33,7 @@ setup(
     python_requires='~=3.5',
     package_data={
         'fsl_sub': ['fsl_sub.yml'],
-        'fsl_sub.plugins': ['fsl_sub_None.yml'],
+        'fsl_sub.plugins': ['fsl_sub_none.yml'],
     },
     include_package_data=True,
     entry_points={

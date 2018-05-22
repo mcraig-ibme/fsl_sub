@@ -50,11 +50,11 @@ If you only need to run programs locally, fsl_sub ships with a local job plugin,
 
 _(virtualenv)_
 
-> pip install git+ssh://git@git.fmrib.ox.ac.uk/fsl/fsl_sub_plugin_SGE.git
+> pip install git+ssh://git@git.fmrib.ox.ac.uk/fsl/fsl_sub_plugin_sge.git
 
 _(conda)_
 
-> conda install fsl_sub_plugin_SGE
+> conda install fsl_sub_plugin_sge
 
 (or _fsl_sub_plugin_Slurm.git_ and _fsl_sub_plugin_Slurm_ respectively)
 

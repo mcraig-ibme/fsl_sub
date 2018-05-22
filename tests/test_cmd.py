@@ -924,7 +924,7 @@ class TestExampleConf(unittest.TestCase):
             parser_class=ErrorRaisingArgumentParser)
         none_config = os.path.join(
             os.path.dirname(__file__), '..', 'fsl_sub',
-            'plugins', 'fsl_sub_None.yml')
+            'plugins', 'fsl_sub_none.yml')
         with open(none_config, 'r') as yfile:
             cls.exp_conf = yfile.read()
 
