@@ -1,0 +1,37 @@
+# Job submission method to use. Supported values are 'SGE' and 'NONE'
+method: None
+# Default units for RAM given
+# (P, T, G, M, K)
+ram_units: G
+modulecmd: False
+
+# List all environment variables that control thread usage
+# will set these to parallel environment threads
+thread_control: None
+
+method_opts:
+  None:
+    parallel_envs: []
+    same_node_pes: []
+    large_job_split_pe: []
+    mail_support: False
+    map_ram: False
+    job_priorities: False
+    array_holds: False
+    array_limit: False
+    architecture: False
+    job_resources: False
+    script_conf: False
+
+# The following defines configuration options for co-processor queues
+# Define queues with a copro key set to the name of the appropriate option
+# set and ensure that your queue method has a way of interpreting this
+coproc_opts:
+  cuda:
+    # Should we use Shell modules to load the environment settings for
+    # the hardware?
+    uses_modules: False
+    # What is the name of the parent module for this co-processor?
+    module_parent: cuda
+    # Should we disable core binding for co-processor tasks?
+    no_binding: True
