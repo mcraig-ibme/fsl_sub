@@ -142,3 +142,8 @@ def example_conf():
         e_conf = e_conf_f.read()
 
     return e_conf
+
+
+def job_status(job_id, sub_job_id=None):
+
+    return None
