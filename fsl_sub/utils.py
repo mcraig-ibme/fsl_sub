@@ -63,7 +63,7 @@ def get_plugin_example_conf(plugin_name):
 
     try:
         return PLUGINS[grid_module].example_conf()
-    except AttributeError as e:
+    except AttributeError:
         raise BadConfiguration(
             "Plugin doesn't provide an example configuration."
         )
@@ -161,7 +161,7 @@ def check_command_file(cmds):
                     raise CommandError(
                         "Cannot find script/binary {0} on line {1}"
                         " of {2}".format(cmd, lineno + 1, cmd_file.name))
-    except (IOError, FileNotFoundError) as e:
+    except (IOError, FileNotFoundError):
         raise CommandError("Unable to read '{}'".format(cmds))
     return lineno + 1
 
