@@ -37,6 +37,8 @@ test:
     {% for package in data.get('setup_requires', {}) %}
     - {{ package.lower() }}
     {% endfor %}
+  imports:
+    - fsl_sub
   commands:
-    - python -m unittest
+    - python -m unittest discover fsl_sub.tests -p "test_*.py"
 {% endif %}
