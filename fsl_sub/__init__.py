@@ -57,7 +57,6 @@ def report(
         name
         script (if available)
         arguments (if available)
-        # sub_state: fsl_sub.consts.NORMAL|RESTARTED|SUSPENDED
         submission_time
         tasks (dict keyed on sub-task ID):
             status:
@@ -65,6 +64,7 @@ def report(
                 fsl_sub.consts.RUNNING
                 fsl_sub.consts.FINISHED
                 fsl_sub.consts.FAILEDNQUEUED
+                fsl_sub.consts.SUSPENDED
                 fsl_sub.consts.HELD
             start_time
             end_time

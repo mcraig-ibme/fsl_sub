@@ -40,6 +40,7 @@ setup(
         'console_scripts': [
             'fsl_sub=fsl_sub.cmd:main',
             'fsl_sub_config=fsl_sub.cmd:example_config',
+            'fsl_sub_report=fsl_sub.cmd:report_cmd',
         ]
     }
     )

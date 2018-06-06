@@ -87,6 +87,21 @@ def minutes_to_human(minutes):
     return result
 
 
+def titlize_key(text):
+    '''Remove _ and Title case a dict key'''
+
+    return text.replace('_', ' ').title()
+
+
+def blank_none(text):
+    '''Return textual value or blank if value is None'''
+
+    if text is None:
+        return ''
+    else:
+        return str(text)
+
+
 def human_to_ram(ram, output='M', units='G'):
     '''Converts user supplied RAM quantity into output scale'''
 

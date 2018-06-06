@@ -11,6 +11,7 @@ import sys
 import traceback
 from fsl_sub import (
     submit,
+    report,
     VERSION,
 )
 from fsl_sub.config import (
@@ -18,6 +19,7 @@ from fsl_sub.config import (
     method_config,
     coprocessor_config,
 )
+import fsl_sub.consts
 from fsl_sub.coprocessors import (
     coproc_info,
     coproc_classes,
@@ -43,9 +45,11 @@ from fsl_sub.parallel import (
 )
 from fsl_sub.utils import (
     available_plugins,
+    blank_none,
     file_is_image,
     get_plugin_example_conf,
     minutes_to_human,
+    titlize_key,
 )
 
 
@@ -484,6 +488,31 @@ def example_config_parser(parser_class=argparse.ArgumentParser):
     return parser
 
 
+def report_parser(parser_class=argparse.ArgumentParser):
+    '''Parse the command line, returns a dict keyed on option'''
+
+    parser = parser_class(
+        prog="fsl_sub_report",
+        description='FSL cluster job reporting.',
+        )
+    parser.add_argument(
+        'job_id',
+        type=int,
+        help="Report job details for this job ID."
+        )
+    parser.add_argument(
+        '--subjob_id',
+        type=int,
+        help="Report job details for this subjob ID's only."
+        )
+    parser.add_argument(
+        '--parseable',
+        action="store_true",
+        help="Include all output '|' separated"
+    )
+    return parser
+
+
 class LogFormatter(logging.Formatter):
 
     default_fmt = logging.Formatter('%(levelname)s:%(name)s: %(message)s')
@@ -505,6 +534,108 @@ def example_config(args=None):
     example_parser = example_config_parser()
     options = example_parser.parse_args(args=args)
     print(get_plugin_example_conf(options.plugin))
+
+
+def report_cmd(args=None):
+    lhdr = logging.StreamHandler()
+    fmt = LogFormatter()
+    lhdr.setFormatter(fmt)
+    logger = logging.getLogger('fsl_sub')
+    plugin_logger = logging.getLogger('fsl_sub.plugins')
+    logger.addHandler(lhdr)
+    plugin_logger.addHandler(lhdr)
+    cmd_parser = report_parser()
+    options = vars(cmd_parser.parse_args(args=args))
+    job_details = report(options.job_id, options.subjob_id)
+    order = [
+            'id', 'name',
+            'script', 'arguments',
+            'submission_time', 'parents',
+            'children', 'job_directory'
+        ]
+    task_order = [
+                    'status', 'start_time',
+                    'end_time', 'sub_time',
+                    'utime', 'stime',
+                    'exit_status', 'error_message',
+                    'maxmemory'
+                ]
+
+    if not options.parseable:
+        print("Job Details")
+        for key in order:
+            detail = job_details[key]
+            if key != 'tasks':
+                if detail is None:
+                    continue
+                print("{0}: ".format(titlize_key(key)), end='')
+                if key == 'submission_time':
+                    print("{0}".format(
+                        detail.strftime('%d/%m/%Y %H:%M:%S')))
+                if detail is not None:
+                    print("{0}".format(
+                        str(detail)
+                    ))
+            else:
+                sub_tasks = False
+                if len(detail.items()) > 1:
+                    sub_tasks = True
+                    print("Tasks")
+                else:
+                    print("Task")
+                for task, task_info in detail.items():
+                    if sub_tasks:
+                        print("Array ID: " + str(task))
+                    for task_key in task_order:
+                        task_detail = task_info[task_key]
+                        if task_detail is None:
+                            continue
+                        if task_key == 'status':
+                            print(
+                                "Job state: " + fsl_sub.consts.REPORTING[
+                                    task_detail])
+                        else:
+                            print("{}: ".format(titlize_key(task_key), end=''))
+                            if task_key in ['utime', 'stime', ]:
+                                print("{0}s".format(task_detail))
+                            if task_key in ['maxmemory']:
+                                print("{0}MB".format(task_detail))
+                            if task_key in [
+                                    'sub_time', 'start_time', 'end_time']:
+                                print(task_detail[task_key].strftime(
+                                    '%d/%m/%Y %H:%M:%S'))
+                            else:
+                                print(str(task_detail))
+    else:
+        for sub_task, td in job_details['tasks'].items():
+            line = []
+            line.append(job_details['id'])
+            line.append(sub_task)
+            for key in order:
+                if key == 'id':
+                    continue
+                if key == 'submission_time':
+                    line.append(
+                        job_details[key].strftime('%d/%m/%Y %H:%M:%S'))
+                else:
+                    line.append(blank_none(job_details[key]))
+            for key in task_order:
+                if key == 'status':
+                    print(
+                        "Job state: " + fsl_sub.consts.REPORTING[
+                            td[key]])
+                else:
+                    print("{}: ".format(titlize_key(td), end=''))
+                    if key in ['utime', 'stime', ]:
+                        print("{0}s".format(blank_none(task_detail)))
+                    if key in ['maxmemory']:
+                        print("{0}MB".format(blank_none(task_detail)))
+                    if key in ['sub_time', 'start_time', 'end_time']:
+                        print(task_detail[key].strftime(
+                            '%d/%m/%Y %H:%M:%S'))
+                    else:
+                        print(blank_none(task_detail))
+            print('|'.join(line))
 
 
 def main(args=None):
