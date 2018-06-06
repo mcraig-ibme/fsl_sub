@@ -1,8 +1,8 @@
 # fsl_sub
 
-_Copyright 2018, University of Oxford (Duncan Mortimer)_
+## Copyright 2018, University of Oxford (Duncan Mortimer)
 
-*** Job submission to cluster queues ***
+Job submission to cluster queues
 
 ## Introduction
 
@@ -35,7 +35,7 @@ and fsl_sub can be installed with:
 
 ### Installation with Conda
 
-First, install Miniconda from https://conda.io/miniconda.html, install as per their instructions then create an environment and activate:
+First, install Miniconda from <https://conda.io/miniconda.html>, install as per their instructions then create an environment and activate:
 
 > conda create -n fsl_sub python=3.6
 > source activate fsl_sub
@@ -48,11 +48,11 @@ and install fsl_sub with:
 
 If you only need to run programs locally, fsl_sub ships with a local job plugin, but if you wish to target a grid backend you need to install an appropriate plugin. At this time there are two plugins available, one for Son of/Univa/Sun Grid Engine and one for Slurm. To install a plugin, ensure your environment is activated and then install the plugin with:
 
-_(virtualenv)_
+#### virtualenv
 
 > pip install git+ssh://git@git.fmrib.ox.ac.uk/fsl/fsl_sub_plugin_sge.git
 
-_(conda)_
+#### conda
 
 > conda install fsl_sub_plugin_sge
 
