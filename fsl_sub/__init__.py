@@ -3,6 +3,7 @@
 # fsl_sub python module
 # Copyright (c) 2018, University of Oxford (Duncan Mortimer)
 
+import datetime
 import errno
 import getpass
 import logging
@@ -26,6 +27,7 @@ from fsl_sub.config import (
     method_config,
     coprocessor_config,
 )
+import fsl_sub.consts
 from fsl_sub.utils import (
     load_plugins,
     affirmative,
@@ -44,6 +46,81 @@ def fsl_sub_warnings_formatter(
 
 warnings.formatwarning = fsl_sub_warnings_formatter
 warnings.simplefilter('always', UserWarning)
+
+
+def report(
+    job_id,
+    subjob_id=None
+):
+    '''Request a job status. Returns a dictionary:
+        id
+        name
+        script (if available)
+        arguments (if available)
+        # sub_state: fsl_sub.consts.NORMAL|RESTARTED|SUSPENDED
+        submission_time
+        tasks (dict keyed on sub-task ID):
+            status:
+                fsl_sub.consts.QUEUED
+                fsl_sub.consts.RUNNING
+                fsl_sub.consts.FINISHED
+                fsl_sub.consts.FAILEDNQUEUED
+                fsl_sub.consts.HELD
+            start_time
+            end_time
+            sub_time
+            utime
+            stime
+            exit_status
+            error_message
+            maxmemory (in Mbytes)
+        parents (if available)
+        children (if available)
+        job_directory (if available)
+    '''
+
+    PLUGINS = load_plugins()
+
+    config = read_config()
+
+    if config['method'] != 'None':
+        ntime = datetime.datetime.now()
+        return {
+            'id': 123456,
+            'name': 'nojob',
+            'script': None,
+            'arguments': None,
+            'submission_time': ntime,
+            'tasks': {
+                '1': {
+                    'status': fsl_sub.consts.FINISHED,
+                    'start_time': ntime,
+                    'end_time': ntime,
+                    'sub_time': ntime,
+                    'utime': 0,
+                    'stime': 0,
+                    'exit_status': 0,
+                    'error_message': None,
+                    'maxmemory': 0
+                }
+            },
+            'parents': None,
+            'children': None,
+            'job_directory': None
+        }
+    grid_module = 'fsl_sub_plugin_' + config['method']
+    if grid_module not in PLUGINS:
+        raise BadConfiguration(
+            "{} not a supported method".format(config['method']))
+
+    try:
+        job_status = PLUGINS[grid_module].job_status
+    except AttributeError as e:
+        raise BadConfiguration(
+            "Failed to load plugin " + grid_module
+        )
+
+    return job_status(job_id, subjob_id)
 
 
 def submit(
