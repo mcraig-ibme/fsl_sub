@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='fsl_sub',
-    version='2.0.0',
+    version='2.0.0RC3',
     description='FSL Cluster Submission Script',
     author='Duncan Mortimer',
     author_email='duncan.mortimer@ndcn.ox.ac.uk',
@@ -27,7 +27,7 @@ setup(
         'Documentation': 'https://fsl.fmrib.ox.ac.uk/fsl/fslwiki',
         'Source': 'https://git.fmrib.ox.ac.uk/fsl/fsl_sub'
     },
-    packages=find_packages(exclude=['tests*', ]),
+    packages=find_packages(),
     license='FSL License',
     install_requires=['pyyaml'],
     python_requires='~=3.5',
