@@ -545,13 +545,16 @@ def report_cmd(args=None):
     logger.addHandler(lhdr)
     plugin_logger.addHandler(lhdr)
     cmd_parser = report_parser()
-    options = vars(cmd_parser.parse_args(args=args))
-    job_details = report(options.job_id, options.subjob_id)
+    options = cmd_parser.parse_args(args=args)
+    try:
+        job_details = report(options.job_id, options.subjob_id)
+    except BadConfiguration as e:
+        cmd_parser.error("Bad configuration: " + str(e))
     order = [
             'id', 'name',
             'script', 'arguments',
             'submission_time', 'parents',
-            'children', 'job_directory'
+            'children', 'job_directory', 'tasks',
         ]
     task_order = [
                     'status', 'start_time',
@@ -562,6 +565,9 @@ def report_cmd(args=None):
                 ]
 
     if not options.parseable:
+        if 'fake' in job_details:
+            print("No queuing software configured")
+            return
         print("Job Details")
         for key in order:
             detail = job_details[key]
@@ -572,7 +578,7 @@ def report_cmd(args=None):
                 if key == 'submission_time':
                     print("{0}".format(
                         detail.strftime('%d/%m/%Y %H:%M:%S')))
-                if detail is not None:
+                elif detail is not None:
                     print("{0}".format(
                         str(detail)
                     ))
@@ -580,9 +586,9 @@ def report_cmd(args=None):
                 sub_tasks = False
                 if len(detail.items()) > 1:
                     sub_tasks = True
-                    print("Tasks")
+                    print("Tasks...")
                 else:
-                    print("Task")
+                    print("Task...")
                 for task, task_info in detail.items():
                     if sub_tasks:
                         print("Array ID: " + str(task))
@@ -595,14 +601,14 @@ def report_cmd(args=None):
                                 "Job state: " + fsl_sub.consts.REPORTING[
                                     task_detail])
                         else:
-                            print("{}: ".format(titlize_key(task_key), end=''))
+                            print("{}: ".format(titlize_key(task_key)), end='')
                             if task_key in ['utime', 'stime', ]:
                                 print("{0}s".format(task_detail))
-                            if task_key in ['maxmemory']:
+                            elif task_key in ['maxmemory']:
                                 print("{0}MB".format(task_detail))
-                            if task_key in [
+                            elif task_key in [
                                     'sub_time', 'start_time', 'end_time']:
-                                print(task_detail[task_key].strftime(
+                                print(task_detail.strftime(
                                     '%d/%m/%Y %H:%M:%S'))
                             else:
                                 print(str(task_detail))

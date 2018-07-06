@@ -83,7 +83,7 @@ def report(
 
     config = read_config()
 
-    if config['method'] != 'None':
+    if config['method'] == 'None':
         ntime = datetime.datetime.now()
         return {
             'id': 123456,
@@ -106,7 +106,8 @@ def report(
             },
             'parents': None,
             'children': None,
-            'job_directory': None
+            'job_directory': None,
+            'fake': True
         }
     grid_module = 'fsl_sub_plugin_' + config['method']
     if grid_module not in PLUGINS:
