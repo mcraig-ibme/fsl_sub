@@ -74,8 +74,8 @@ class TestConfig(unittest.TestCase):
                             __file__,
                             '..',
                             '..',
-                            'fsl_sub',
-                            'fsl_sub.yml')
+                            'plugins',
+                            'fsl_sub_none.yml')
                     )
 
                     self.assertEqual(

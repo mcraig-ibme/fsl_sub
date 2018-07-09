@@ -115,7 +115,8 @@ def find_config_file():
             os.path.join(
                 os.path.realpath(__file__),
                 os.path.pardir,
-                'fsl_sub.yml')))
+                'plugins',
+                'fsl_sub_none.yml')))
 
     for p in search_path:
         if os.path.exists(p):
