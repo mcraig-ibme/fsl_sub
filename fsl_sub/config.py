@@ -63,7 +63,7 @@ def valid_config(config):
                         )
                     )
 
-            if copro['uses_modules']:
+            if conf['uses_modules']:
                 for k in copro_mod_opts_keys:
                     if k not in conf.keys():
                         raise BadConfiguration(
@@ -72,7 +72,7 @@ def valid_config(config):
                                 k, copro
                             )
                         )
-            if copro['classes']:
+            if conf['classes']:
                 for k in copro_class_opts_keys:
                     if k not in conf.keys():
                         raise BadConfiguration(
