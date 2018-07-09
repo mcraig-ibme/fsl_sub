@@ -19,7 +19,7 @@ def valid_config(config):
     mopts_keys = [
         'queues', 'large_job_split_pe',
         'mail_support', 'map_ram',
-        'job_prorities', 'array_holds',
+        'job_priorities', 'array_holds',
         'array_limit', 'architecture',
         'job_resources', 'script_conf',
     ]
@@ -44,18 +44,18 @@ def valid_config(config):
                 "Missing {} option in configuration file".format(
                     k
                 ))
-    for k in mopts_keys:
-        for method in config['method_opts']:
-            if k not in method.keys():
+    for method, conf in config['method_opts'].items():
+        for k in mopts_keys:
+            if k not in conf.keys():
                 raise BadConfiguration(
-                    "Missing {0} option in method {1}s definition in "
+                    "Missing {0} option in method '{1}'s definition in "
                     "configuration file".format(
                         k, method
                     ))
     if 'coproc_opts' in config.keys():
-        for copro in config['coproc_opts']:
+        for copro, conf in config['coproc_opts'].items():
             for k in copro_opts_keys:
-                if k not in copro.keys():
+                if k not in conf.keys():
                     raise BadConfiguration(
                         "Missing {0} option in coprocessor {1}s definition in"
                         "configuration file".format(
@@ -65,7 +65,7 @@ def valid_config(config):
 
             if copro['uses_modules']:
                 for k in copro_mod_opts_keys:
-                    if k not in copro.keys():
+                    if k not in conf.keys():
                         raise BadConfiguration(
                             "Missing {0} option in coprocessor {1}s"
                             " definition in configuration file".format(
@@ -74,7 +74,7 @@ def valid_config(config):
                         )
             if copro['classes']:
                 for k in copro_class_opts_keys:
-                    if k not in copro.keys():
+                    if k not in conf.keys():
                         raise BadConfiguration(
                             "Missing {0} option in coprocessor {1}s"
                             " definition in configuration file".format(
