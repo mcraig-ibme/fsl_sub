@@ -1,4 +1,4 @@
-# Job submission method to use. Supported values are 'SGE' and 'NONE'
+# Job submission method to use.
 method: None
 # Default units for RAM given
 # (P, T, G, M, K)
@@ -12,7 +12,7 @@ thread_control: None
 method_opts:
   None:
     queues: False
-    large_job_split_pe: []
+    large_job_split_pe: None
     mail_support: False
     map_ram: False
     job_priorities: False
@@ -22,15 +22,17 @@ method_opts:
     job_resources: False
     script_conf: False
 
-# The following defines configuration options for co-processor queues
-# Define queues with a copro key set to the name of the appropriate option
-# set and ensure that your queue method has a way of interpreting this
-coproc_opts:
-  cuda:
-    # Should we use Shell modules to load the environment settings for
-    # the hardware?
-    uses_modules: False
-    # What is the name of the parent module for this co-processor?
-    module_parent: cuda
-    # Should we disable core binding for co-processor tasks?
-    no_binding: True
+# If you have coprocessors available, e.g. CUDA hardware then the following
+# may be uncommented and modified as appropriate
+# Define queues with a copro key set to the name of the appropriate section
+# e.g. 'cuda' in the example below.
+#coproc_opts:
+#  cuda:
+#    resource: gpu
+#    # Should we use Shell modules to load the environment settings for
+#    # the hardware?
+#    uses_modules: False
+#    # What is the name of the parent module for this co-processor?
+#    module_parent: cuda
+#    # Should we disable core binding for co-processor tasks?
+#    no_binding: True

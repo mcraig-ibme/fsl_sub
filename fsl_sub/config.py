@@ -8,6 +8,83 @@ from fsl_sub.exceptions import BadConfiguration
 from functools import lru_cache
 
 
+def valid_config(config):
+    '''Check config file has required entries'''
+
+    tl_keys = [
+        'method', 'ram_units',
+        'modulecmd', 'thread_control',
+        'method_opts', ]
+
+    mopts_keys = [
+        'queues', 'large_job_split_pe',
+        'mail_support', 'map_ram',
+        'job_prorities', 'array_holds',
+        'array_limit', 'architecture',
+        'job_resources', 'script_conf',
+    ]
+
+    copro_opts_keys = [
+        'uses_modules', 'classes',
+        'no_binding', 'resource',
+    ]
+
+    copro_mod_opts_keys = [
+        'module_parent'
+    ]
+
+    copro_class_opts_keys = [
+        'default_class', 'include_mode_capable',
+        'class_types', 'class_resource'
+    ]
+
+    for k in tl_keys:
+        if k not in config.keys():
+            raise BadConfiguration(
+                "Missing {} option in configuration file".format(
+                    k
+                ))
+    for k in mopts_keys:
+        for method in config['method_opts']:
+            if k not in method.keys():
+                raise BadConfiguration(
+                    "Missing {0} option in method {1}s definition in "
+                    "configuration file".format(
+                        k, method
+                    ))
+    if 'coproc_opts' in config.keys():
+        for copro in config['coproc_opts']:
+            for k in copro_opts_keys:
+                if k not in copro.keys():
+                    raise BadConfiguration(
+                        "Missing {0} option in coprocessor {1}s definition in"
+                        "configuration file".format(
+                            k, method
+                        )
+                    )
+
+            if copro['uses_modules']:
+                for k in copro_mod_opts_keys:
+                    if k not in copro.keys():
+                        raise BadConfiguration(
+                            "Missing {0} option in coprocessor {1}s"
+                            " definition in configuration file".format(
+                                k, copro
+                            )
+                        )
+            if copro['classes']:
+                for k in copro_class_opts_keys:
+                    if k not in copro.keys():
+                        raise BadConfiguration(
+                            "Missing {0} option in coprocessor {1}s"
+                            " definition in configuration file".format(
+                                k, copro
+                            )
+                        )
+
+    return True
+
+
 def find_config_file():
     # Find most appropriate config file
     search_path = []

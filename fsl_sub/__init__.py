@@ -26,6 +26,7 @@ from fsl_sub.config import (
     read_config,
     method_config,
     coprocessor_config,
+    valid_config,
 )
 import fsl_sub.consts
 from fsl_sub.utils import (
@@ -82,6 +83,8 @@ def report(
     PLUGINS = load_plugins()
 
     config = read_config()
+
+    valid_config(config)
 
     if config['method'] == 'None':
         ntime = datetime.datetime.now()
@@ -224,6 +227,7 @@ def submit(
     PLUGINS = load_plugins()
 
     config = read_config()
+    valid_config(config)
 
     try:
         already_run = os.environ['FSLSUBALREADYRUN']
