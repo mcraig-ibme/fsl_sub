@@ -19,7 +19,6 @@ thread_control:
 method_opts:
   None:
     queues: False
-    parallel_envs: []
     same_node_pes: []
     large_job_split_pe: []
     mail_support: False
