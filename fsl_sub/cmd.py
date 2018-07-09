@@ -560,17 +560,22 @@ def report_cmd(args=None):
                     'status', 'start_time',
                     'end_time', 'sub_time',
                     'utime', 'stime',
-                    'exit_status', 'error_message',
+                    'exit_status', 'error_messages',
                     'maxmemory'
                 ]
-
+    if job_details is None:
+        cmd_parser.error(
+            "Unrecognised job id " + str(options.job_id))
     if not options.parseable:
         if 'fake' in job_details:
             print("No queuing software configured")
             return
-        print("Job Details")
+        print("Job Details\n===========")
         for key in order:
-            detail = job_details[key]
+            try:
+                detail = job_details[key]
+            except KeyError:
+                continue
             if key != 'tasks':
                 if detail is None:
                     continue
@@ -593,7 +598,10 @@ def report_cmd(args=None):
                     if sub_tasks:
                         print("Array ID: " + str(task))
                     for task_key in task_order:
-                        task_detail = task_info[task_key]
+                        try:
+                            task_detail = task_info[task_key]
+                        except KeyError:
+                            continue
                         if task_detail is None:
                             continue
                         if task_key == 'status':
@@ -610,6 +618,8 @@ def report_cmd(args=None):
                                     'sub_time', 'start_time', 'end_time']:
                                 print(task_detail.strftime(
                                     '%d/%m/%Y %H:%M:%S'))
+                            elif isinstance(task_detail, (list, tuple)):
+                                print(', '.join([str(a) for a in task_detail]))
                             else:
                                 print(str(task_detail))
     else:
