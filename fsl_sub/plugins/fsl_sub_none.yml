@@ -11,6 +11,7 @@ thread_control: None
 
 method_opts:
   None:
+    queues: False
     large_job_split_pe: []
     mail_support: False
     map_ram: False
