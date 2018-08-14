@@ -39,7 +39,7 @@ method_opts:
         min_priority: -1023
         max_priority: 0
         array_holds: True
-        array_limits: True
+        array_limit: True
         architecture: False
         job_resources: True
 coproc_opts:

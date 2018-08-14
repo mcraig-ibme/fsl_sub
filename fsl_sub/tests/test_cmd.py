@@ -43,7 +43,7 @@ method_opts:
         min_priority: -1023
         max_priority: 0
         array_holds: True
-        array_limits: True
+        array_limit: True
         architecture: False
         job_resources: True
 coproc_opts:
@@ -923,7 +923,7 @@ class TestExampleConf(unittest.TestCase):
         cls.parser = fsl_sub.cmd.example_config_parser(
             parser_class=ErrorRaisingArgumentParser)
         none_config = os.path.join(
-            os.path.dirname(__file__), '..', 'fsl_sub',
+            os.path.dirname(__file__), '..',
             'plugins', 'fsl_sub_none.yml')
         with open(none_config, 'r') as yfile:
             cls.exp_conf = yfile.read()
@@ -944,13 +944,13 @@ class TestExampleConf(unittest.TestCase):
 
     def test_example_config_parser_known_plugin(self):
         self.assertEqual(
-            self.parser.parse_args(['None']).plugin,
-            'None'
+            self.parser.parse_args(['none']).plugin,
+            'none'
         )
 
     @unittest.mock.patch('fsl_sub.cmd.sys.stdout', new_callable=io.StringIO)
     def test_example_config(self, mock_stdout):
-        fsl_sub.cmd.example_config(['None', ])
+        fsl_sub.cmd.example_config(['none', ])
         self.assertEqual(
             mock_stdout.getvalue(),
             self.exp_conf + '\n'
