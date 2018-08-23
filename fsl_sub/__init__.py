@@ -364,7 +364,7 @@ def submit(
                 )
         elif validate_type == 'command':
             try:
-                check_command(command)
+                check_command(command[0])
             except CommandError as e:
                 raise BadSubmission(
                     "Command not usable: " + str(e)
