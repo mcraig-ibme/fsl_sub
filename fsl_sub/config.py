@@ -34,7 +34,7 @@ def valid_config(config):
     ]
 
     copro_class_opts_keys = [
-        'default_class', 'include_mode_capable',
+        'default_class', 'include_more_capable',
         'class_types', 'class_resource'
     ]
 
