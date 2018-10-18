@@ -76,6 +76,52 @@ coproc_opts:
 ''')
 
 
+# The following test doesn't work if run at the same time as the following
+# tests - the patcher of the subsequent tests is getting in the way
+# class TestNoCoprocessors(unittest.TestCase):
+#     def setUp(self):
+#         patcher = patch(
+#             'fsl_sub.config.read_config', autospec=True)
+#         self.addCleanup(patcher.stop)
+#         self.mock_read_config = patcher.start()
+#         self.mock_read_config.return_value = yaml.load('''
+# method: test
+# method_opts:
+#     test:
+#         queues: True
+# queues:
+#     short.q:
+#         time: 18000
+#         max_size: 250
+#         slot_size: 64
+#         max_slots: 20
+#         map_ram: true
+#         parallel_envs:
+#             - shmem
+#         priority: 1
+#         group: 0
+#         default: true
+# coproc_opts:
+# ''')
+
+#     def test_no_coprocs(self):
+#         import pdb; pdb.set_trace()
+#         with self.subTest("coproc_info"):
+#             self.assertDictEqual(
+#                 fsl_sub.coprocessors.coproc_info(),
+#                 {
+#                     'available': None,
+#                     'classes': None,
+#                     'toolkits': None,
+#                     }
+#             )
+#         with self.subTest('list_coprocessors'):
+#             self.assertListEqual(
+#                 fsl_sub.coprocessors.list_coprocessors(),
+#                 []
+#             )
+
+
 class TestCoprocessors(unittest.TestCase):
     def setUp(self):
         global test_config
