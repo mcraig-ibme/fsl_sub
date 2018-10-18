@@ -10,7 +10,7 @@ class TestParallelEnvs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config = yaml.load('''
-method: SGE
+method: sge
 thread_control:
   - OMP_THREADS
   - MKL_NUM_THREADS
@@ -24,7 +24,7 @@ method_opts:
     parallel_limit: False
     architecture: False
     job_resources: False
-  SGE:
+  sge:
     large_job_split_pe: shmem
 queues:
   short.q:

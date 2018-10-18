@@ -10,11 +10,11 @@ import fsl_sub.cmd
 from unittest.mock import patch
 
 YAML_CONF = '''---
-method: SGE
+method: sge
 ram_units: G
 modulecmd: /usr/bin/modulecmd
 method_opts:
-    SGE:
+    sge:
         queues: True
         large_job_split_pe: shmem
         copy_environment: True
@@ -944,13 +944,13 @@ class TestExampleConf(unittest.TestCase):
 
     def test_example_config_parser_known_plugin(self):
         self.assertEqual(
-            self.parser.parse_args(['none']).plugin,
-            'none'
+            self.parser.parse_args(['None']).plugin,
+            'None'
         )
 
     @unittest.mock.patch('fsl_sub.cmd.sys.stdout', new_callable=io.StringIO)
     def test_example_config(self, mock_stdout):
-        fsl_sub.cmd.example_config(['none', ])
+        fsl_sub.cmd.example_config(['None', ])
         self.assertEqual(
             mock_stdout.getvalue(),
             self.exp_conf + '\n'

@@ -7,10 +7,10 @@ import fsl_sub
 
 
 YAML_CONF = '''---
-method: SGE
+method: sge
 ram_units: G
 method_opts:
-    SGE:
+    sge:
         large_job_split_pe: shmem
         copy_environment: True
         affinity_type: linear
