@@ -389,7 +389,7 @@ def submit(
     else:
         task_name = name
 
-    if not mconfig['queues']:
+    if mconfig['queues'] is False:
         queue = None
         split_on_ram = None
 

@@ -6,6 +6,7 @@ from collections import defaultdict
 from fsl_sub.config import (
     coprocessor_config,
     queue_config,
+    has_queues,
 )
 from fsl_sub.exceptions import (
     BadConfiguration,
@@ -20,15 +21,14 @@ from fsl_sub.shell_modules import (
 
 def list_coprocessors():
     '''Return a list of coprocessors found in the queue definitions'''
-
+    # Are there any queues defined?
     avail_cops = []
-
-    for q in queue_config().values():
-        try:
-            avail_cops.extend(q['copros'].keys())
-        except KeyError:
-            pass
-
+    if has_queues():
+        for q in queue_config().values():
+            try:
+                avail_cops.extend(q['copros'].keys())
+            except KeyError:
+                pass
     return avail_cops
 
 

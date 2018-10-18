@@ -155,6 +155,14 @@ def method_config(method):
 
 
 @lru_cache()
+def has_queues(method=None):
+    '''Returns True if method has queues'''
+    if method is None:
+        method = read_config()['method']
+    return method_config(method)['queues']
+
+
+@lru_cache()
 def coprocessor_config(coprocessor):
     '''Returns the configuration dict for the requested coprocessor,
     e.g. cuda'''

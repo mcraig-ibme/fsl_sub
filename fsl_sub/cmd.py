@@ -18,6 +18,7 @@ from fsl_sub.config import (
     read_config,
     method_config,
     coprocessor_config,
+    has_queues,
 )
 import fsl_sub.consts
 from fsl_sub.coprocessors import (
@@ -66,7 +67,10 @@ def build_parser(config=None, cp_info=None):
         config = read_config()
     if cp_info is None:
         cp_info = coproc_info()
-    ll_envs = parallel_envs(config['queues'])
+    if has_queues():
+        ll_envs = parallel_envs(config['queues'])
+    else:
+        ll_envs = None
 
     # Build the epilog...
     epilog = ''
@@ -354,7 +358,7 @@ There are several batch queues configured on the cluster:
             type=int,
             help="Not supported on this platform."
         )
-    if mconf['queues']:
+    if has_queues():
         basic_g.add_argument(
             '-q', '--queue',
             default=None,
@@ -384,49 +388,91 @@ There are several batch queues configured on the cluster:
         "than the queue slot memory limit as then your job can be "
         "split over multiple slots automatically - see autoslotsbyram."
     )
-    advanced_g.add_argument(
-        '-s', '--parallelenv',
-        default=None,
-        help="Takes a comma-separated argument <pename>,<threads>."
-        "Submit a multi-threaded (or resource limited) task - requires a "
-        "parallel environment (<pename>) to be configured on the "
-        "requested queues. <threads> specifies the number of "
-        "threads/hosts required. e.g. '{pe_name},2'.\n"
-        "Some schedulers only support the threads part so specify "
-        "'threads' as a <pename>.".format(
-            pe_name=ll_envs[0])
-    )
-    advanced_g.add_argument(
-        '--native_holds',
-        action="store_true",
-        help="If specified then the hold/parallel hold are taken to be "
-        "cluster native hold specifiers and will not be interpreted by "
-        "fsl_sub."
-    )
-    basic_g.add_argument(
-        '-S', '--noramsplit',
-        action='store_true',
-        help="Disable the automatic requesting of multiple threads "
-        "sufficient to allow your job to run within the RAM constraints."
-    )
-    array_g.add_argument(
-        '-t', '--array_task',
-        default=None,
-        help="Specify a task file of commands to execute in parallel."
-    )
-    array_g.add_argument(
-        '--array_native',
-        default=None,
-        help="Binary/Script will handle array task internally. "
-        "Mutually exclusive with --array_task. Requires "
-        " and argument n[-m[:s]] which provides number of tasks (n) or "
-        "start (n), end (m) and increment of sub-task ID between sub-tasks "
-        "(s). Binary/script can use FSLSUB_ARRAYTASKID_VAR, "
-        "FSLSUB_ARRAYSTARTID_VAR, FSLSUB_ARRAYENDID_VAR, "
-        "FSLSUB_ARRAYSTEPSIZE_VAR, FSLSUB_ARRAYCOUNT_VAR environment "
-        "variables to identify the environment variables that are set by "
-        "the cluster manager to identify the sub-task that is running."
-    )
+    if ll_envs is not None:
+        advanced_g.add_argument(
+            '-s', '--parallelenv',
+            default=None,
+            help="Takes a comma-separated argument <pename>,<threads>."
+            "Submit a multi-threaded (or resource limited) task - requires a "
+            "parallel environment (<pename>) to be configured on the "
+            "requested queues. <threads> specifies the number of "
+            "threads/hosts required. e.g. '{pe_name},2'.\n"
+            "Some schedulers only support the threads part so specify "
+            "'threads' as a <pename>.".format(
+                pe_name=ll_envs[0])
+        )
+    else:
+        advanced_g.add_argument(
+            '-s', '--parallelenv',
+            default=None,
+            help="No parallel environments configured"
+        )
+    if has_queues():
+        advanced_g.add_argument(
+            '--native_holds',
+            action="store_true",
+            help="If specified then the hold/parallel hold are taken to be "
+            "cluster native hold specifiers and will not be interpreted by "
+            "fsl_sub."
+        )
+        basic_g.add_argument(
+            '-S', '--noramsplit',
+            action='store_true',
+            help="Disable the automatic requesting of multiple threads "
+            "sufficient to allow your job to run within the RAM constraints."
+        )
+        array_g.add_argument(
+            '-t', '--array_task',
+            default=None,
+            help="Specify a task file of commands to execute in parallel."
+        )
+        array_g.add_argument(
+            '--array_native',
+            default=None,
+            help="Binary/Script will handle array task internally. "
+            "Mutually exclusive with --array_task. Requires "
+            " and argument n[-m[:s]] which provides number of tasks (n) or "
+            "start (n), end (m) and increment of sub-task ID between sub-tasks "
+            "(s). Binary/script can use FSLSUB_ARRAYTASKID_VAR, "
+            "FSLSUB_ARRAYSTARTID_VAR, FSLSUB_ARRAYENDID_VAR, "
+            "FSLSUB_ARRAYSTEPSIZE_VAR, FSLSUB_ARRAYCOUNT_VAR environment "
+            "variables to identify the environment variables that are set by "
+            "the cluster manager to identify the sub-task that is running."
+        )
+        advanced_g.add_argument(
+            '-x', '--array_limit',
+            default=None,
+            type=int,
+            help="Specify the maximum number of parallel job sub-tasks to run "
+            "concurrently."
+        )
+    else:
+        advanced_g.add_argument(
+            '--native_holds',
+            action="store_true",
+            help="Not relevant when not running in a cluster environment"
+        )
+        basic_g.add_argument(
+            '-S', '--noramsplit',
+            action='store_true',
+            help="Not relevant when not running in a cluster environment"
+        )
+        array_g.add_argument(
+            '-t', '--array_task',
+            default=None,
+            help="Not relevant when not running in a cluster environment"
+        )
+        array_g.add_argument(
+            '--array_native',
+            default=None,
+            help="Not relevant when not running in a cluster environment"
+        )
+        advanced_g.add_argument(
+            '-x', '--array_limit',
+            default=None,
+            type=int,
+            help="Not relevant when not running in a cluster environment"
+        )
     basic_g.add_argument(
         '-T', '--jobtime',
         default=None,
@@ -443,13 +489,6 @@ There are several batch queues configured on the cluster:
         '-V', '--version',
         action='version',
         version='%(prog)s ' + VERSION
-    )
-    advanced_g.add_argument(
-        '-x', '--array_limit',
-        default=None,
-        type=int,
-        help="Specify the maximum number of parallel job sub-tasks to run "
-        "concurrently."
     )
     parser.add_argument(
         '-z', '--fileisimage',
