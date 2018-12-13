@@ -19,6 +19,7 @@ from fsl_sub.config import (
     method_config,
     coprocessor_config,
     has_queues,
+    uses_projects,
 )
 import fsl_sub.consts
 from fsl_sub.coprocessors import (
@@ -408,6 +409,18 @@ There are several batch queues configured on the cluster:
             help="No parallel environments configured"
         )
     if has_queues():
+        if uses_projects():
+            advanced_g.add_argument(
+                '--project',
+                default=None,
+                help="Request job is run against the specified project/account"
+            )
+        else:
+            advanced_g.add_argument(
+                '--project',
+                default=None,
+                help="Projects not used"
+            )
         advanced_g.add_argument(
             '--native_holds',
             action="store_true",
@@ -447,6 +460,12 @@ There are several batch queues configured on the cluster:
             "concurrently."
         )
     else:
+        advanced_g.add_argument(
+            '--project',
+            default=None,
+            type=str,
+            help="Not relevant when not running in a cluster environment"
+        )
         advanced_g.add_argument(
             '--native_holds',
             action="store_true",
@@ -780,6 +799,11 @@ def main(args=None):
     if 'mailto' not in options:
         options['mailto'] = None
 
+    if uses_projects():
+        project = options['project']
+    else:
+        project = None
+
     try:
         job_id = submit(
             command,
@@ -810,7 +834,8 @@ def main(args=None):
             validate_command=not options['novalidation'],
             requeueable=not options['not_requeueable'],
             native_holds=options['native_holds'],
-            as_tuple=False
+            as_tuple=False,
+            project=project
         )
     except BadSubmission as e:
         cmd_parser.exit(

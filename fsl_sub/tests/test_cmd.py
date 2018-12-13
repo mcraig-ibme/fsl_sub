@@ -46,6 +46,164 @@ method_opts:
         array_limit: True
         architecture: False
         job_resources: True
+        projects: False
+coproc_opts:
+  cuda:
+    resource: gpu
+    classes: True
+    class_resource: gputype
+    class_types:
+      K:
+        resource: k80
+        doc: Kepler. ECC, double- or single-precision workloads
+        capability: 2
+      P:
+        resource: p100
+        doc: >
+          Pascal. ECC, double-, single- and half-precision
+          workloads
+        capability: 3
+    default_class: K
+    include_more_capable: True
+    uses_modules: True
+    module_parent: cuda
+queues:
+  gpu.q:
+    time: 18000
+    max_size: 250
+    slot_size: 64
+    max_slots: 20
+    copros:
+      cuda:
+        max_quantity: 4
+        classes:
+          - K
+          - P
+          - V
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 1
+    group: 0
+    default: true
+  a.qa,a.qb,a.qc:
+    time: 1440
+    max_size: 160
+    slot_size: 4
+    max_slots: 16
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 3
+    group: 1
+    default: true
+  a.qa,a.qc:
+    time: 1440
+    max_size: 240
+    slot_size: 16
+    max_slots: 16
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 2
+    group: 1
+    default: true
+  a.qc:
+    time: 1440
+    max_size: 368
+    slot_size: 16
+    max_slots: 24
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 1
+    group: 1
+    default: true
+  b.qa,b.qb,b.qc:
+    time: 10080
+    max_size: 160
+    slot_size: 4
+    max_slots: 16
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 3
+    group: 2
+  b.qa,b.qc:
+    time: 10080
+    max_size: 240
+    slot_size: 16
+    max_slots: 16
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 2
+    group: 2
+  b.qc:
+    time: 10080
+    max_size: 368
+    slot_size: 16
+    max_slots: 24
+    map_ram: true
+    parallel_envs:
+      - shmem
+    priority: 1
+    group: 2
+  t.q:
+    time: 10080
+    max_size: 368
+    slot_size: 16
+    max_slots: 24
+    map_ram: true
+    parallel_envs:
+      - specialpe
+    priority: 1
+    group: 2
+
+default_queues:
+  - a.qa,a,qb,a.qc
+  - a.qa,a.qc
+  - a.qc
+
+'''
+YAML_CONF_PROJECTS = '''---
+method: sge
+ram_units: G
+modulecmd: /usr/bin/modulecmd
+method_opts:
+    sge:
+        queues: True
+        large_job_split_pe: shmem
+        copy_environment: True
+        affinity_type: linear
+        affinity_control: threads
+        mail_support: True
+        mail_modes:
+            b:
+                - b
+            e:
+                - e
+            a:
+                - a
+            f:
+                - a
+                - e
+                - b
+            n:
+                - n
+        mail_mode: a
+        map_ram: True
+        ram_resources:
+            - m_mem_free
+            - h_vmem
+        job_priorities: True
+        min_priority: -1023
+        max_priority: 0
+        array_holds: True
+        array_limit: True
+        architecture: False
+        job_resources: True
+        projects: True
 coproc_opts:
   cuda:
     resource: gpu
@@ -226,7 +384,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_parallelenv(self, *args):
@@ -261,7 +420,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
         args[2].reset_mock()
         fsl_sub.cmd.main(['-s', 'shmem,2', '1', '2', ])
@@ -295,7 +455,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_mailoptions(self, *args):
@@ -330,7 +491,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_mailto(self, *args):
@@ -365,7 +527,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
         args[2].reset_mock()
         fsl_sub.cmd.main(['-M', 'user@test.com', '1', '2', ])
@@ -399,7 +562,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_array_task(self, *args):
@@ -434,7 +598,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
         args[2].reset_mock()
         fsl_sub.cmd.main(['-t', 'taskfile', ])
@@ -468,7 +633,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_array_limit(self, *args):
@@ -504,7 +670,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
         args[2].reset_mock()
         fsl_sub.cmd.main(['-x', '2', '--array_task', 'commandfile', ])
@@ -538,7 +705,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_array_hold(self, *args):
@@ -574,7 +742,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_array_hold_native(self, *args):
@@ -612,7 +781,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=True,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_job_hold(self, *args):
@@ -648,7 +818,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_job_hold_native(self, *args):
@@ -684,7 +855,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=True,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_array_native(self, *args):
@@ -720,7 +892,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_coprocessor(self, *args):
@@ -755,7 +928,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_coprocessor_toolkit(self, *args):
@@ -793,7 +967,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_coprocessor_class(self, *args):
@@ -831,7 +1006,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_coprocessor_class_strict(self, *args):
@@ -870,7 +1046,8 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
 
     def test_coprocessor_multi(self, *args):
@@ -908,8 +1085,52 @@ class TestMain(unittest.TestCase):
             usescript=False,
             validate_command=True,
             native_holds=False,
-            as_tuple=False
+            as_tuple=False,
+            project=None
         )
+
+    def test_project(self, *args):
+        args[3].return_value = yaml.load(YAML_CONF_PROJECTS)
+        args[4].return_value = yaml.load(YAML_CONF_PROJECTS)
+        args[5].return_value = yaml.load(YAML_CONF_PROJECTS)
+        import pdb; pdb.set_trace()
+        fsl_sub.cmd.main(['--project', 'Aproject', '1', '2', ])
+
+        with patch('fsl_sub.projects.read_config',
+                autospec=True,
+                return_value=yaml.load(YAML_CONF_PROJECTS)):
+            args[2].assert_called_with(
+                ['1','2', ],
+                architecture=None,
+                array_hold=None,
+                array_limit=None,
+                array_specifier=None,
+                array_task=False,
+                coprocessor=None,
+                coprocessor_toolkit=None,
+                coprocessor_class=None,
+                coprocessor_class_strict=False,
+                coprocessor_multi=1,
+                name=None,
+                parallel_env=None,
+                queue=None,
+                threads=1,
+                jobhold=None,
+                jobram=None,
+                jobtime=None,
+                logdir=None,
+                mail_on=None,
+                mailto=USER_EMAIL,
+                priority=None,
+                ramsplit=False,
+                requeueable=True,
+                resources=None,
+                usescript=False,
+                validate_command=True,
+                native_holds=False,
+                as_tuple=False,
+                project='Aproject'
+            )
 
 
 class ErrorRaisingArgumentParser(argparse.ArgumentParser):
