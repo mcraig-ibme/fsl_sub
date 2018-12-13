@@ -173,23 +173,6 @@ def uses_projects(method=None):
 
 
 @lru_cache()
-def default_project(method=None):
-    '''Returns default project if one defined'''
-    if method is None:
-        method = read_config()['method']
-    m_config = method_config(method)
-    if m_config['projects']:
-        try:
-            return m_config['default_project']
-        except KeyError:
-            raise BadConfiguration(
-                "Unable to find default project but projects specified."
-            )
-    else:
-        return None
-
-
-@lru_cache()
 def coprocessor_config(coprocessor):
     '''Returns the configuration dict for the requested coprocessor,
     e.g. cuda'''
