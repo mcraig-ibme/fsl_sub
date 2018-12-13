@@ -45,6 +45,9 @@ from fsl_sub.parallel import (
     parallel_envs,
     process_pe_def,
 )
+from fsl_sub.projects import (
+    get_project_env,
+)
 from fsl_sub.utils import (
     available_plugins,
     blank_none,
@@ -800,7 +803,7 @@ def main(args=None):
         options['mailto'] = None
 
     if uses_projects():
-        project = options['project']
+        project = get_project_env(options['project'])
     else:
         project = None
 

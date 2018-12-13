@@ -163,7 +163,6 @@ def has_queues(method=None):
     return method_config(method)['queues']
 
 
-@lru_cache()
 def uses_projects(method=None):
     '''Returns True if method has projects'''
     if method is None:

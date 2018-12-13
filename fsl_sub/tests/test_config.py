@@ -216,21 +216,18 @@ class TestConfig(unittest.TestCase):
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_uses_projects(self, mock_read_config):
         fsl_sub.config.method_config.cache_clear()
-        fsl_sub.config.uses_projects.cache_clear()
         with self.subTest('Test 1'):
             mock_read_config.return_value = {
                 'method': 'method',
                 'method_opts': {'method': {'projects': False, }, }, }
             self.assertFalse(fsl_sub.config.uses_projects())
         fsl_sub.config.method_config.cache_clear()
-        fsl_sub.config.uses_projects.cache_clear()
         with self.subTest('Test 2'):
             mock_read_config.return_value = {
                 'method': 'method',
                 'method_opts': {'method': {'projects': True, }, }, }
             self.assertTrue(fsl_sub.config.uses_projects())
         fsl_sub.config.method_config.cache_clear()
-        fsl_sub.config.uses_projects.cache_clear()
 
 
 if __name__ == '__main__':

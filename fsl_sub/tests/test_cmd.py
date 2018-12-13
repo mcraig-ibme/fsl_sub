@@ -1093,12 +1093,11 @@ class TestMain(unittest.TestCase):
         args[3].return_value = yaml.load(YAML_CONF_PROJECTS)
         args[4].return_value = yaml.load(YAML_CONF_PROJECTS)
         args[5].return_value = yaml.load(YAML_CONF_PROJECTS)
-        import pdb; pdb.set_trace()
-        fsl_sub.cmd.main(['--project', 'Aproject', '1', '2', ])
-
+        fsl_sub.config.method_config.cache_clear()
         with patch('fsl_sub.projects.read_config',
                 autospec=True,
                 return_value=yaml.load(YAML_CONF_PROJECTS)):
+            fsl_sub.cmd.main(['--project', 'Aproject', '1', '2', ])
             args[2].assert_called_with(
                 ['1','2', ],
                 architecture=None,
@@ -1122,7 +1121,7 @@ class TestMain(unittest.TestCase):
                 mail_on=None,
                 mailto=USER_EMAIL,
                 priority=None,
-                ramsplit=False,
+                ramsplit=True,
                 requeueable=True,
                 resources=None,
                 usescript=False,
@@ -1131,6 +1130,50 @@ class TestMain(unittest.TestCase):
                 as_tuple=False,
                 project='Aproject'
             )
+
+    def test_project_env(self, *args):
+        args[3].return_value = yaml.load(YAML_CONF_PROJECTS)
+        args[4].return_value = yaml.load(YAML_CONF_PROJECTS)
+        args[5].return_value = yaml.load(YAML_CONF_PROJECTS)
+        fsl_sub.config.method_config.cache_clear()
+        with patch('fsl_sub.projects.read_config',
+                autospec=True,
+                return_value=yaml.load(YAML_CONF_PROJECTS)):
+            with patch.dict(
+                'fsl_sub.projects.os.environ', {'FSLSUB_PROJECT': 'Bproject', }, clear=True):
+                fsl_sub.cmd.main(['1', '2', ])
+                args[2].assert_called_with(
+                    ['1','2', ],
+                    architecture=None,
+                    array_hold=None,
+                    array_limit=None,
+                    array_specifier=None,
+                    array_task=False,
+                    coprocessor=None,
+                    coprocessor_toolkit=None,
+                    coprocessor_class=None,
+                    coprocessor_class_strict=False,
+                    coprocessor_multi=1,
+                    name=None,
+                    parallel_env=None,
+                    queue=None,
+                    threads=1,
+                    jobhold=None,
+                    jobram=None,
+                    jobtime=None,
+                    logdir=None,
+                    mail_on=None,
+                    mailto=USER_EMAIL,
+                    priority=None,
+                    ramsplit=True,
+                    requeueable=True,
+                    resources=None,
+                    usescript=False,
+                    validate_command=True,
+                    native_holds=False,
+                    as_tuple=False,
+                    project='Bproject'
+                )
 
 
 class ErrorRaisingArgumentParser(argparse.ArgumentParser):
