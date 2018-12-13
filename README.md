@@ -120,6 +120,7 @@ For the default _None_ engine, the options should be left as below:
     architecture: False
     job_resources: False
     script_conf: False
+    projects: False
 
 ##### Coprocessor Options
 
