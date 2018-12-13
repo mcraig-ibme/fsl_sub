@@ -29,6 +29,10 @@ from fsl_sub.config import (
     valid_config,
 )
 import fsl_sub.consts
+from fsl_sub.projects import (
+    get_project_env,
+    project_exists,
+)
 from fsl_sub.utils import (
     load_plugins,
     affirmative,
@@ -466,6 +470,15 @@ def submit(
                 raise BadSubmission(
                     "Unable to load requested coprocessor toolkit"
                 )
+    if config.uses_projects():
+        q_project = get_project(project)
+        if not project_exists(q_project):
+            raise BadSubmission(
+                "Project not recognised"
+            )
+    else:
+        q_project = None
+
     logger.debug("Calling queue_submit with: ")
     logger.debug(
         ", ".join(
@@ -503,7 +516,8 @@ def submit(
         coprocessor_multi=coprocessor_multi,
         usescript=usescript,
         architecture=architecture,
-        requeueable=requeueable)
+        requeueable=requeueable,
+        project=q_project)
 
     if as_tuple:
         return (job_id,)
