@@ -213,6 +213,47 @@ class TestConfig(unittest.TestCase):
                     me.exception.args[0],
                     "Unable to find queue definitions")
 
+    @patch('fsl_sub.config.read_config', autospec=True)
+    def test_uses_projects(self, mock_read_config):
+        fsl_sub.config.method_config.cache_clear()
+        fsl_sub.config.uses_projects.cache_clear()
+        with self.subTest('Test 1'):
+            mock_read_config.return_value = {
+                'method': 'method',
+                'method_opts': {'method': {'projects': False, }, }, }
+            self.assertFalse(fsl_sub.config.uses_projects())
+        fsl_sub.config.method_config.cache_clear()
+        fsl_sub.config.uses_projects.cache_clear()
+        with self.subTest('Test 2'):
+            mock_read_config.return_value = {
+                'method': 'method',
+                'method_opts': {'method': {'projects': True, }, }, }
+            self.assertTrue(fsl_sub.config.uses_projects())
+        fsl_sub.config.method_config.cache_clear()
+        fsl_sub.config.uses_projects.cache_clear()
+
+    @patch('fsl_sub.config.read_config', autospec=True)
+    def test_default_project(self, mock_read_config):
+        fsl_sub.config.method_config.cache_clear()
+        fsl_sub.config.default_project.cache_clear()
+        with self.subTest('Test 1'):
+            mock_read_config.return_value = {
+                'method': 'method',
+                'method_opts': {'method': {
+                    'projects': True,
+                    'default_project': 'aproject', }, }, }
+            self.assertEqual('aproject', fsl_sub.config.default_project())
+        fsl_sub.config.method_config.cache_clear()
+        fsl_sub.config.default_project.cache_clear()
+        with self.subTest('Test 2'):
+            mock_read_config.return_value = {
+                'method': 'method',
+                'method_opts': {'method': {
+                    'projects': False, }, }, }
+            self.assertIsNone(fsl_sub.config.default_project())
+        fsl_sub.config.method_config.cache_clear()
+        fsl_sub.config.default_project.cache_clear()
+
 
 if __name__ == '__main__':
     unittest.main()

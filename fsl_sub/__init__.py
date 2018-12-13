@@ -158,7 +158,8 @@ def submit(
     architecture=None,
     requeueable=True,
     native_holds=False,
-    as_tuple=True
+    as_tuple=True,
+    project=None
 ):
     '''Submit job(s) to a queue, returns the job id as a single value tuple
     (default) or int (as_tuple=False).
@@ -207,6 +208,7 @@ def submit(
     queue - Explicit queue to submit to - use jobram/jobtime in preference to
             this
     usescript - queue config is defined in script
+    project - Cluster project to submit job to, defaults to None
     '''
     logger = logging.getLogger(__name__)
     logger.debug("Submit called with:")
@@ -219,8 +221,9 @@ def submit(
                 validate_command, mail_on, mailto, logdir,
                 coprocessor, coprocessor_toolkit, coprocessor_class,
                 coprocessor_class_strict, coprocessor_multi,
-                usescript, architecture, requeueable
-            ]
+                usescript, architecture, requeueable, native_holds,
+                as_tuple, project,
+                ]
             ]
         )
     )

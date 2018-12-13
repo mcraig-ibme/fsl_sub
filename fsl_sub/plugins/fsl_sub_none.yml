@@ -21,3 +21,4 @@ method_opts:
     architecture: False
     job_resources: False
     script_conf: False
+    projects: False

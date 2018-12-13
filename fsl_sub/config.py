@@ -22,6 +22,7 @@ def valid_config(config):
         'job_priorities', 'array_holds',
         'array_limit', 'architecture',
         'job_resources', 'script_conf',
+        'projects', 'default_project'
     ]
 
     copro_opts_keys = [
@@ -160,6 +161,32 @@ def has_queues(method=None):
     if method is None:
         method = read_config()['method']
     return method_config(method)['queues']
+
+
+@lru_cache()
+def uses_projects(method=None):
+    '''Returns True if method has projects'''
+    if method is None:
+        method = read_config()['method']
+    m_config = method_config(method)
+    return m_config['projects']
+
+
+@lru_cache()
+def default_project(method=None):
+    '''Returns default project if one defined'''
+    if method is None:
+        method = read_config()['method']
+    m_config = method_config(method)
+    if m_config['projects']:
+        try:
+            return m_config['default_project']
+        except KeyError:
+            raise BadConfiguration(
+                "Unable to find default project but projects specified."
+            )
+    else:
+        return None
 
 
 @lru_cache()
