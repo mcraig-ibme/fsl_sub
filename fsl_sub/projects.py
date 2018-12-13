@@ -3,9 +3,13 @@ from fsl_sub.config import (
     read_config,
     valid_config,
 )
+from fsl_sub.exceptions import (
+    BadConfiguration,
+)
 from fsl_sub.utils import (
     load_plugins,
 )
+
 
 def project_list():
     PLUGINS = load_plugins()

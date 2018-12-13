@@ -1094,12 +1094,13 @@ class TestMain(unittest.TestCase):
         args[4].return_value = yaml.load(YAML_CONF_PROJECTS)
         args[5].return_value = yaml.load(YAML_CONF_PROJECTS)
         fsl_sub.config.method_config.cache_clear()
-        with patch('fsl_sub.projects.read_config',
+        with patch(
+                'fsl_sub.projects.read_config',
                 autospec=True,
                 return_value=yaml.load(YAML_CONF_PROJECTS)):
             fsl_sub.cmd.main(['--project', 'Aproject', '1', '2', ])
             args[2].assert_called_with(
-                ['1','2', ],
+                ['1', '2', ],
                 architecture=None,
                 array_hold=None,
                 array_limit=None,
@@ -1136,14 +1137,16 @@ class TestMain(unittest.TestCase):
         args[4].return_value = yaml.load(YAML_CONF_PROJECTS)
         args[5].return_value = yaml.load(YAML_CONF_PROJECTS)
         fsl_sub.config.method_config.cache_clear()
-        with patch('fsl_sub.projects.read_config',
+        with patch(
+                'fsl_sub.projects.read_config',
                 autospec=True,
                 return_value=yaml.load(YAML_CONF_PROJECTS)):
             with patch.dict(
-                'fsl_sub.projects.os.environ', {'FSLSUB_PROJECT': 'Bproject', }, clear=True):
+                    'fsl_sub.projects.os.environ',
+                    {'FSLSUB_PROJECT': 'Bproject', }, clear=True):
                 fsl_sub.cmd.main(['1', '2', ])
                 args[2].assert_called_with(
-                    ['1','2', ],
+                    ['1', '2', ],
                     architecture=None,
                     array_hold=None,
                     array_limit=None,

@@ -218,15 +218,16 @@ def submit(
     logger.debug("Submit called with:")
     logger.debug(
         " ".join(
-            [str(a) for a in [
-                command, name, threads, queue, jobhold, array_task,
-                array_hold, array_limit, array_specifier, parallel_env,
-                jobram, jobtime, resources, ramsplit, priority,
-                validate_command, mail_on, mailto, logdir,
-                coprocessor, coprocessor_toolkit, coprocessor_class,
-                coprocessor_class_strict, coprocessor_multi,
-                usescript, architecture, requeueable, native_holds,
-                as_tuple, project,
+            [
+                str(a) for a in [
+                    command, name, threads, queue, jobhold, array_task,
+                    array_hold, array_limit, array_specifier, parallel_env,
+                    jobram, jobtime, resources, ramsplit, priority,
+                    validate_command, mail_on, mailto, logdir,
+                    coprocessor, coprocessor_toolkit, coprocessor_class,
+                    coprocessor_class_strict, coprocessor_multi,
+                    usescript, architecture, requeueable, native_holds,
+                    as_tuple, project,
                 ]
             ]
         )
@@ -471,7 +472,7 @@ def submit(
                     "Unable to load requested coprocessor toolkit"
                 )
     if config.uses_projects():
-        q_project = get_project(project)
+        q_project = get_project_env(project)
         if not project_exists(q_project):
             raise BadSubmission(
                 "Project not recognised"
