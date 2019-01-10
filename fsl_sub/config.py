@@ -22,7 +22,7 @@ def valid_config(config):
         'job_priorities', 'array_holds',
         'array_limit', 'architecture',
         'job_resources', 'script_conf',
-        'projects', 'default_project'
+        'projects',
     ]
 
     copro_opts_keys = [
