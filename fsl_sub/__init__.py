@@ -150,7 +150,7 @@ def submit(
     priority=None,
     validate_command=True,
     mail_on=None,
-    mailto="{username}@{hostname}.".format(
+    mailto="{username}@{hostname}".format(
                             username=getpass.getuser(),
                             hostname=socket.gethostname()),
     logdir=None,
