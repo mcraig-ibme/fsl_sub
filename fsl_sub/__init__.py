@@ -270,7 +270,7 @@ def submit(
     if config['qtest'] is None:
         config['method'] == 'None'
         warnings.warn(
-            'Warning: fsl_sub configured for {} but {}'
+            'Warning: fsl_sub configured for {0} but {0}'
             ' software not found.'.format(config['method'])
         )
 
