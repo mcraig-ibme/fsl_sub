@@ -27,6 +27,7 @@ from fsl_sub.config import (
     method_config,
     coprocessor_config,
     valid_config,
+    uses_projects,
 )
 import fsl_sub.consts
 from fsl_sub.projects import (
@@ -471,7 +472,7 @@ def submit(
                 raise BadSubmission(
                     "Unable to load requested coprocessor toolkit"
                 )
-    if config.uses_projects():
+    if uses_projects():
         q_project = get_project_env(project)
         if not project_exists(q_project):
             raise BadSubmission(
