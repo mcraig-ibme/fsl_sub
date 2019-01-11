@@ -79,6 +79,26 @@ class TestConversions(unittest.TestCase):
                 fsl_sub.utils.human_to_ram('10tiB'),
                 10485760
             )
+        with self.subTest('Fractions - Round up'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('8.5G', output="G"),
+                9
+            )
+        with self.subTest('Fractions - float'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('8.5G', output="G", as_int=False),
+                8.5
+            )
+        with self.subTest('Fractions - float < 1'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('8.5K', output="M", as_int=False),
+                0.00830078125
+            )
+        with self.subTest('Fractions - Round up'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('8.5K', output="M"),
+                1
+            )
         with self.subTest('PBs'):
             self.assertEqual(
                 fsl_sub.utils.human_to_ram('10P'),
@@ -91,13 +111,43 @@ class TestConversions(unittest.TestCase):
             )
         with self.subTest('KBs to MBs'):
             self.assertEqual(
-                fsl_sub.utils.human_to_ram('10K', output='M'),
+                fsl_sub.utils.human_to_ram('10K', output='M', as_int=False),
                 10 / 1024
             )
         with self.subTest('MBs to MBs'):
             self.assertEqual(
                 fsl_sub.utils.human_to_ram('10M', output='M'),
                 10
+            )
+        with self.subTest("No units"):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10', output="G", units="G"),
+                10
+            )
+        with self.subTest("No units - default unit input"):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10', output="G"),
+                10
+            )
+        with self.subTest("No units - default unit output"):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('1', units="G"),
+                1024
+            )
+        with self.subTest("No units - float"):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10.5', output="G", units="G", as_int=False),
+                10.5
+            )
+        with self.subTest("No units - float as_int default"):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10.5', output="G", units="G"),
+                11
+            )
+        with self.subTest("No units - float as_int true"):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('10.5', output="G", units="G", as_int=True),
+                11
             )
 
 

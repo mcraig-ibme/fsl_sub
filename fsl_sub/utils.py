@@ -2,6 +2,7 @@
 # Copyright (c) 2018, University of Oxford (Duncan Mortimer)
 
 import importlib
+import math
 import os
 import pkgutil
 import re
@@ -102,7 +103,7 @@ def blank_none(text):
         return str(text)
 
 
-def human_to_ram(ram, output='M', units='G'):
+def human_to_ram(ram, output='M', units='G', as_int=True):
     '''Converts user supplied RAM quantity into output scale'''
 
     scale_factors = {
@@ -123,7 +124,15 @@ def human_to_ram(ram, output='M', units='G'):
         ram = str(ram) + units
     if not isinstance(ram, str):
         raise ValueError('Unrecognised RAM string')
-
+    try:
+        if '.' in ram:
+            float(ram)
+        else:
+            int(ram)
+    except ValueError:
+        pass
+    else:
+        ram = ram + units
     regex = r'(?P<ram>[\d.]+)(?P<units>[GgMmKkTtPp])[iI]?[bB]?'
     h_ram = re.match(regex, ram)
     if h_ram is None:
@@ -137,9 +146,12 @@ def human_to_ram(ram, output='M', units='G'):
             ram = int(match['ram'])
     except ValueError:
         raise ValueError("RAM amount not a valid number")
-    return (
+    size = (
         ram * 2 ** scale_factors[units] /
         2 ** scale_factors[output])
+    if as_int:
+        size = int(math.ceil(size))
+    return size
 
 
 def affirmative(astring):
