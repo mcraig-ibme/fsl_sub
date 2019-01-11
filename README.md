@@ -143,3 +143,28 @@ To build a wheel you need to install wheel into your Python build environment
 fsl_sub is only compatible with python 3 so you will be building a Pure Python Wheel
 
 > python setup.py bdist_wheel
+
+## Advanced Usage
+
+### Specifying Memory Requirements
+
+If fsl_sub is being called from within a software package such that you have no ability to specify memory requirements then you can achieve this by setting the environment variable FSLSUB_MEMORY_REQUIRED, e.g.
+
+```bash
+FSLSUB_MEMORY_REQUIRED=32G myscript_that_submits
+```
+
+If units are not specified then they will default to those configured in the YAML file.
+If the memory is also specified in the fsl_sub arguments then the argument provided value will be used.
+
+### Array task sub-task ID
+
+When running as an array task you may wish to know which sub-task you are, this might be useful to automatically determine which member of the array you are. This information is provided in environment variables by the queuing software. To determine which variable to read, fsl_sub will set the following environment variables to the name of the equivalent queue variable:
+
+* `FSLSUB_ARRAYTASKID_VAR`: The ID of the sub-task
+* `FSLSUB_ARRAYSTARTID_VAR`: The ID of the first sub-task
+* `FSLSUB_ARRAYENDID_VAR`: The ID of the last sub-task
+* `FSLSUB_ARRAYSTEPSIZE_VAR`: The step between sub-task IDs (not available for all plugins)
+* `FSLSUB_ARRAYCOUNT_VAR`: The number of tasks in the array (not available for all plugins)
+
+Not all variables are set by all queue backends so ensure your software can cope with missing variables.

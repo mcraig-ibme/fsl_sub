@@ -40,6 +40,7 @@ from fsl_sub.utils import (
     check_command,
     check_command_file,
     control_threads,
+    human_to_ram,
 )
 
 VERSION = '2.0'
@@ -291,6 +292,19 @@ def submit(
                     raise BadSubmission(
                         "Log destination is a file "
                         "(should be a folder)")
+
+    if jobram is None:
+        try:
+            mem_requested = human_to_ram(
+                os.environ['FSLSUB_MEMORY_REQUIRED'],
+                config['ram_units'],
+                as_int=True)
+        except KeyError:
+            pass
+        except ValueError:
+            logger.warn("FSLSUB_MEMORY_REQUIRED variable doesn't make sense")
+        else:
+            jobram = mem_requested
 
     if mconfig['mail_support'] is True:
         if mail_on is None:

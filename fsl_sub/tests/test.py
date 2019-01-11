@@ -4,17 +4,28 @@ import socket
 import unittest
 import yaml
 import fsl_sub
-
+from unittest.mock import patch
+from unittest.mock import MagicMock
+from fsl_sub.exceptions import BadSubmission
 
 YAML_CONF = '''---
 method: sge
 ram_units: G
+modulecmd: False
+thread_control:
+  - OMP_NUM_THREADS
+  - MKL_NUM_THREADS
+  - MKL_DOMAIN_NUM_THREADS
+  - OPENBLAS_NUM_THREADS
+  - GOTO_NUM_THREADS
 method_opts:
     sge:
+        queues: True
         large_job_split_pe: shmem
         copy_environment: True
         affinity_type: linear
         affinity_control: threads
+        script_conf: True
         mail_support: True
         mail_modes:
             b:
@@ -31,6 +42,7 @@ method_opts:
                 - n
         mail_mode: a
         map_ram: True
+        thread_ram_divide: True
         notify_ram_usage: True
         ram_resources:
             - m_mem_free
@@ -42,6 +54,7 @@ method_opts:
         array_limit: True
         architecture: False
         job_resources: True
+        projects: True
 coproc_opts:
   cuda:
     resource: gpu
@@ -62,6 +75,7 @@ coproc_opts:
     include_more_capable: True
     uses_modules: True
     module_parent: cuda
+    no_binding: True
 queues:
   gpu.q:
     time: 18000
@@ -167,16 +181,203 @@ USER_EMAIL = "{username}@{hostname}".format(
                 )
 
 
+class FakePlugin(object):
+    def submit(self):
+        pass
+    def qtest(self):
+        pass
+    def queue_exists(self):
+        pass
+    def BadSubmission(self):
+        pass
+
+@patch(
+    'fsl_sub.shell_modules.read_config',
+    autospec=True,
+    return_value=yaml.load(YAML_CONF))
+@patch(
+    'fsl_sub.read_config',
+    autospec=True,
+    return_value=yaml.load(YAML_CONF))
+@patch(
+    'fsl_sub.config.read_config',
+    autospec=True,
+    return_value=yaml.load(YAML_CONF))
+@patch(
+    'fsl_sub.load_plugins',
+    autospec=True
+)
+@patch(
+    'fsl_sub.check_command',
+    autospec=True,
+    return_value=True
+)
 class SubmitTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.conf_dict = yaml.load(YAML_CONF)
+    def test_mem_env(
+            self, mock_checkcmd, mock_loadplugins,
+            mock_confrc, mock_rc, mock_smrc):
+        plugins = {}
+
+        plugins['fsl_sub_plugin_sge'] = FakePlugin()
+        plugins['fsl_sub_plugin_sge'].submit = MagicMock(name='submit')
+        plugins['fsl_sub_plugin_sge'].qtest = MagicMock(name='qtest')
+        plugins['fsl_sub_plugin_sge'].qtest.return_value('/usr/bin/qconf')
+        plugins['fsl_sub_plugin_sge'].queue_exists = MagicMock(name='queue_exists')
+        plugins['fsl_sub_plugin_sge'].queue_exists.return_value(True)
+        plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
+
+        mock_loadplugins.return_value = plugins
+        with self.subTest('env not set - no memory specified'):
+            fsl_sub.submit(['mycommand',], jobram=None)
+
+            plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
+                ['mycommand', ],
+                architecture=None,
+                array_hold=None,
+                array_limit=None,
+                array_specifier=None,
+                array_task=False,
+                coprocessor=None,
+                coprocessor_toolkit=None,
+                coprocessor_class=None,
+                coprocessor_class_strict=False,
+                coprocessor_multi='1',
+                job_name='mycommand',
+                parallel_env=None,
+                queue='a.qa,a.qb,a.qc',
+                threads=1,
+                jobhold=None,
+                jobram=None,
+                jobtime=None,
+                logdir=None,
+                mail_on='a',
+                mailto=USER_EMAIL,
+                priority=None,
+                ramsplit=True,
+                requeueable=True,
+                resources=None,
+                usescript=False,
+                project=None
+            )
+        plugins['fsl_sub_plugin_sge'].submit.reset_mock()
+        with self.subTest('env set - no memory specified'):
+            with patch.dict(
+                    'fsl_sub.os.environ',
+                    {'FSLSUB_MEMORY_REQUIRED': '8G', },
+                    clear=True):
+                fsl_sub.submit(['mycommand',], jobram=None)
+
+                plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
+                    ['mycommand', ],
+                    architecture=None,
+                    array_hold=None,
+                    array_limit=None,
+                    array_specifier=None,
+                    array_task=False,
+                    coprocessor=None,
+                    coprocessor_toolkit=None,
+                    coprocessor_class=None,
+                    coprocessor_class_strict=False,
+                    coprocessor_multi='1',
+                    job_name='mycommand',
+                    parallel_env=None,
+                    queue='a.qa,a.qc',
+                    threads=1,
+                    jobhold=None,
+                    jobram=8,
+                    jobtime=None,
+                    logdir=None,
+                    mail_on='a',
+                    mailto=USER_EMAIL,
+                    priority=None,
+                    ramsplit=True,
+                    requeueable=True,
+                    resources=None,
+                    usescript=False,
+                    project=None
+                )
+        plugins['fsl_sub_plugin_sge'].submit.reset_mock()
+        with self.subTest('env set no units - no memory specified'):
+            with patch.dict(
+                    'fsl_sub.os.environ',
+                    {'FSLSUB_MEMORY_REQUIRED': '8', },
+                    clear=True):
+                fsl_sub.submit(['mycommand',], jobram=None)
+
+                plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
+                    ['mycommand', ],
+                    architecture=None,
+                    array_hold=None,
+                    array_limit=None,
+                    array_specifier=None,
+                    array_task=False,
+                    coprocessor=None,
+                    coprocessor_toolkit=None,
+                    coprocessor_class=None,
+                    coprocessor_class_strict=False,
+                    coprocessor_multi='1',
+                    job_name='mycommand',
+                    parallel_env=None,
+                    queue='a.qa,a.qc',
+                    threads=1,
+                    jobhold=None,
+                    jobram=8,
+                    jobtime=None,
+                    logdir=None,
+                    mail_on='a',
+                    mailto=USER_EMAIL,
+                    priority=None,
+                    ramsplit=True,
+                    requeueable=True,
+                    resources=None,
+                    usescript=False,
+                    project=None
+                )
+        plugins['fsl_sub_plugin_sge'].submit.reset_mock()
+        with self.subTest('env set small - no memory specified'):
+            with patch.dict(
+                    'fsl_sub.os.environ',
+                    {'FSLSUB_MEMORY_REQUIRED': '32M', },
+                    clear=True):
+                fsl_sub.submit(['mycommand',], jobram=None)
+
+                plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
+                    ['mycommand', ],
+                    architecture=None,
+                    array_hold=None,
+                    array_limit=None,
+                    array_specifier=None,
+                    array_task=False,
+                    coprocessor=None,
+                    coprocessor_toolkit=None,
+                    coprocessor_class=None,
+                    coprocessor_class_strict=False,
+                    coprocessor_multi='1',
+                    job_name='mycommand',
+                    parallel_env=None,
+                    queue='a.qa,a.qb,a.qc',
+                    threads=1,
+                    jobhold=None,
+                    jobram=1,
+                    jobtime=None,
+                    logdir=None,
+                    mail_on='a',
+                    mailto=USER_EMAIL,
+                    priority=None,
+                    ramsplit=True,
+                    requeueable=True,
+                    resources=None,
+                    usescript=False,
+                    project=None
+                )
+        plugins['fsl_sub_plugin_sge'].submit.reset_mock()
+
+
 # This needs some tests writing:
 
 # submit with command = []
 # submit with command = 'a string of commands'
 # submit with command = ['/usr/bin/command']
-
 
 class GetQTests(unittest.TestCase):
     @classmethod
