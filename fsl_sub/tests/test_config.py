@@ -88,6 +88,7 @@ class TestConfig(unittest.TestCase):
     @patch('fsl_sub.config.find_config_file', auto_spec=True)
     def test_read_config(self, mock_find_config_file):
         with self.subTest("Test good read"):
+            fsl_sub.config.read_config.cache_clear()
             example_yaml = '''
     adict:
         alist:
