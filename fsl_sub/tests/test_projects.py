@@ -8,14 +8,14 @@ from unittest.mock import patch
 class TestConfig(unittest.TestCase):
     @patch('fsl_sub.projects.project_list', autospec=True)
     def test_project_exists(self, mock_project_list):
-        mock_project_list.return_code = ['aproject', 'bproject', ]
+        mock_project_list.return_value = ['aproject', 'bproject', ]
 
         self.assertTrue(fsl_sub.projects.project_exists('aproject'))
         self.assertFalse(fsl_sub.projects.project_exists('cproject'))
 
     @patch('fsl_sub.projects.project_list', autospec=True)
     def test_projects(self, mock_project_list):
-        mock_project_list.return_code = ['aproject', 'bproject', ]
+        mock_project_list.return_value = ['aproject', 'bproject', ]
 
         with self.subTest("Test get from environment 1"):
             with patch.dict(
