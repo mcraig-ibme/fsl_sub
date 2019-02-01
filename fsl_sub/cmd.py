@@ -6,6 +6,7 @@
 import argparse
 import getpass
 import logging
+import os
 import socket
 import sys
 import traceback
@@ -32,7 +33,10 @@ from fsl_sub.exceptions import (
     BadConfiguration,
     BadSubmission,
     GridOutputError,
+    InstallError,
     NoModule,
+    PackageError,
+    UpdateError,
     CONFIG_ERROR,
     SUBMISSION_ERROR,
     RUNNER_ERROR,
@@ -50,11 +54,18 @@ from fsl_sub.projects import (
 )
 from fsl_sub.utils import (
     available_plugins,
+    available_plugin_packages,
     blank_none,
+    conda_check_update,
+    conda_find_packages,
+    conda_install,
+    conda_update,
     file_is_image,
+    find_fsldir,
     get_plugin_example_conf,
     minutes_to_human,
     titlize_key,
+    user_input,
 )
 
 
@@ -853,3 +864,155 @@ def main(args=None):
         traceback.print_exc(file=sys.stderr)
         cmd_parser.error("Unexpected error: " + str(e) + '\n')
     print(job_id)
+
+
+def update_parser(parser_class=argparse.ArgumentParser):
+    '''Parse the command line, returns a dict keyed on option'''
+    logger = logging.getLogger(__name__)
+
+    logger.debug("updater: parsing arguments")
+
+    parser = parser_class(
+        prog="fsl_sub_update",
+        usage="Check for fsl_sub updates",
+        description="Check online for fsl_sub updates"
+    )
+    parser.add_argument(
+        '--check', '-c', help="Check for updates", action="store_true"
+    )
+    parser.add_argument(
+        '--yes', '-y', help="Update without confirmation", action="store_true"
+    )
+    parser.add_argument(
+        '--test_local', '-t', help=argparse.SUPPRESS
+    )
+    return parser
+
+
+def update(args=None):
+    lhdr = logging.StreamHandler()
+    fmt = LogFormatter()
+    lhdr.setFormatter(fmt)
+    logger = logging.getLogger('fsl_sub')
+    logger.addHandler(lhdr)
+    options = update_parser().parse_args(args=args)
+
+    fsldir = find_fsldir()
+
+    # Enumerate plugins
+    plugins = available_plugin_packages()
+    packages = ['fsl_sub', ] + plugins
+    # Check for updates
+    try:
+        updates = conda_check_update(
+            fsldir=fsldir, packages=packages)
+        print("Available updates:")
+        for u, v in updates.items():
+            print("{0} ({1} -> {2})".format(
+                u, v['old_version'], v['version']
+            ))
+    except UpdateError as e:
+        sys.exit(
+            "Unable to check for updates! ({0})".format(
+                str(e)))
+
+    if not options.check:
+        if not options.yes:
+            answer = user_input('Install pending updates? ')
+            if answer.strip().lower() not in ['y', 'yes', ]:
+                sys.exit('Aborted')
+        try:
+            updated = conda_update(
+                fsldir=fsldir, packages=packages
+                )
+            print("{0} updated.".format(", ".join(updated)))
+        except UpdateError as e:
+            sys.exit(
+                "Unable to update! ({0})".format(
+                    str(e)
+                )
+            )
+
+
+def instplugin_parser(parser_class=argparse.ArgumentParser):
+    '''Parse the command line, returns a dict keyed on option'''
+    logger = logging.getLogger(__name__)
+
+    logger.debug("plugin installer: parsing arguments")
+
+    parser = parser_class(
+        prog="fsl_sub_install_plugin",
+        usage="Download and install fsl_sub plugins",
+        description="Simplify the installation of cluster backends for fsl_sub"
+    )
+    parser.add_argument(
+        '--list', '-l', help="List available plugins", action="store_true"
+    )
+    parser.add_argument(
+        '--install', '-i', help="Install requested plugin", default=None
+    )
+    parser.add_argument(
+        '--test_local', '-t', help=argparse.SUPPRESS
+    )
+
+    return parser
+
+
+def install_plugin(args=None):
+    lhdr = logging.StreamHandler()
+    fmt = LogFormatter()
+    lhdr.setFormatter(fmt)
+    logger = logging.getLogger('fsl_sub')
+    logger.addHandler(lhdr)
+    inst_parser = instplugin_parser()
+    options = inst_parser.parse_args(args=args)
+
+    fsldir = find_fsldir()
+
+    try:
+        fsl_sub_plugins = conda_find_packages(
+            'fsl_sub_plugin_*', fsldir=fsldir)
+    except PackageError:
+        sys.exit("Unable to search for plugins - was this installed with FSL?")
+    if options.list or options.install is None:
+        print('Available plugins:')
+        for index, plugin in enumerate(fsl_sub_plugins):
+            if not options.list:
+                print("{0}: {1}".format(index + 1, plugin))
+            else:
+                print(plugin)
+        if options.list:
+            sys.exit(0)
+        else:
+            try:
+                plugin_index = int(user_input("Which backend? "))
+                conda_pkg = fsl_sub_plugins[plugin_index - 1]
+            except (ValueError, IndexError, ):
+                sys.exit("Invalid plugin number")
+
+    # Install
+    if options.install:
+        if options.install in fsl_sub_plugins:
+            conda_pkg = options.install
+        else:
+            sys.exit("Unrecognised plugin")
+    try:
+        conda_install(conda_pkg)
+    except InstallError as e:
+        sys.exit(
+            "Unable to install requested plugin! ({0})".format(
+                str(e)))
+    print("Plugin {0} installed". format(conda_pkg))
+    print(
+        """You can generate an example config file with:
+fsl_sub_config {plugin}
+
+The configuration file can be copied to {fsldir_etc_fslconf} calling "
+it fsl_sub.yml, or put in your home folder calling it .fsl_sub.yml. "
+A copy in your home folder will override the file in "
+{fsldir_etc_fslconf}. Finally, the environment variable FSLSUB_CONF "
+can be set to point at the configuration file, this will override all"
+other files.""".format(
+            plugin=conda_pkg.replace('fsl_sub_plugin_', ''),
+            fsldir_etc_fslconf=os.path.join(fsldir, 'etc', 'fslconf'))
+    )

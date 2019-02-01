@@ -2,6 +2,7 @@
 # Copyright (c) 2018, University of Oxford (Duncan Mortimer)
 
 import importlib
+import json
 import math
 import os
 import pkgutil
@@ -9,11 +10,20 @@ import re
 import shutil
 import subprocess
 import sys
+import yaml
+from functools import lru_cache
 from math import ceil
 from fsl_sub.exceptions import (
     CommandError,
     BadSubmission,
     BadConfiguration,
+    NotAFslDir,
+    NoCondaEnvFile,
+    NoChannelFound,
+    UpdateError,
+    NoCondaEnv,
+    PackageError,
+    InstallError,
 )
 from fsl_sub.system import (
     system_stdout,
@@ -53,6 +63,12 @@ def available_plugins():
         plugs.append(plugin_name)
 
     return plugs
+
+
+def available_plugin_packages():
+    return [
+        'fsl_sub_plugin_' + a for a in available_plugins() if a.lower != 'none'
+    ]
 
 
 def get_plugin_example_conf(plugin_name):
@@ -253,3 +269,380 @@ def parse_array_specifier(spec):
             raise BadSubmission("Array number of tasks must be an integer")
         jend = None
     return (jstart, jend, step)
+
+
+def user_input(prompt):
+    return input(prompt)
+
+
+@lru_cache()
+def find_fsldir():
+    fsldir = None
+    try:
+        fsldir = os.environ['FSLDIR']
+    except KeyError:
+        while fsldir is None:
+            fsldir = user_input(
+                "Where is FSL installed? (hit return to cancel) ")
+            if fsldir == "":
+                raise NotAFslDir()
+            if not os.path.exists(
+                    os.path.join(fsldir, 'etc', 'fslconf')):
+                print("Not an FSL dir.", file=sys.stderr)
+                fsldir = None
+    return fsldir
+
+
+def conda_fsl_env(fsldir=None):
+    try:
+        if fsldir is None:
+            fsldir = find_fsldir()
+    except NotAFslDir as e:
+        raise NoCondaEnv(str(e))
+
+    env_dir = os.path.join(fsldir, 'fslpython', 'envs', 'fslpython')
+    if not os.path.exists(env_dir):
+        raise NoCondaEnv
+    return env_dir
+
+
+def conda_bin(fsldir=None):
+    conda_bin = os.path.join(
+        conda_fsl_env(fsldir),
+        'bin',
+        'conda'
+    )
+    if not os.path.exists(conda_bin):
+        raise NoCondaEnv
+    return conda_bin
+
+
+def conda_channel(fsldir=None):
+    try:
+        if fsldir is None:
+            fsldir = find_fsldir()
+    except NotAFslDir as e:
+        raise NoCondaEnv(str(e))
+
+    try:
+        fsl_pyenv = open(
+                os.path.join(
+                    fsldir,
+                    'etc',
+                    'fslconf',
+                    'fslpython_environment.yml'),
+                "r")
+    except Exception as e:
+        raise NoCondaEnvFile(
+            "Unable to access fslpython_environment.yml file: " +
+            str(e))
+    conda_env = yaml.load(fsl_pyenv)
+    for channel in conda_env['channels']:
+        if channel.endswith('fslconda/channel'):
+            return channel
+
+    raise NoChannelFound()
+
+
+def conda_stderr(output):
+    '''Finds the actual error in the stderr output of conda --json
+    This is often poluted with messages of no interest.'''
+    json_lines = []
+    json_found = False
+    for line in output.splitlines():
+        if line.startswith('sl_{') or line.startswith('{'):
+            json_found = True
+        if json_found:
+            if line.startswith('sl_'):
+                line = line.replace('sl_', '')
+            if line.startswith('}'):
+                json_lines.append('}')
+                json_found = False
+            else:
+                json_lines.append(line)
+    if json_lines:
+        try:
+            message_obj = json.loads('\n'.join(json_lines))
+        except json.JSONDecodeError:
+            message = None
+            for line in output.splitlines():
+                line = line.strip()
+                if line.strip().strip('"').startswith('message'):
+                    message = line.split(':')[1].strip().strip('"')
+            if message is not None:
+                message_obj = {'message': message, }
+            else:
+                message_obj = {'message': output, }
+    else:
+        message_obj = {'message': output, }
+    try:
+        message = message_obj['message']
+    except KeyError:
+        return output
+    return message
+
+
+def conda_stdout_error(output):
+    '''Return the error message in stdout of conda --json'''
+    try:
+        message_obj = json.loads(output)
+        message = message_obj['message']
+        print(message_obj)
+    except (json.JSONDecodeError, KeyError):
+        message = output
+    return message
+
+
+def conda_find_packages(match, fsldir=None):
+    try:
+        if fsldir is None:
+            fsldir = find_fsldir()
+    except NotAFslDir as e:
+        raise NoCondaEnv(str(e))
+
+    try:
+        result = subprocess.run(
+            [
+                conda_bin(fsldir),
+                'search',
+                '--json',
+                '-c',
+                conda_channel(fsldir),
+                match,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True)
+    except subprocess.CalledProcessError as e:
+        if e.stderr is None:
+            message = conda_stdout_error(e.output)
+        else:
+            message = e.stderr
+        raise PackageError(
+            "Unable to search for packages! ({0})".format(message))
+
+    conda_json = result.stdout
+    try:
+        conda_result = json.loads(conda_json)
+    except json.JSONDecodeError as e:
+        raise PackageError(
+            "Unable to search for packages! ({0})".format(str(e))
+        )
+    return list(conda_result.keys())
+
+
+def conda_check_update(packages=None, fsldir=None):
+    try:
+        if fsldir is None:
+            fsldir = find_fsldir()
+    except NotAFslDir as e:
+        raise NoCondaEnv(str(e))
+
+    if packages is None:
+        packages = ['--all', ]
+    if isinstance(packages, str):
+        packages = (packages, )
+
+    try:
+        result = subprocess.run(
+            [
+                conda_bin(fsldir),
+                'update',
+                '--json',
+                '-q',
+                '-p',
+                conda_fsl_env(fsldir),
+                '-c',
+                conda_channel(fsldir),
+                '--dry-run',
+                " ".join(packages),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            check=True)
+    except subprocess.CalledProcessError as e:
+        if e.stderr is None:
+            message = conda_stdout_error(e.output)
+        else:
+            message = e.stderr
+        raise UpdateError(
+            "Unable to update! ({0})".format(message))
+
+    conda_json = result.stdout
+    try:
+        conda_result = json.loads(conda_json)
+    except json.JSONDecodeError as e:
+        raise UpdateError(
+            "Unable to check for updates ({0})".format(str(e))
+        )
+    try:
+        if (conda_result['message'] ==
+                'All requested packages already installed.'):
+            return None
+        else:
+            to_link = conda_result['actions']['LINK']
+            updates = {
+                a['name']: {
+                    'version': a['version'], } for a in
+                to_link
+            }
+            to_unlink = conda_result['actions']['UNLINK']
+            old_versions = {
+                a['name']: a['version'] for a in
+                to_unlink
+            }
+            for pkg in updates.keys():
+                try:
+                    updates[pkg]['old_version'] = old_versions[pkg]
+                except KeyError:
+                    pass
+    except KeyError as e:
+        raise UpdateError(
+            "Unexpected update output ({0})".format(str(e))
+        )
+    return updates
+
+
+def conda_update(packages=None, fsldir=None):
+    try:
+        if fsldir is None:
+            fsldir = find_fsldir()
+    except NotAFslDir as e:
+        raise NoCondaEnv(str(e))
+
+    if packages is None:
+        packages = ['--all', ]
+    if isinstance(packages, str):
+        packages = (packages, )
+
+    try:
+        result = subprocess.run(
+            [
+                conda_bin(fsldir),
+                'update',
+                '--json',
+                '-q',
+                '-y',
+                '-p',
+                conda_fsl_env(fsldir),
+                '-c',
+                conda_channel(fsldir),
+                packages,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            check=True)
+    except subprocess.CalledProcessError as e:
+        if e.stderr is None:
+            message = conda_stdout_error(e.output)
+        else:
+            message = conda_stderr(e.stderr)
+        raise UpdateError(
+            "Unable to update! ({0})".format(message))
+
+    conda_json = result.stdout
+    try:
+        conda_result = json.loads(conda_json)
+    except json.JSONDecodeError as e:
+        raise UpdateError(
+            "Unable to check for updates ({0})".format(str(e))
+        )
+    try:
+        if ('message' in conda_result and (
+                conda_result['message'] ==
+                'All requested packages already installed.')):
+            return None
+        if not conda_result['success']:
+            raise UpdateError(conda_result['message'])
+        to_link = conda_result['actions']['LINK']
+        updates = {
+            a['name']: {
+                'version': a['version'], } for a in
+            to_link
+        }
+        to_unlink = conda_result['actions']['UNLINK']
+        old_versions = {
+            a['name']: a['version'] for a in
+            to_unlink
+        }
+        for pkg in updates.keys():
+            try:
+                updates[pkg]['old_version'] = old_versions[pkg]
+            except KeyError:
+                pass
+        return updates
+
+    except KeyError as e:
+        raise UpdateError(
+            "Unexpected update output ({0})".format(str(e))
+        )
+
+
+def conda_install(packages, fsldir=None):
+    try:
+        if fsldir is None:
+            fsldir = find_fsldir()
+    except NotAFslDir as e:
+        raise NoCondaEnv(str(e))
+
+    if isinstance(packages, str):
+        packages = (packages, )
+
+    try:
+        result = subprocess.run(
+            [
+                conda_bin(fsldir),
+                'install',
+                '--json',
+                '-q',
+                '-y',
+                '-p',
+                conda_fsl_env(fsldir),
+                '-c',
+                conda_channel(fsldir),
+                packages,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            check=True)
+    except subprocess.CalledProcessError as e:
+        if e.stderr is None:
+            message = conda_stdout_error(e.output)
+        else:
+            message = conda_stderr(e.stderr)
+        raise InstallError(
+            "Unable to install! ({0})".format(message))
+
+    conda_json = result.stdout
+    try:
+        conda_result = json.loads(conda_json)
+    except json.JSONDecodeError as e:
+        raise InstallError(
+            "Unable to install ({0})".format(str(e))
+        )
+    try:
+        if ('message' in conda_result and
+                conda_result['message'] ==
+                'All requested packages already installed.'):
+            return None
+        if not conda_result['success']:
+            raise InstallError(
+                "Unable to install ({0})".format(
+                    conda_result['message']
+                )
+            )
+        to_link = conda_result['actions']['LINK']
+        updates = {
+            a['name']: {
+                'version': a['version'], } for a in
+            to_link
+        }
+        return updates
+
+    except KeyError as e:
+        raise InstallError(
+            "Unexpected update output - {0} missing".format(str(e))
+        )

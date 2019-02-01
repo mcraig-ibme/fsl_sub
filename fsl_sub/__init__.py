@@ -164,11 +164,11 @@ def submit(
     architecture=None,
     requeueable=True,
     native_holds=False,
-    as_tuple=True,
+    as_tuple=False,
     project=None
 ):
-    '''Submit job(s) to a queue, returns the job id as a single value tuple
-    (default) or int (as_tuple=False).
+    '''Submit job(s) to a queue, returns the job id as an int (pass as_tuple=True
+    to return a single value tuple).
     Single tasks require a command in the form of a list [command, arg1,
     arg2, ...] or simple string "command arg1 arg2".
     Array tasks (array_task=True) require a file name of the array task table

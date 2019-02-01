@@ -46,6 +46,34 @@ class UnknownJobId(Exception):
     pass
 
 
+class NotAFslDir(Exception):
+    pass
+
+
+class NoCondaEnvFile(Exception):
+    pass
+
+
+class NoChannelFound(Exception):
+    pass
+
+
+class UpdateError(Exception):
+    pass
+
+
+class NoCondaEnv(Exception):
+    pass
+
+
+class PackageError(Exception):
+    pass
+
+
+class InstallError(Exception):
+    pass
+
+
 CONFIG_ERROR = 1
 SUBMISSION_ERROR = 2
 RUNNER_ERROR = 3

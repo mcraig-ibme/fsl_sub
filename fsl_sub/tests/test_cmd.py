@@ -4,6 +4,7 @@ import getpass
 import io
 import os
 import socket
+import sys
 import unittest
 import yaml
 import fsl_sub.cmd
@@ -327,6 +328,34 @@ USER_EMAIL = "{username}@{hostname}".format(
                     username=getpass.getuser(),
                     hostname=socket.gethostname()
                 )
+
+
+class TestMisc(unittest.TestCase):
+    def test_titlize_key(self):
+        self.assertEqual(
+            'A Word',
+            fsl_sub.utils.titlize_key(
+                'a_word'
+            )
+        )
+
+    def test_blank_none(self):
+        self.assertEqual(
+            fsl_sub.utils.blank_none(1),
+            '1'
+        )
+        self.assertEqual(
+            fsl_sub.utils.blank_none(None),
+            ''
+        )
+        self.assertEqual(
+            fsl_sub.utils.blank_none('A'),
+            'A'
+        )
+        self.assertEqual(
+            fsl_sub.utils.blank_none(['a', 'b']),
+            "['a', 'b']"
+        )
 
 
 @patch(
@@ -1217,8 +1246,394 @@ class TestExampleConf(unittest.TestCase):
 
     @unittest.mock.patch('fsl_sub.cmd.sys.stdout', new_callable=io.StringIO)
     def test_example_config(self, mock_stdout):
+        exp_conf = '''# Job submission method to use.
+method: None
+# Default units for RAM given
+# (P, T, G, M, K)
+ram_units: G
+modulecmd: False
+
+# List all environment variables that control thread usage
+# will set these to parallel environment threads
+thread_control: None
+
+method_opts:
+  None:
+    queues: False
+    large_job_split_pe: None
+    mail_support: False
+    map_ram: False
+    job_priorities: False
+    array_holds: False
+    array_limit: False
+    architecture: False
+    job_resources: False
+    script_conf: False
+    projects: False
+'''
         fsl_sub.cmd.example_config(['None', ])
         self.assertEqual(
             mock_stdout.getvalue(),
-            self.exp_conf + '\n'
+            exp_conf + '\n'
+        )
+
+
+@patch(
+    'fsl_sub.cmd.find_fsldir', auto_spec=True,
+    return_value='/usr/local/fsl'
+    )
+@patch(
+    'fsl_sub.cmd.conda_check_update', auto_spec=True
+)
+@patch(
+    'fsl_sub.cmd.available_plugin_packages', auto_spec=True,
+    return_value=['fsl_sub_plugin_sge', ]
+)
+class TestUpdate(unittest.TestCase):
+    def test_update_check(
+            self, mock_pp,
+            mock_cup, mock_fsldir):
+
+        mock_cup.return_value = {
+            'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', },
+        }
+        # Trap stdout
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.update(args=['-c'])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '''Available updates:
+fsl_sub (1.0.0 -> 2.0.0)
+'''
+            )
+        mock_cup.assert_called_with(
+            fsldir='/usr/local/fsl',
+            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
+        )
+
+    @patch(
+        'fsl_sub.cmd.conda_update', auto_spec=True)
+    def test_update_noquestion(
+            self, mock_up, mock_pp,
+            mock_cup, mock_fsldir):
+
+        mock_cup.return_value = {
+            'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', },
+        }
+        mock_up.return_value = {
+            'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', },
+        }
+        # Trap stdout
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.update(args=['-y'])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '''Available updates:
+fsl_sub (1.0.0 -> 2.0.0)
+fsl_sub updated.
+'''
+            )
+        mock_cup.assert_called_with(
+            fsldir='/usr/local/fsl',
+            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
+        )
+
+    @patch(
+        'fsl_sub.cmd.conda_update', auto_spec=True)
+    @patch(
+        'fsl_sub.cmd.user_input', auto_spec=True
+    )
+    def test_update_ask(
+            self, mock_input, mock_up, mock_pp,
+            mock_cup, mock_fsldir):
+
+        mock_cup.return_value = {
+            'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', },
+        }
+        mock_up.return_value = {
+            'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', },
+        }
+        mock_input.return_value = 'y'
+        # Trap stdout
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.update(args=[])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '''Available updates:
+fsl_sub (1.0.0 -> 2.0.0)
+fsl_sub updated.
+'''
+            )
+        mock_input.assert_called_once_with('Install pending updates? ')
+        mock_input.reset_mock()
+        mock_cup.assert_called_with(
+            fsldir='/usr/local/fsl',
+            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
+        )
+
+        mock_cup.reset_mock()
+        mock_input.return_value = 'yes'
+        # Trap stdout
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.update(args=[])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '''Available updates:
+fsl_sub (1.0.0 -> 2.0.0)
+fsl_sub updated.
+'''
+            )
+        mock_cup.assert_called_with(
+            fsldir='/usr/local/fsl',
+            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
+        )
+        mock_input.assert_called_once_with('Install pending updates? ')
+        mock_input.reset_mock()
+
+        mock_cup.reset_mock()
+        mock_input.return_value = 'no'
+
+        # Trap stdout
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+            with self.assertRaises(SystemExit) as cm:
+                fsl_sub.cmd.update(args=[])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '''Available updates:
+fsl_sub (1.0.0 -> 2.0.0)
+'''
+            )
+        mock_cup.assert_called_with(
+            fsldir='/usr/local/fsl',
+            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
+        )
+        self.assertEqual(
+            'Aborted',
+            str(cm.exception))
+        mock_input.assert_called_once_with('Install pending updates? ')
+        mock_input.reset_mock()
+
+        mock_cup.reset_mock()
+        mock_input.return_value = 'anythin'
+        # Trap stdout
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+            with self.assertRaises(SystemExit) as cm:
+                fsl_sub.cmd.update(args=[])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '''Available updates:
+fsl_sub (1.0.0 -> 2.0.0)
+'''
+            )
+        self.assertEqual(
+            'Aborted',
+            str(cm.exception))
+        mock_cup.assert_called_with(
+            fsldir='/usr/local/fsl',
+            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
+        )
+
+        mock_cup.reset_mock()
+
+
+@patch(
+    'fsl_sub.cmd.find_fsldir', auto_spec=True,
+    return_value='/usr/local/fsl'
+    )
+@patch(
+    'fsl_sub.cmd.conda_find_packages', auto_spec=True
+)
+@patch(
+    'fsl_sub.cmd.available_plugin_packages', auto_spec=True,
+    return_value=['fsl_sub_plugin_sge', ]
+)
+class TestInstall(unittest.TestCase):
+    def test_install_plugin_list(
+            self, mock_pp,
+            mock_fp, mock_fsldir):
+
+        mock_fp.return_value = ['fsl_sub_plugin_sge', ]
+        # Trap stdout
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            with self.assertRaises(SystemExit):
+                fsl_sub.cmd.install_plugin(args=['-l'])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '''Available plugins:
+fsl_sub_plugin_sge
+'''
+            )
+        mock_fp.assert_called_with(
+            'fsl_sub_plugin_*',
+            fsldir='/usr/local/fsl',
+        )
+
+    @patch(
+        'fsl_sub.cmd.conda_install', auto_spec=True)
+    def test_list_and_install(
+            self, mock_ci, mock_pp,
+            mock_fp, mock_fsldir):
+
+        mock_fp.return_value = ['fsl_sub_plugin_sge', ]
+        mock_ci.return_value = {
+            'fsl_sub_plugin_sge': {'version': '1.0.0', }}
+        # Trap stdout
+        with patch('fsl_sub.cmd.user_input', auto_spec=True) as ui:
+            ui.return_value = '1'
+            with io.StringIO() as text_trap:
+                sys.stdout = text_trap
+
+                fsl_sub.cmd.install_plugin(args=[])
+                sys.stdout = sys.__stdout__
+
+                self.assertEqual(
+                    text_trap.getvalue(),
+                    '''Available plugins:
+1: fsl_sub_plugin_sge
+Plugin fsl_sub_plugin_sge installed
+You can generate an example config file with:
+fsl_sub_config sge
+
+The configuration file can be copied to /usr/local/fsl/etc/fslconf calling "
+it fsl_sub.yml, or put in your home folder calling it .fsl_sub.yml. "
+A copy in your home folder will override the file in "
+/usr/local/fsl/etc/fslconf. Finally, the environment variable FSLSUB_CONF "
+can be set to point at the configuration file, this will override all"
+other files.
+'''
+                )
+            mock_fp.assert_called_with(
+                'fsl_sub_plugin_*',
+                fsldir='/usr/local/fsl',
+            )
+            mock_ci.assert_called_once_with(
+                'fsl_sub_plugin_sge'
+            )
+            ui.assert_called_once_with("Which backend? ")
+
+    @patch(
+        'fsl_sub.cmd.conda_install', auto_spec=True)
+    def test_list_and_install_badchoice(
+            self, mock_ci, mock_pp,
+            mock_fp, mock_fsldir):
+
+        mock_fp.return_value = ['fsl_sub_plugin_sge', ]
+        mock_ci.return_value = {
+            'fsl_sub_plugin_sge': {'version': '1.0.0', }}
+        # Trap stdout
+        with patch('fsl_sub.cmd.user_input', auto_spec=True) as ui:
+            ui.return_value = '2'
+            with io.StringIO() as text_trap:
+                sys.stdout = text_trap
+
+                with self.assertRaises(SystemExit) as se:
+                    fsl_sub.cmd.install_plugin(args=[])
+                    self.assertEqual(
+                        str(se.exception),
+                        'Invalid plugin number')
+                sys.stdout = sys.__stdout__
+
+                self.assertEqual(
+                    text_trap.getvalue(),
+                    '''Available plugins:
+1: fsl_sub_plugin_sge
+'''
+                )
+            mock_fp.assert_called_with(
+                'fsl_sub_plugin_*',
+                fsldir='/usr/local/fsl',
+            )
+            ui.assert_called_once_with("Which backend? ")
+
+    @patch(
+        'fsl_sub.cmd.conda_install', auto_spec=True)
+    def test_install_direct(
+            self, mock_ci, mock_pp,
+            mock_fp, mock_fsldir):
+
+        mock_fp.return_value = ['fsl_sub_plugin_sge', ]
+        mock_ci.return_value = {
+            'fsl_sub_plugin_sge': {'version': '1.0.0', }}
+        # Trap stdout
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.install_plugin(
+                args=['-i', 'fsl_sub_plugin_sge'])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '''Plugin fsl_sub_plugin_sge installed
+You can generate an example config file with:
+fsl_sub_config sge
+
+The configuration file can be copied to /usr/local/fsl/etc/fslconf calling "
+it fsl_sub.yml, or put in your home folder calling it .fsl_sub.yml. "
+A copy in your home folder will override the file in "
+/usr/local/fsl/etc/fslconf. Finally, the environment variable FSLSUB_CONF "
+can be set to point at the configuration file, this will override all"
+other files.
+'''
+                )
+        mock_fp.assert_called_with(
+            'fsl_sub_plugin_*',
+            fsldir='/usr/local/fsl',
+        )
+        mock_ci.assert_called_once_with(
+            'fsl_sub_plugin_sge'
+        )
+
+    @patch(
+        'fsl_sub.cmd.conda_install', auto_spec=True)
+    def test_install_direct_bad(
+            self, mock_ci, mock_pp,
+            mock_fp, mock_fsldir):
+
+        mock_fp.return_value = ['fsl_sub_plugin_sge', ]
+        mock_ci.return_value = {
+            'fsl_sub_plugin_sge': {'version': '1.0.0', }}
+        # Trap stdout
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            with self.assertRaises(SystemExit) as se:
+                fsl_sub.cmd.install_plugin(
+                    args=['-i', 'fsl_sub_plugin_slurm'])
+                self.assertEqual(
+                    'Unrecognised plugin',
+                    str(se.exception)
+                )
+            sys.stdout = sys.__stdout__
+
+        mock_fp.assert_called_with(
+            'fsl_sub_plugin_*',
+            fsldir='/usr/local/fsl',
         )
