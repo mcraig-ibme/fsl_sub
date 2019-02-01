@@ -168,3 +168,188 @@ When running as an array task you may wish to know which sub-task you are, this 
 * `FSLSUB_ARRAYCOUNT_VAR`: The number of tasks in the array (not available for all plugins)
 
 Not all variables are set by all queue backends so ensure your software can cope with missing variables.
+
+## Additional tools
+
+Included with the `fsl_sub` command are several addtional tools detailed below.
+
+### fsl_sub_config
+
+This command outputs an example `fsl_sub` configuration file for the cluster backend requested. This file can be installed centrally (in `$FSLDIR/etc/fslconf`, called `fsl_sub.yml`), in your home folder (in `~/.fsl_sub.yml`) or in any folder and the environment variable `FSLSUB_CONF` set to point at the configuration file.
+
+### fsl_sub_report
+
+This command abstracts the cluster reporting tools, providing a common output no matter what the cluster backend.
+
+#### Usage
+
+```bash
+fsl_sub_report [job_id] {--subjob_id [sub_id]} {--parsable}
+```
+
+Reports on job `job_id`, optionally on subtask `sub_id`. `--parsable` outputs machine readable information.
+
+### fsl_sub_install_plugin
+
+This command lists available plugins (as known to the central FSL software repository) and helps to install these into an FSL installation.
+
+#### Usage
+
+```bash
+fsl_sub_install_plugin [--list|--install {plugin}]
+```
+
+`--list` lists available plugins and `--install` installs the requested plugin (displays the list and prompts for a choice if no plugin is specified).
+
+## Python interface
+
+The `fsl_sub` package is available for use directly within python scripts. Ensure that the fsl_sub folder is within your python search path and import as follows:
+
+```python
+import fsl_sub
+```
+
+### report
+
+Arguments: job_id, subjob_id=None
+
+If using this, also import the `consts` sub-package.
+
+```python
+import fsl_sub.consts
+```
+
+This returns a dictionary describing the job (including completed tasks):
+
+        id
+        name
+        script (if available)
+        arguments (if available)
+        submission_time
+        tasks (dict keyed on sub-task ID):
+            status:
+                fsl_sub.consts.QUEUED
+                fsl_sub.consts.RUNNING
+                fsl_sub.consts.FINISHED
+                fsl_sub.consts.FAILEDNQUEUED
+                fsl_sub.consts.SUSPENDED
+                fsl_sub.consts.HELD
+            start_time
+            end_time
+            sub_time
+            utime
+            stime
+            exit_status
+            error_message
+            maxmemory (in Mbytes)
+        parents (if available)
+        children (if available)
+        job_directory (if available)
+
+### submit
+
+Arguments:
+
+    command,
+    name=None,
+    threads=1,
+    queue=None,
+    jobhold=None,
+    array_task=False,
+    array_hold=None,
+    array_limit=None,
+    array_specifier=None,
+    parallel_env=None,
+    jobram=None,
+    jobtime=None,
+    resources=None,
+    ramsplit=True,
+    priority=None,
+    validate_command=True,
+    mail_on=None,
+    mailto=(defaults to username@hostname),
+    logdir=None,
+    coprocessor=None,
+    coprocessor_toolkit=None,
+    coprocessor_class=None,
+    coprocessor_class_strict=False,
+    coprocessor_multi="1",
+    usescript=False,
+    architecture=None,
+    requeueable=True,
+    native_holds=False,
+    as_tuple=True,
+    project=None
+
+Submit job(s) to a queue, returns the job id as an int (pass as_tuple=True
+to return a single value tuple).
+
+Single tasks require a command in the form of a list [command, arg1,
+arg2, ...] or simple string "command arg1 arg2".
+
+Array tasks (array_task=True) require a file name of the array task table
+file unless array_specifier(=n[-m[:s]]) is specified in which case command
+is as per a single task.
+
+Required Arguments:
+
+    command - string or list containing command to run
+                or the file name of the array task file.
+                If array_specifier is given then this must be
+                a string/list containing the command to run.
+
+Optional Arguments:
+
+    job_name - Symbolic name for task (defaults to first component of command)
+    array_task - is the command is an array task (defaults to False)
+    jobhold - id(s) of jobs to hold for (string or list)
+    array_hold - complex hold string
+    array_limit - limit concurrently scheduled array
+            tasks to specified number
+    array_specifier - n[-m[:s]] n subtasks or starts at n, ends at m with
+            a step of s.
+    as_tuple - if true then return job ID as a single value tuple
+    parallel_env - parallel environment name
+    jobram - RAM required by job (total of all threads)
+    jobtime - time (in minutes for task)
+    requeueable - job may be requeued on node failure
+    resources - list of resource request strings
+    ramsplit - break tasks into multiple slots to meet RAM constraints
+    priority - job priority (0-1023)
+    mail_on - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
+            's'uspended, 'n'o mail
+    mailto - email address to receive job info
+    native_holds - whether to process the jobhold or array_hold input
+    logdir - directory to put log files in
+    coprocessor - name of coprocessor required
+    coprocessor_toolkit - coprocessor toolkit version
+    coprocessor_class - class of coprocessor required
+    coprocessor_class_strict - whether to choose only this class
+            or all more capable
+    coprocessor_multi - how many coprocessors you need (or
+            complex description) (string)
+    queue - Explicit queue to submit to - use jobram/jobtime in preference to
+            this
+    usescript - queue config is defined in script
+    project - Cluster project to submit job to, defaults to None
+
+### calc_slots
+
+Arguments:
+    job_ram
+    slot_size
+    job_threads
+
+Calculates the number of queue slots necessary to achieve the RAM and thread requirements of a job. This is used internally within submit so wouldn't normally need to be run.
+
+### getq_and_slots
+
+Arguments:
+    queues
+    job_time=0
+    job_ram=0,
+    job_threads=1
+    coprocessor=None
+    ll_env=None
+
+This returns a tuple consisting of the queue and the number of slots required for the specified job parameters.
