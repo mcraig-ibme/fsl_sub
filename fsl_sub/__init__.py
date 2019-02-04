@@ -43,7 +43,7 @@ from fsl_sub.utils import (
     human_to_ram,
 )
 
-VERSION = '2.0'
+VERSION = '2.2.0'
 
 
 def fsl_sub_warnings_formatter(
@@ -127,7 +127,8 @@ def report(
         job_status = PLUGINS[grid_module].job_status
     except AttributeError as e:
         raise BadConfiguration(
-            "Failed to load plugin " + grid_module
+            "Failed to load plugin " + grid_module +
+            " ({0})".format(str(e))
         )
 
     return job_status(job_id, subjob_id)
@@ -264,7 +265,8 @@ def submit(
         BadSubmission = PLUGINS[grid_module].BadSubmission
     except AttributeError as e:
         raise BadConfiguration(
-            "Failed to load plugin " + grid_module
+            "Failed to load plugin " + grid_module +
+            " ({0})".format(str(e))
         )
 
     config['qtest'] = qtest()
