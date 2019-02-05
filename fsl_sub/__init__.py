@@ -440,11 +440,7 @@ def submit(
                     )
             logger.debug("Automatic queue selection:")
             logger.debug(queue_details)
-            if queue_details is None:
-                raise BadSubmission(
-                    "Unable to find a queue with these parameters")
-            else:
-                (queue, slots_required) = queue_details
+            (queue, slots_required) = queue_details
         else:
             if not queue_exists(queue) or queue not in config['queues']:
                 raise BadSubmission("Unrecognised queue " + queue)
@@ -567,14 +563,13 @@ def getq_and_slots(
     '''Calculate which queue to run the job on
     Still needs job splitting across slots'''
     logger = logging.getLogger(__name__)
-
     if job_ram is None:
         job_ram = 0
 
     queue_list = list(queues.keys())
 
     if not queue_list:
-        return None
+        raise BadSubmission("No matching queues found")
 
     # Filter on coprocessor availability
     if coprocessor is not None:
@@ -586,7 +581,7 @@ def getq_and_slots(
             q for q in queue_list if 'copros' not in queues[q]
         ]
     if not queue_list:
-        return None
+        raise BadSubmission("No matching queues found")
 
     # Filter on parallel environment availability
     if ll_env is not None:
@@ -595,7 +590,7 @@ def getq_and_slots(
             ll_env in queues[q]['parallel_envs']
         ]
     if not queue_list:
-        return None
+        raise BadSubmission("No matching queues found")
 
     # If no job time was specified then find the default queues
     # (if defined)
@@ -620,7 +615,7 @@ def getq_and_slots(
           queues[q]['max_size'] >= job_ram and
           queues[q]['max_slots'] >= job_threads]
     if not ql:
-        return None
+        raise BadSubmission("No matching queues found")
 
     logger.info(
         "Estimated RAM was {0} GBm, runtime was {1} minutes.\n".format(
