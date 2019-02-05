@@ -184,12 +184,16 @@ USER_EMAIL = "{username}@{hostname}".format(
 class FakePlugin(object):
     def submit(self):
         pass
+
     def qtest(self):
         pass
+
     def queue_exists(self):
         pass
+
     def BadSubmission(self):
         pass
+
 
 @patch(
     'fsl_sub.shell_modules.read_config',
@@ -222,13 +226,14 @@ class SubmitTests(unittest.TestCase):
         plugins['fsl_sub_plugin_sge'].submit = MagicMock(name='submit')
         plugins['fsl_sub_plugin_sge'].qtest = MagicMock(name='qtest')
         plugins['fsl_sub_plugin_sge'].qtest.return_value('/usr/bin/qconf')
-        plugins['fsl_sub_plugin_sge'].queue_exists = MagicMock(name='queue_exists')
+        plugins['fsl_sub_plugin_sge'].queue_exists = MagicMock(
+            name='queue_exists')
         plugins['fsl_sub_plugin_sge'].queue_exists.return_value(True)
         plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
 
         mock_loadplugins.return_value = plugins
         with self.subTest('env not set - no memory specified'):
-            fsl_sub.submit(['mycommand',], jobram=None)
+            fsl_sub.submit(['mycommand', ], jobram=None)
 
             plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                 ['mycommand', ],
@@ -265,7 +270,7 @@ class SubmitTests(unittest.TestCase):
                     'fsl_sub.os.environ',
                     {'FSLSUB_MEMORY_REQUIRED': '8G', },
                     clear=True):
-                fsl_sub.submit(['mycommand',], jobram=None)
+                fsl_sub.submit(['mycommand', ], jobram=None)
 
                 plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                     ['mycommand', ],
@@ -302,7 +307,7 @@ class SubmitTests(unittest.TestCase):
                     'fsl_sub.os.environ',
                     {'FSLSUB_MEMORY_REQUIRED': '8', },
                     clear=True):
-                fsl_sub.submit(['mycommand',], jobram=None)
+                fsl_sub.submit(['mycommand', ], jobram=None)
 
                 plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                     ['mycommand', ],
@@ -339,7 +344,7 @@ class SubmitTests(unittest.TestCase):
                     'fsl_sub.os.environ',
                     {'FSLSUB_MEMORY_REQUIRED': '32M', },
                     clear=True):
-                fsl_sub.submit(['mycommand',], jobram=None)
+                fsl_sub.submit(['mycommand', ], jobram=None)
 
                 plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                     ['mycommand', ],
