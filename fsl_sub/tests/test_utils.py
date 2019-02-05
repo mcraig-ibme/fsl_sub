@@ -1552,6 +1552,9 @@ class TestConda(unittest.TestCase):
 
 
 class TestPlugins(unittest.TestCase):
+    def setUp(self):
+        fsl_sub.utils.load_plugins.cache_clear()
+
     @patch(
             'fsl_sub.utils.available_plugins', autospec=True,
             return_value=['a', 'b', ])

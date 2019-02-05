@@ -31,6 +31,7 @@ from fsl_sub.system import (
 )
 
 
+@lru_cache()
 def load_plugins():
     plugin_path = []
 
