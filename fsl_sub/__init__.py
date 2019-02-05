@@ -42,8 +42,7 @@ from fsl_sub.utils import (
     control_threads,
     human_to_ram,
 )
-
-VERSION = '2.2.1'
+from fsl_sub.version import VERSION
 
 
 def fsl_sub_warnings_formatter(
@@ -53,6 +52,10 @@ def fsl_sub_warnings_formatter(
 
 warnings.formatwarning = fsl_sub_warnings_formatter
 warnings.simplefilter('always', UserWarning)
+
+
+def version():
+    return VERSION
 
 
 def report(

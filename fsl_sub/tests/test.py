@@ -191,7 +191,7 @@ class FakePlugin(object):
     def queue_exists(self):
         pass
 
-    def BadSubmission(self):
+    def plugin_version(self):
         pass
 
 

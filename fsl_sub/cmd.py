@@ -13,7 +13,6 @@ import traceback
 from fsl_sub import (
     submit,
     report,
-    VERSION,
 )
 from fsl_sub.config import (
     read_config,
@@ -21,6 +20,7 @@ from fsl_sub.config import (
     coprocessor_config,
     has_queues,
     uses_projects,
+    valid_config,
 )
 import fsl_sub.consts
 from fsl_sub.coprocessors import (
@@ -64,10 +64,12 @@ from fsl_sub.utils import (
     file_is_image,
     find_fsldir,
     get_plugin_example_conf,
+    load_plugins,
     minutes_to_human,
     titlize_key,
     user_input,
 )
+from fsl_sub.version import VERSION
 
 
 class MyArgParseFormatter(
@@ -76,7 +78,9 @@ class MyArgParseFormatter(
     pass
 
 
-def build_parser(config=None, cp_info=None):
+def build_parser(
+        config=None, cp_info=None,
+        plugin_name=None, plugin_version=None):
     '''Parse the command line, returns a dict keyed on option'''
     logger = logging.getLogger(__name__)
     if config is None:
@@ -519,11 +523,15 @@ There are several batch queues configured on the cluster:
         action='store_true',
         help="Verbose mode."
     )
+    version_string = '%(prog)s ' + VERSION
+    if plugin_name is not None:
+        version_string += " ({0} {1})".format(
+            plugin_name, plugin_version
+        )
     parser.add_argument(
         '-V', '--version',
         action='version',
-        version='%(prog)s ' + VERSION
-    )
+        version=version_string)
     parser.add_argument(
         '-z', '--fileisimage',
         default=None,
@@ -737,11 +745,30 @@ def main(args=None):
     plugin_logger.addHandler(lhdr)
     try:
         config = read_config()
+        valid_config(config)
         cp_info = coproc_info()
     except BadConfiguration as e:
         logger.error("Error in fsl_sub configuration - " + str(e))
         sys.exit(CONFIG_ERROR)
-    cmd_parser = build_parser(config, cp_info)
+
+    PLUGINS = load_plugins()
+
+    grid_module = 'fsl_sub_plugin_' + config['method']
+    if grid_module not in PLUGINS:
+        raise BadConfiguration(
+            "{} not a supported method".format(config['method']))
+
+    try:
+        plugin_version = PLUGINS[grid_module].plugin_version
+    except AttributeError as e:
+        raise BadConfiguration(
+            "Failed to load plugin " + grid_module +
+            " ({0})".format(str(e))
+        )
+
+    cmd_parser = build_parser(
+        config, cp_info, plugin_name=grid_module,
+        plugin_version=plugin_version())
     options = vars(cmd_parser.parse_args(args=args))
     if not cp_info['available']:
         options['coprocessor'] = None

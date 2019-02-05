@@ -330,6 +330,20 @@ USER_EMAIL = "{username}@{hostname}".format(
                 )
 
 
+class FakePlugin(object):
+    def submit(self):
+        pass
+
+    def qtest(self):
+        pass
+
+    def queue_exists(self):
+        pass
+
+    def plugin_version(self):
+        return '1.2.0'
+
+
 class TestMisc(unittest.TestCase):
     def test_titlize_key(self):
         self.assertEqual(
@@ -358,6 +372,11 @@ class TestMisc(unittest.TestCase):
         )
 
 
+@patch(
+    'fsl_sub.cmd.load_plugins',
+    autospec=True,
+    return_value={'fsl_sub_plugin_sge': FakePlugin()}
+)
 @patch(
     'fsl_sub.shell_modules.read_config',
     autospec=True,
@@ -1637,3 +1656,12 @@ other files.
             'fsl_sub_plugin_*',
             fsldir='/usr/local/fsl',
         )
+
+# Once main tests are written they will need:
+
+
+# @patch(
+#     'fsl_sub.cmd.load_plugins',
+#     autospec=True,
+#     return_value=FakePlugin()
+#     )
