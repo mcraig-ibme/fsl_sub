@@ -43,7 +43,7 @@ from fsl_sub.utils import (
     human_to_ram,
 )
 
-VERSION = '2.2.0'
+VERSION = '2.2.1'
 
 
 def fsl_sub_warnings_formatter(
@@ -490,7 +490,7 @@ def submit(
                 )
     if uses_projects():
         q_project = get_project_env(project)
-        if not project_exists(q_project):
+        if q_project is not None and not project_exists(q_project):
             raise BadSubmission(
                 "Project not recognised"
             )

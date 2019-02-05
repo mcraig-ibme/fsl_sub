@@ -34,6 +34,7 @@ from fsl_sub.exceptions import (
     BadSubmission,
     GridOutputError,
     InstallError,
+    NoFsl,
     NoModule,
     PackageError,
     UpdateError,
@@ -771,6 +772,11 @@ def main(args=None):
             if file_is_image(options['fileisimage']):
                 logger.info("File is an image")
                 sys.exit(0)
+        except NoFsl as e:
+            logger.warn(
+                "No FSL found - " + str(e) +
+                " assuming is image")
+            sys.exit(0)
         except CommandError as e:
             cmd_parser.error(str(e))
 

@@ -10,6 +10,7 @@ from fsl_sub.exceptions import (
     NoCondaEnv,
     NoChannelFound,
     NoCondaEnvFile,
+    NoFsl,
     PackageError,
     InstallError,
 )
@@ -1811,20 +1812,34 @@ class TestFileIsImage(unittest.TestCase):
     @patch('fsl_sub.utils.os.path.isfile', autospec=True)
     @patch('fsl_sub.utils.system_stdout', autospec=True)
     def test_file_is_image(self, mock_sstdout, mock_isfile):
-        mock_isfile.return_value = False
-        self.assertFalse(fsl_sub.utils.file_is_image('a'))
-        mock_isfile.return_value = True
-        mock_sstdout.return_value = ['1', ]
-        self.assertTrue(fsl_sub.utils.file_is_image('a'))
-        mock_sstdout.return_value = ['0', ]
-        self.assertFalse(fsl_sub.utils.file_is_image('a'))
-        mock_sstdout.side_effect = subprocess.CalledProcessError(
-            1, 'a', "failed")
-        self.assertRaises(
-            CommandError,
-            fsl_sub.utils.file_is_image,
-            'a'
-        )
+        with patch.dict(
+                    'fsl_sub.utils.os.environ',
+                    {'FSLDIR': '/usr/local/fsl', },
+                    clear=True):
+            mock_isfile.return_value = False
+            self.assertFalse(fsl_sub.utils.file_is_image('a'))
+            mock_isfile.return_value = True
+            mock_sstdout.return_value = ['1', ]
+            self.assertTrue(fsl_sub.utils.file_is_image('a'))
+            mock_sstdout.return_value = ['0', ]
+            self.assertFalse(fsl_sub.utils.file_is_image('a'))
+            mock_sstdout.side_effect = subprocess.CalledProcessError(
+                1, 'a', "failed")
+            self.assertRaises(
+                CommandError,
+                fsl_sub.utils.file_is_image,
+                'a'
+            )
+
+        with patch.dict(
+                    'fsl_sub.utils.os.environ',
+                    {},
+                    clear=True):
+            self.assertRaises(
+                NoFsl,
+                fsl_sub.utils.file_is_image,
+                'a'
+            )
 
 
 class TestArraySpec(unittest.TestCase):

@@ -17,13 +17,14 @@ from fsl_sub.exceptions import (
     CommandError,
     BadSubmission,
     BadConfiguration,
-    NotAFslDir,
-    NoCondaEnvFile,
-    NoChannelFound,
-    UpdateError,
-    NoCondaEnv,
-    PackageError,
     InstallError,
+    NotAFslDir,
+    NoChannelFound,
+    NoCondaEnv,
+    NoCondaEnvFile,
+    NoFsl,
+    PackageError,
+    UpdateError,
 )
 from fsl_sub.system import (
     system_stdout,
@@ -234,6 +235,9 @@ def file_is_image(filename):
                     filename
                     ])[0] == '1':
                 return True
+        except KeyError:
+            raise NoFsl(
+                "FSLDIR environment variable not found")
         except subprocess.CalledProcessError as e:
             raise CommandError(
                 "Error trying to check image file - " +

@@ -50,6 +50,10 @@ class NotAFslDir(Exception):
     pass
 
 
+class NoFsl(Exception):
+    pass
+
+
 class NoCondaEnvFile(Exception):
     pass
 
