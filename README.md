@@ -144,11 +144,21 @@ fsl_sub is only compatible with python 3 so you will be building a Pure Python W
 
 > python setup.py bdist_wheel
 
+## Usage
+
+For detailed usage see:
+
+```bash
+fsl_sub --help
+```
+
+The options available will depend on how fsl_sub has been configured for your particular backend - see the plugin's documentation for details.
+
 ## Advanced Usage
 
 ### Specifying Memory Requirements
 
-If fsl_sub is being called from within a software package such that you have no ability to specify memory requirements then you can achieve this by setting the environment variable FSLSUB_MEMORY_REQUIRED, e.g.
+If fsl_sub is being called from within a software package such that you have no ability to specify memory requirements then you can achieve this by setting the environment variable `FSLSUB_MEMORY_REQUIRED`, e.g.
 
 ```bash
 FSLSUB_MEMORY_REQUIRED=32G myscript_that_submits
@@ -156,6 +166,14 @@ FSLSUB_MEMORY_REQUIRED=32G myscript_that_submits
 
 If units are not specified then they will default to those configured in the YAML file.
 If the memory is also specified in the fsl_sub arguments then the argument provided value will be used.
+
+### Specifying Accounting Project
+
+On some clusters you may be required to submit jobs to different projects to ensure compute time is billed accordingly, or to gain access to restricted resources. You can specify a project with the `--project` option. If fsl_sub is being called from within a software package such that you have no ability to specify this option then you can select a project with the environment variable `FSLSUB_PROJECT`, e.g.
+
+```bash
+FSLSUB_PROJECT=myproj myscript_that_submits
+```
 
 ### Array task sub-task ID
 
