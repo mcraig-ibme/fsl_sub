@@ -14,6 +14,12 @@ YAML_CONF = '''---
 method: sge
 ram_units: G
 modulecmd: /usr/bin/modulecmd
+thread_control:
+  - OMP_NUM_THREADS
+  - MKL_NUM_THREADS
+  - MKL_DOMAIN_NUM_THREADS
+  - OPENBLAS_NUM_THREADS
+  - GOTO_NUM_THREADS
 method_opts:
     sge:
         queues: True
@@ -48,6 +54,7 @@ method_opts:
         architecture: False
         job_resources: True
         projects: False
+        script_conf: True
 coproc_opts:
   cuda:
     resource: gpu
@@ -67,6 +74,7 @@ coproc_opts:
     default_class: K
     include_more_capable: True
     uses_modules: True
+    no_binding: True
     module_parent: cuda
 queues:
   gpu.q:
@@ -171,6 +179,12 @@ YAML_CONF_PROJECTS = '''---
 method: sge
 ram_units: G
 modulecmd: /usr/bin/modulecmd
+thread_control:
+  - OMP_NUM_THREADS
+  - MKL_NUM_THREADS
+  - MKL_DOMAIN_NUM_THREADS
+  - OPENBLAS_NUM_THREADS
+  - GOTO_NUM_THREADS
 method_opts:
     sge:
         queues: True
@@ -205,6 +219,7 @@ method_opts:
         architecture: False
         job_resources: True
         projects: True
+        script_conf: True
 coproc_opts:
   cuda:
     resource: gpu
@@ -223,6 +238,7 @@ coproc_opts:
         capability: 3
     default_class: K
     include_more_capable: True
+    no_binding: True
     uses_modules: True
     module_parent: cuda
 queues:

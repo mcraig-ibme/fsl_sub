@@ -6,6 +6,13 @@ import fsl_sub.coprocessors
 from unittest.mock import patch
 
 test_config = yaml.load('''
+thread_control:
+  - OMP_NUM_THREADS
+  - MKL_NUM_THREADS
+  - MKL_DOMAIN_NUM_THREADS
+  - OPENBLAS_NUM_THREADS
+  - GOTO_NUM_THREADS
+
 queues:
     cuda.q:
         time: 18000
@@ -105,7 +112,6 @@ coproc_opts:
 # ''')
 
 #     def test_no_coprocs(self):
-#         import pdb; pdb.set_trace()
 #         with self.subTest("coproc_info"):
 #             self.assertDictEqual(
 #                 fsl_sub.coprocessors.coproc_info(),
