@@ -162,7 +162,7 @@ class TestCoprocessors(unittest.TestCase):
                 fsl_sub.coprocessors.coproc_classes(
                     'phi'))
 
-    @patch('fsl_sub.coprocessors.get_modules', auto_spec=True)
+    @patch('fsl_sub.coprocessors.get_modules', autospec=True)
     def test_coproc_toolkits(self, mock_get_modules):
         with self.subTest("CUDA toolkits"):
             mock_get_modules.return_value = ['6.5', '7.0', '7.5', ]

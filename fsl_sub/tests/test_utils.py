@@ -163,9 +163,9 @@ class TestConversions(unittest.TestCase):
             )
 
 
-@patch('fsl_sub.utils.user_input', auto_spec=True)
+@patch('fsl_sub.utils.user_input', autospec=True)
 @patch(
-    'fsl_sub.utils.os.path.exists', auto_spec=True
+    'fsl_sub.utils.os.path.exists', autospec=True
 )
 class TestFindFsldir(unittest.TestCase):
     def test_find_fromenviron(self, mock_exists, mock_ui):
@@ -225,7 +225,7 @@ class TestFindFsldir(unittest.TestCase):
 
 
 @patch(
-    'fsl_sub.utils.os.path.exists', auto_spec=True
+    'fsl_sub.utils.os.path.exists', autospec=True
 )
 class TestConda_fsl_env(unittest.TestCase):
     @patch(
@@ -408,7 +408,7 @@ class TestConda_stout_error(unittest.TestCase):
         autospec=True, return_value="/usr/local/fsl/fslpython/envs/fslpython"
         )
 @patch(
-    'fsl_sub.utils.os.path.exists', auto_spec=True
+    'fsl_sub.utils.os.path.exists', autospec=True
 )
 class TestConda_bin(unittest.TestCase):
     def test_exists(self, mock_exists, mock_ffsld):
@@ -427,14 +427,14 @@ class TestConda_bin(unittest.TestCase):
 
 
 @patch(
-    'fsl_sub.utils.find_fsldir', auto_spec=True,
+    'fsl_sub.utils.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
     )
 @patch(
-    'fsl_sub.utils.subprocess.run', auto_spec=True
+    'fsl_sub.utils.subprocess.run', autospec=True
     )
 @patch(
-    'fsl_sub.utils.conda_bin', auto_spec=True,
+    'fsl_sub.utils.conda_bin', autospec=True,
     return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
     )
 @patch(
@@ -695,14 +695,14 @@ class TestCondaFindPackages(unittest.TestCase):
 
 
 @patch(
-    'fsl_sub.utils.find_fsldir', auto_spec=True,
+    'fsl_sub.utils.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
     )
 @patch(
-    'fsl_sub.utils.subprocess.run', auto_spec=True
+    'fsl_sub.utils.subprocess.run', autospec=True
     )
 @patch(
-    'fsl_sub.utils.conda_bin', auto_spec=True,
+    'fsl_sub.utils.conda_bin', autospec=True,
     return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
     )
 @patch(
@@ -1020,14 +1020,14 @@ class TestCondaUpdate(unittest.TestCase):
 
 
 @patch(
-    'fsl_sub.utils.find_fsldir', auto_spec=True,
+    'fsl_sub.utils.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
     )
 @patch(
-    'fsl_sub.utils.subprocess.run', auto_spec=True
+    'fsl_sub.utils.subprocess.run', autospec=True
     )
 @patch(
-    'fsl_sub.utils.conda_bin', auto_spec=True,
+    'fsl_sub.utils.conda_bin', autospec=True,
     return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
     )
 @patch(
@@ -1371,14 +1371,14 @@ class TestCondaInstall(unittest.TestCase):
 
 
 @patch(
-    'fsl_sub.utils.find_fsldir', auto_spec=True,
+    'fsl_sub.utils.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
     )
 @patch(
-    'fsl_sub.utils.subprocess.run', auto_spec=True
+    'fsl_sub.utils.subprocess.run', autospec=True
     )
 @patch(
-    'fsl_sub.utils.conda_bin', auto_spec=True,
+    'fsl_sub.utils.conda_bin', autospec=True,
     return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
     )
 @patch(
@@ -1434,14 +1434,14 @@ dependencies:
 
 
 @patch(
-    'fsl_sub.utils.find_fsldir', auto_spec=True,
+    'fsl_sub.utils.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
     )
 @patch(
-    'fsl_sub.utils.subprocess.run', auto_spec=True
+    'fsl_sub.utils.subprocess.run', autospec=True
     )
 @patch(
-    'fsl_sub.utils.conda_bin', auto_spec=True,
+    'fsl_sub.utils.conda_bin', autospec=True,
     return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
     )
 @patch(
@@ -1552,7 +1552,7 @@ class TestConda(unittest.TestCase):
 
 class TestPlugins(unittest.TestCase):
     @patch(
-            'fsl_sub.utils.available_plugins', auto_spec=True,
+            'fsl_sub.utils.available_plugins', autospec=True,
             return_value=['a', 'b', ])
     def test_available_plugin_packages(self, mock_ap):
         self.assertListEqual(
@@ -1560,8 +1560,8 @@ class TestPlugins(unittest.TestCase):
             ['fsl_sub_plugin_a', 'fsl_sub_plugin_b', ]
         )
 
-    @patch('fsl_sub.utils.pkgutil.iter_modules', auto_spec=True)
-    @patch('fsl_sub.utils.importlib.import_module', auto_spec=True)
+    @patch('fsl_sub.utils.pkgutil.iter_modules', autospec=True)
+    @patch('fsl_sub.utils.importlib.import_module', autospec=True)
     def test_load_plugins(
             self, mock_import_module, mock_iter_modules):
         mock_import_module.side_effect = [

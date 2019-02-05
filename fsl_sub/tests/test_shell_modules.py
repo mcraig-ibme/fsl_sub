@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 
 class TestModuleSupport(unittest.TestCase):
-    @patch('fsl_sub.shell_modules.shutil.which', auto_spec=True)
+    @patch('fsl_sub.shell_modules.shutil.which', autospec=True)
     def test_find_module_cmd(self, mock_which):
         mock_which.return_value = '/usr/bin/modulecmd'
         self.assertEqual(
@@ -54,9 +54,9 @@ class TestModuleSupport(unittest.TestCase):
              'LD_LIBRARY_PATH': '/usr/lib64:/usr/local/lib64', }
         )
 
-    @patch('fsl_sub.shell_modules.find_module_cmd', auto_spec=True)
-    @patch('fsl_sub.shell_modules.system_stdout', auto_spec=True)
-    @patch('fsl_sub.shell_modules.read_module_environment', auto_spec=True)
+    @patch('fsl_sub.shell_modules.find_module_cmd', autospec=True)
+    @patch('fsl_sub.shell_modules.system_stdout', autospec=True)
+    @patch('fsl_sub.shell_modules.read_module_environment', autospec=True)
     def test_module_add(
             self,
             mock_read_module_environment,
@@ -96,7 +96,7 @@ class TestModuleSupport(unittest.TestCase):
                 fsl_sub.shell_modules.module_add('amodule')
             )
 
-    @patch('fsl_sub.shell_modules.module_add', auto_spec=True)
+    @patch('fsl_sub.shell_modules.module_add', autospec=True)
     @patch.dict('fsl_sub.shell_modules.os.environ', {}, clear=True)
     def test_load_module(self, mock_module_add):
         mock_module_add.return_value = {'VAR': 'VAL', 'VAR2': 'VAL2', }
@@ -112,7 +112,7 @@ class TestModuleSupport(unittest.TestCase):
             self.assertFalse(
                 fsl_sub.shell_modules.load_module('amodule'))
 
-    @patch('fsl_sub.shell_modules.module_add', auto_spec=True)
+    @patch('fsl_sub.shell_modules.module_add', autospec=True)
     @patch.dict(
         'fsl_sub.shell_modules.os.environ',
         {'VAR': 'VAL', 'VAR2': 'VAL2', 'EXISTING': 'VALUE', },
@@ -149,7 +149,7 @@ class TestModuleSupport(unittest.TestCase):
                     fsl_sub.shell_modules.loaded_modules(),
                     [])
 
-    @patch('fsl_sub.shell_modules.system_stderr', auto_spec=True)
+    @patch('fsl_sub.shell_modules.system_stderr', autospec=True)
     def test_get_modules(self, mock_system_stderr):
         mock_system_stderr.return_value = [
             "/usr/local/etc/ShellModules:",
@@ -186,7 +186,7 @@ class TestModuleSupport(unittest.TestCase):
                 fsl_sub.shell_modules.NoModule,
                 fsl_sub.shell_modules.get_modules, 'amodule')
 
-    @patch('fsl_sub.shell_modules.get_modules', auto_spec=True)
+    @patch('fsl_sub.shell_modules.get_modules', autospec=True)
     def test_latest_module(self, mock_get_modules):
         with self.subTest('Test 1'):
             mock_get_modules.return_value = ['5.0', '5.5', ]

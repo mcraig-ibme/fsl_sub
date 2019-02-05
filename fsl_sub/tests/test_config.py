@@ -85,7 +85,7 @@ class TestConfig(unittest.TestCase):
         finally:
             shutil.rmtree(test_dir)
 
-    @patch('fsl_sub.config.find_config_file', auto_spec=True)
+    @patch('fsl_sub.config.find_config_file', autospec=True)
     def test_read_config(self, mock_find_config_file):
         with self.subTest("Test good read"):
             fsl_sub.config.read_config.cache_clear()

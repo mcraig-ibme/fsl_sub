@@ -1279,14 +1279,14 @@ method_opts:
 
 
 @patch(
-    'fsl_sub.cmd.find_fsldir', auto_spec=True,
+    'fsl_sub.cmd.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
     )
 @patch(
-    'fsl_sub.cmd.conda_check_update', auto_spec=True
+    'fsl_sub.cmd.conda_check_update', autospec=True
 )
 @patch(
-    'fsl_sub.cmd.available_plugin_packages', auto_spec=True,
+    'fsl_sub.cmd.available_plugin_packages', autospec=True,
     return_value=['fsl_sub_plugin_sge', ]
 )
 class TestUpdate(unittest.TestCase):
@@ -1316,7 +1316,7 @@ fsl_sub (1.0.0 -> 2.0.0)
         )
 
     @patch(
-        'fsl_sub.cmd.conda_update', auto_spec=True)
+        'fsl_sub.cmd.conda_update', autospec=True)
     def test_update_noquestion(
             self, mock_up, mock_pp,
             mock_cup, mock_fsldir):
@@ -1347,9 +1347,9 @@ fsl_sub updated.
         )
 
     @patch(
-        'fsl_sub.cmd.conda_update', auto_spec=True)
+        'fsl_sub.cmd.conda_update', autospec=True)
     @patch(
-        'fsl_sub.cmd.user_input', auto_spec=True
+        'fsl_sub.cmd.user_input', autospec=True
     )
     def test_update_ask(
             self, mock_input, mock_up, mock_pp,
@@ -1460,14 +1460,14 @@ fsl_sub (1.0.0 -> 2.0.0)
 
 
 @patch(
-    'fsl_sub.cmd.find_fsldir', auto_spec=True,
+    'fsl_sub.cmd.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
     )
 @patch(
-    'fsl_sub.cmd.conda_find_packages', auto_spec=True
+    'fsl_sub.cmd.conda_find_packages', autospec=True
 )
 @patch(
-    'fsl_sub.cmd.available_plugin_packages', auto_spec=True,
+    'fsl_sub.cmd.available_plugin_packages', autospec=True,
     return_value=['fsl_sub_plugin_sge', ]
 )
 class TestInstall(unittest.TestCase):
@@ -1496,7 +1496,7 @@ fsl_sub_plugin_sge
         )
 
     @patch(
-        'fsl_sub.cmd.conda_install', auto_spec=True)
+        'fsl_sub.cmd.conda_install', autospec=True)
     def test_list_and_install(
             self, mock_ci, mock_pp,
             mock_fp, mock_fsldir):
@@ -1505,7 +1505,7 @@ fsl_sub_plugin_sge
         mock_ci.return_value = {
             'fsl_sub_plugin_sge': {'version': '1.0.0', }}
         # Trap stdout
-        with patch('fsl_sub.cmd.user_input', auto_spec=True) as ui:
+        with patch('fsl_sub.cmd.user_input', autospec=True) as ui:
             ui.return_value = '1'
             with io.StringIO() as text_trap:
                 sys.stdout = text_trap
@@ -1539,7 +1539,7 @@ other files.
             ui.assert_called_once_with("Which backend? ")
 
     @patch(
-        'fsl_sub.cmd.conda_install', auto_spec=True)
+        'fsl_sub.cmd.conda_install', autospec=True)
     def test_list_and_install_badchoice(
             self, mock_ci, mock_pp,
             mock_fp, mock_fsldir):
@@ -1548,7 +1548,7 @@ other files.
         mock_ci.return_value = {
             'fsl_sub_plugin_sge': {'version': '1.0.0', }}
         # Trap stdout
-        with patch('fsl_sub.cmd.user_input', auto_spec=True) as ui:
+        with patch('fsl_sub.cmd.user_input', autospec=True) as ui:
             ui.return_value = '2'
             with io.StringIO() as text_trap:
                 sys.stdout = text_trap
@@ -1573,7 +1573,7 @@ other files.
             ui.assert_called_once_with("Which backend? ")
 
     @patch(
-        'fsl_sub.cmd.conda_install', auto_spec=True)
+        'fsl_sub.cmd.conda_install', autospec=True)
     def test_install_direct(
             self, mock_ci, mock_pp,
             mock_fp, mock_fsldir):
@@ -1612,7 +1612,7 @@ other files.
         )
 
     @patch(
-        'fsl_sub.cmd.conda_install', auto_spec=True)
+        'fsl_sub.cmd.conda_install', autospec=True)
     def test_install_direct_bad(
             self, mock_ci, mock_pp,
             mock_fp, mock_fsldir):
