@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import io
 import subprocess
 import sys
 import unittest
@@ -199,17 +200,25 @@ class TestFindFsldir(unittest.TestCase):
         mock_exists.side_effect = [False, True]
 
         fsl_sub.utils.find_fsldir.cache_clear()
-        with patch.dict(
-                'fsl_sub.utils.os.environ',
-                {},
-                clear=True):
-            self.assertRaises(
-                NotAFslDir,
-                fsl_sub.utils.find_fsldir
-            )
-            mock_exists.assert_called_once_with(
-                '/usr/local/fsl/etc/fslconf',
-            )
+        with io.StringIO() as text_trap:
+            sys.stderr = text_trap
+            with patch.dict(
+                    'fsl_sub.utils.os.environ',
+                    {},
+                    clear=True):
+                self.assertRaises(
+                    NotAFslDir,
+                    fsl_sub.utils.find_fsldir
+                )
+                mock_exists.assert_called_once_with(
+                    '/usr/local/fsl/etc/fslconf',
+                )
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                'Not an FSL dir.\n')
+
+        sys.stderr = sys.__stderr__
 
     def test_find_emptyinput(self, mock_exists, mock_ui):
         mock_ui.return_value = ''
@@ -366,42 +375,53 @@ Some random text
 ''')
 
 
-class TestConda_stout_error(unittest.TestCase):
+class TestConda_stdout_error(unittest.TestCase):
     def test_conda_stdout_error_validjson(self):
-        self.assertEqual(
-            fsl_sub.utils.conda_stdout_error('''
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            self.assertEqual(
+                fsl_sub.utils.conda_stdout_error('''
 {
     "message": "output"
 }
 '''),
-            'output'
-        )
+                'output'
+            )
+
+            sys.stdout = sys.__stdout__
 
     def test_conda_stdout_error_invalidjson(self):
-        self.assertEqual(
-            fsl_sub.utils.conda_stdout_error('''
-{
-    'message': "output"
-}
-'''),
-            '''
-{
-    'message': "output"
-}
-''')
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+            self.assertEqual(
+                fsl_sub.utils.conda_stdout_error('''
+    {
+        'message': "output"
+    }
+    '''),
+                '''
+    {
+        'message': "output"
+    }
+    ''')
+            sys.stdout = sys.__stdout__
 
     def test_conda_stdout_error_invalidjson2(self):
-        self.assertEqual(
-            fsl_sub.utils.conda_stdout_error('''
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+            self.assertEqual(
+                fsl_sub.utils.conda_stdout_error('''
 {
     "something": "output"
 }
 '''),
-            '''
+                '''
 {
     "something": "output"
 }
 ''')
+            sys.stdout = sys.__stdout__
 
 
 @patch(

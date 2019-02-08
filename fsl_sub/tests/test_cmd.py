@@ -417,7 +417,17 @@ class TestMisc(unittest.TestCase):
     autospec=True, return_value=['7.5', '8.0', ])
 class TestMain(unittest.TestCase):
     def test_noramsplit(self, *args):
-        fsl_sub.cmd.main(['--noramsplit', '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main(['--noramsplit', '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -453,7 +463,17 @@ class TestMain(unittest.TestCase):
         )
 
     def test_parallelenv(self, *args):
-        fsl_sub.cmd.main(['--parallelenv', 'shmem,2', '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main(['--parallelenv', 'shmem,2', '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -488,8 +508,17 @@ class TestMain(unittest.TestCase):
             project=None
         )
         args[2].reset_mock()
-        fsl_sub.cmd.main(['-s', 'shmem,2', '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(['-s', 'shmem,2', '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             ['1', '2', ],
             architecture=None,
@@ -524,8 +553,17 @@ class TestMain(unittest.TestCase):
         )
 
     def test_mailoptions(self, *args):
-        fsl_sub.cmd.main(['--mailoptions', 'n', '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(['--mailoptions', 'n', '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             ['1', '2', ],
             architecture=None,
@@ -560,8 +598,17 @@ class TestMain(unittest.TestCase):
         )
 
     def test_mailto(self, *args):
-        fsl_sub.cmd.main(['--mailto', 'user@test.com', '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(['--mailto', 'user@test.com', '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             ['1', '2', ],
             architecture=None,
@@ -595,7 +642,17 @@ class TestMain(unittest.TestCase):
             project=None
         )
         args[2].reset_mock()
-        fsl_sub.cmd.main(['-M', 'user@test.com', '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main(['-M', 'user@test.com', '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -631,8 +688,17 @@ class TestMain(unittest.TestCase):
         )
 
     def test_array_task(self, *args):
-        fsl_sub.cmd.main(['--array_task', 'taskfile', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(['--array_task', 'taskfile', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             'taskfile',
             architecture=None,
@@ -666,8 +732,17 @@ class TestMain(unittest.TestCase):
             project=None
         )
         args[2].reset_mock()
-        fsl_sub.cmd.main(['-t', 'taskfile', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(['-t', 'taskfile', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             'taskfile',
             architecture=None,
@@ -702,9 +777,18 @@ class TestMain(unittest.TestCase):
         )
 
     def test_array_limit(self, *args):
-        fsl_sub.cmd.main(
-            ['--array_task', 'commandfile', '--array_limit', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(
+                ['--array_task', 'commandfile', '--array_limit', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             'commandfile',
             architecture=None,
@@ -738,8 +822,17 @@ class TestMain(unittest.TestCase):
             project=None
         )
         args[2].reset_mock()
-        fsl_sub.cmd.main(['-x', '2', '--array_task', 'commandfile', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(['-x', '2', '--array_task', 'commandfile', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             'commandfile',
             architecture=None,
@@ -774,9 +867,17 @@ class TestMain(unittest.TestCase):
         )
 
     def test_array_hold(self, *args):
-        fsl_sub.cmd.main(
-            ['--array_task', 'commandfile', '--array_hold', '20002', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(
+                ['--array_task', 'commandfile', '--array_hold', '20002', ])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             'commandfile',
             architecture=None,
@@ -811,11 +912,19 @@ class TestMain(unittest.TestCase):
         )
 
     def test_array_hold_native(self, *args):
-        fsl_sub.cmd.main(
-            [
-                '--array_task', 'commandfile',
-                '--array_hold', '20002:aa', '--native_holds', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(
+                [
+                    '--array_task', 'commandfile',
+                    '--array_hold', '20002:aa', '--native_holds', ])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             'commandfile',
             architecture=None,
@@ -850,9 +959,18 @@ class TestMain(unittest.TestCase):
         )
 
     def test_job_hold(self, *args):
-        fsl_sub.cmd.main(
-            ['--jobhold', '20002', 'commandfile'])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
 
+            fsl_sub.cmd.main(
+                ['--jobhold', '20002', 'commandfile'])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
         args[2].assert_called_with(
             ['commandfile'],
             architecture=None,
@@ -887,8 +1005,17 @@ class TestMain(unittest.TestCase):
         )
 
     def test_job_hold_native(self, *args):
-        fsl_sub.cmd.main(
-            ['--jobhold', '20002:aa', '--native_holds', 'commandfile', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main(
+                ['--jobhold', '20002:aa', '--native_holds', 'commandfile', ])
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['commandfile'],
@@ -924,8 +1051,18 @@ class TestMain(unittest.TestCase):
         )
 
     def test_array_native(self, *args):
-        fsl_sub.cmd.main(
-            ['--array_native', '1-4:2', 'command', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main(
+                ['--array_native', '1-4:2', 'command', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['command'],
@@ -961,7 +1098,17 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor(self, *args):
-        fsl_sub.cmd.main(['--coprocessor', 'cuda', '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main(['--coprocessor', 'cuda', '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -997,10 +1144,20 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor_toolkit(self, *args):
-        fsl_sub.cmd.main([
-            '--coprocessor', 'cuda',
-            '--coprocessor_toolkit', '7.5',
-            '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main([
+                '--coprocessor', 'cuda',
+                '--coprocessor_toolkit', '7.5',
+                '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -1036,10 +1193,20 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor_class(self, *args):
-        fsl_sub.cmd.main([
-            '--coprocessor', 'cuda',
-            '--coprocessor_class', 'K',
-            '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main([
+                '--coprocessor', 'cuda',
+                '--coprocessor_class', 'K',
+                '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -1075,11 +1242,21 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor_class_strict(self, *args):
-        fsl_sub.cmd.main([
-            '--coprocessor', 'cuda',
-            '--coprocessor_class', 'K',
-            '--coprocessor_class_strict',
-            '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main([
+                '--coprocessor', 'cuda',
+                '--coprocessor_class', 'K',
+                '--coprocessor_class_strict',
+                '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -1115,10 +1292,20 @@ class TestMain(unittest.TestCase):
         )
 
     def test_coprocessor_multi(self, *args):
-        fsl_sub.cmd.main([
-            '--coprocessor', 'cuda',
-            '--coprocessor_multi', '2',
-            '1', '2', ])
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+
+            fsl_sub.cmd.main([
+                '--coprocessor', 'cuda',
+                '--coprocessor_multi', '2',
+                '1', '2', ])
+
+            sys.stdout = sys.__stdout__
+
+            self.assertEqual(
+                text_trap.getvalue(),
+                '123\n'
+            )
 
         args[2].assert_called_with(
             ['1', '2', ],
@@ -1162,7 +1349,17 @@ class TestMain(unittest.TestCase):
                 'fsl_sub.projects.read_config',
                 autospec=True,
                 return_value=yaml.load(YAML_CONF_PROJECTS)):
-            fsl_sub.cmd.main(['--project', 'Aproject', '1', '2', ])
+            with io.StringIO() as text_trap:
+                sys.stdout = text_trap
+
+                fsl_sub.cmd.main(['--project', 'Aproject', '1', '2', ])
+
+                sys.stdout = sys.__stdout__
+
+                self.assertEqual(
+                    text_trap.getvalue(),
+                    '123\n'
+                )
             args[2].assert_called_with(
                 ['1', '2', ],
                 architecture=None,
@@ -1208,7 +1405,16 @@ class TestMain(unittest.TestCase):
             with patch.dict(
                     'fsl_sub.projects.os.environ',
                     {'FSLSUB_PROJECT': 'Bproject', }, clear=True):
-                fsl_sub.cmd.main(['1', '2', ])
+                with io.StringIO() as text_trap:
+                    sys.stdout = text_trap
+
+                    fsl_sub.cmd.main(['1', '2', ])
+
+                    sys.stdout = sys.__stdout__
+
+                    self.assertEqual(
+                        text_trap.getvalue(),
+                        '123\n')
                 args[2].assert_called_with(
                     ['1', '2', ],
                     architecture=None,
