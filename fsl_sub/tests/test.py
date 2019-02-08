@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import getpass
+import os
 import socket
 import unittest
 import yaml
@@ -221,6 +222,12 @@ class FakePlugin(object):
     autospec=True,
     return_value=['a', 'b', ])
 class SubmitTests(unittest.TestCase):
+    def setUp(self):
+        try:
+            del os.environ['FSLSUBALREADYRUN']
+        except KeyError:
+            pass
+
     def test_mem_env(
             self, mock_prjl, mock_checkcmd, mock_loadplugins,
             mock_confrc, mock_rc, mock_smrc):
@@ -582,15 +589,16 @@ class GetQTests(unittest.TestCase):
         with self.subTest('Too long job'):
             self.assertRaises(
                 fsl_sub.BadSubmission,
-                fsl_sub.getq_and_slots(
-                    self.conf_dict['queues'],
-                    job_time=200000)
+                fsl_sub.getq_and_slots,
+                self.conf_dict['queues'],
+                job_time=200000
             )
         with self.subTest("2x RAM"):
-            self.assertIsNone(
-                fsl_sub.getq_and_slots(
-                    self.conf_dict['queues'],
-                    job_ram=600)
+            self.assertRaises(
+                fsl_sub.BadSubmission,
+                fsl_sub.getq_and_slots,
+                self.conf_dict['queues'],
+                job_ram=600
             )
         with self.subTest('PE'):
             self.assertTupleEqual(
@@ -600,10 +608,11 @@ class GetQTests(unittest.TestCase):
                     ll_env="specialpe")
             )
         with self.subTest('PE missing'):
-            self.assertIsNone(
-                fsl_sub.getq_and_slots(
-                    self.conf_dict['queues'],
-                    ll_env="unknownpe")
+            self.assertRaises(
+                fsl_sub.BadSubmission,
+                fsl_sub.getq_and_slots,
+                self.conf_dict['queues'],
+                ll_env="unknownpe"
             )
         with self.subTest('GPU'):
             self.assertTupleEqual(
