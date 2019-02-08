@@ -392,7 +392,6 @@ def conda_stdout_error(output):
     try:
         message_obj = json.loads(output)
         message = message_obj['message']
-        print(message_obj)
     except (json.JSONDecodeError, KeyError):
         message = output
     return message
