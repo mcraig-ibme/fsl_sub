@@ -236,10 +236,10 @@ class SubmitTests(unittest.TestCase):
         plugins['fsl_sub_plugin_sge'] = FakePlugin()
         plugins['fsl_sub_plugin_sge'].submit = MagicMock(name='submit')
         plugins['fsl_sub_plugin_sge'].qtest = MagicMock(name='qtest')
-        plugins['fsl_sub_plugin_sge'].qtest.return_value('/usr/bin/qconf')
+        plugins['fsl_sub_plugin_sge'].qtest.return_value = '/usr/bin/qconf'
         plugins['fsl_sub_plugin_sge'].queue_exists = MagicMock(
             name='queue_exists')
-        plugins['fsl_sub_plugin_sge'].queue_exists.return_value(True)
+        plugins['fsl_sub_plugin_sge'].queue_exists.return_value = True
         plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
 
         mock_loadplugins.return_value = plugins
@@ -396,10 +396,10 @@ class SubmitTests(unittest.TestCase):
         plugins['fsl_sub_plugin_sge'] = FakePlugin()
         plugins['fsl_sub_plugin_sge'].submit = MagicMock(name='submit')
         plugins['fsl_sub_plugin_sge'].qtest = MagicMock(name='qtest')
-        plugins['fsl_sub_plugin_sge'].qtest.return_value('/usr/bin/qconf')
+        plugins['fsl_sub_plugin_sge'].qtest.return_value = '/usr/bin/qconf'
         plugins['fsl_sub_plugin_sge'].queue_exists = MagicMock(
             name='queue_exists')
-        plugins['fsl_sub_plugin_sge'].queue_exists.return_value(True)
+        plugins['fsl_sub_plugin_sge'].queue_exists.return_value = True
         plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
         mock_loadplugins.return_value = plugins
         with self.subTest('env not set - no memory specified'):
@@ -444,10 +444,10 @@ class SubmitTests(unittest.TestCase):
         plugins['fsl_sub_plugin_sge'] = FakePlugin()
         plugins['fsl_sub_plugin_sge'].submit = MagicMock(name='submit')
         plugins['fsl_sub_plugin_sge'].qtest = MagicMock(name='qtest')
-        plugins['fsl_sub_plugin_sge'].qtest.return_value('/usr/bin/qconf')
+        plugins['fsl_sub_plugin_sge'].qtest.return_value = '/usr/bin/qconf'
         plugins['fsl_sub_plugin_sge'].queue_exists = MagicMock(
             name='queue_exists')
-        plugins['fsl_sub_plugin_sge'].queue_exists.return_value(True)
+        plugins['fsl_sub_plugin_sge'].queue_exists.return_value = True
         plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
 
         mock_loadplugins.return_value = plugins
@@ -493,10 +493,10 @@ class SubmitTests(unittest.TestCase):
         plugins['fsl_sub_plugin_sge'] = FakePlugin()
         plugins['fsl_sub_plugin_sge'].submit = MagicMock(name='submit')
         plugins['fsl_sub_plugin_sge'].qtest = MagicMock(name='qtest')
-        plugins['fsl_sub_plugin_sge'].qtest.return_value('/usr/bin/qconf')
+        plugins['fsl_sub_plugin_sge'].qtest.return_value = '/usr/bin/qconf'
         plugins['fsl_sub_plugin_sge'].queue_exists = MagicMock(
             name='queue_exists')
-        plugins['fsl_sub_plugin_sge'].queue_exists.return_value(True)
+        plugins['fsl_sub_plugin_sge'].queue_exists.return_value = True
         plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
 
         mock_loadplugins.return_value = plugins
