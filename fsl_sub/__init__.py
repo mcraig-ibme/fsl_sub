@@ -442,13 +442,16 @@ def submit(
             logger.debug(queue_details)
             (queue, slots_required) = queue_details
         else:
-            if not queue_exists(queue) or queue not in config['queues']:
+            if not queue_exists(queue):
                 raise BadSubmission("Unrecognised queue " + queue)
             logger.debug("Specific queue: " + queue)
-            slots_required = calc_slots(
-                jobram,
-                config['queues'][queue]['slot_size'],
-                threads)
+            if queue in config['queues']:
+                slots_required = calc_slots(
+                    jobram,
+                    config['queues'][queue]['slot_size'],
+                    threads)
+            else:
+                slots_required = 1
 
         threads = max(slots_required, threads)
 
