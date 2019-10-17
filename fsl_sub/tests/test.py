@@ -199,15 +199,15 @@ class FakePlugin(object):
 @patch(
     'fsl_sub.shell_modules.read_config',
     autospec=True,
-    return_value=yaml.load(YAML_CONF))
+    return_value=yaml.safe_load(YAML_CONF))
 @patch(
     'fsl_sub.read_config',
     autospec=True,
-    return_value=yaml.load(YAML_CONF))
+    return_value=yaml.safe_load(YAML_CONF))
 @patch(
     'fsl_sub.config.read_config',
     autospec=True,
-    return_value=yaml.load(YAML_CONF))
+    return_value=yaml.safe_load(YAML_CONF))
 @patch(
     'fsl_sub.load_plugins',
     autospec=True
@@ -586,7 +586,7 @@ class SubmitTests(unittest.TestCase):
 class GetQTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.conf_dict = yaml.load(YAML_CONF)
+        cls.conf_dict = yaml.safe_load(YAML_CONF)
 
     def test_getq_and_slots(self):
         with self.subTest('All a queues'):

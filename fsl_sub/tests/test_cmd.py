@@ -396,15 +396,15 @@ class TestMisc(unittest.TestCase):
 @patch(
     'fsl_sub.shell_modules.read_config',
     autospec=True,
-    return_value=yaml.load(YAML_CONF))
+    return_value=yaml.safe_load(YAML_CONF))
 @patch(
     'fsl_sub.cmd.read_config',
     autospec=True,
-    return_value=yaml.load(YAML_CONF))
+    return_value=yaml.safe_load(YAML_CONF))
 @patch(
     'fsl_sub.config.read_config',
     autospec=True,
-    return_value=yaml.load(YAML_CONF))
+    return_value=yaml.safe_load(YAML_CONF))
 @patch(
     'fsl_sub.cmd.submit',
     autospec=True,
@@ -1341,14 +1341,14 @@ class TestMain(unittest.TestCase):
         )
 
     def test_project(self, *args):
-        args[3].return_value = yaml.load(YAML_CONF_PROJECTS)
-        args[4].return_value = yaml.load(YAML_CONF_PROJECTS)
-        args[5].return_value = yaml.load(YAML_CONF_PROJECTS)
+        args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
         fsl_sub.config.method_config.cache_clear()
         with patch(
                 'fsl_sub.projects.read_config',
                 autospec=True,
-                return_value=yaml.load(YAML_CONF_PROJECTS)):
+                return_value=yaml.safe_load(YAML_CONF_PROJECTS)):
             with io.StringIO() as text_trap:
                 sys.stdout = text_trap
 
@@ -1394,14 +1394,14 @@ class TestMain(unittest.TestCase):
             )
 
     def test_project_env(self, *args):
-        args[3].return_value = yaml.load(YAML_CONF_PROJECTS)
-        args[4].return_value = yaml.load(YAML_CONF_PROJECTS)
-        args[5].return_value = yaml.load(YAML_CONF_PROJECTS)
+        args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
         fsl_sub.config.method_config.cache_clear()
         with patch(
                 'fsl_sub.projects.read_config',
                 autospec=True,
-                return_value=yaml.load(YAML_CONF_PROJECTS)):
+                return_value=yaml.safe_load(YAML_CONF_PROJECTS)):
             with patch.dict(
                     'fsl_sub.projects.os.environ',
                     {'FSLSUB_PROJECT': 'Bproject', }, clear=True):

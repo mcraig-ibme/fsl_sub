@@ -341,7 +341,7 @@ def conda_channel(fsldir=None):
         raise NoCondaEnvFile(
             "Unable to access fslpython_environment.yml file: " +
             str(e))
-    conda_env = yaml.load(fsl_pyenv)
+    conda_env = yaml.safe_load(fsl_pyenv)
     for channel in conda_env['channels']:
         if channel.endswith('fslconda/channel'):
             return channel

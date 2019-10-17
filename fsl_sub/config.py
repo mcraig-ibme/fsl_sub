@@ -130,7 +130,7 @@ def find_config_file():
 def read_config():
     try:
         with open(find_config_file(), 'r') as yaml_source:
-            config_dict = yaml.load(yaml_source)
+            config_dict = yaml.safe_load(yaml_source)
     except Exception as e:
         raise BadConfiguration(
             "Unable to load configuration: " + str(e))

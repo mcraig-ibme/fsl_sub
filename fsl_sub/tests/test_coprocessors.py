@@ -5,7 +5,7 @@ import fsl_sub.coprocessors
 
 from unittest.mock import patch
 
-test_config = yaml.load('''
+test_config = yaml.safe_load('''
 thread_control:
   - OMP_NUM_THREADS
   - MKL_NUM_THREADS
@@ -91,7 +91,7 @@ coproc_opts:
 #             'fsl_sub.config.read_config', autospec=True)
 #         self.addCleanup(patcher.stop)
 #         self.mock_read_config = patcher.start()
-#         self.mock_read_config.return_value = yaml.load('''
+#         self.mock_read_config.return_value = yaml.safe_load('''
 # method: test
 # method_opts:
 #     test:

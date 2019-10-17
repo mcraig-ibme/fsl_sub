@@ -9,7 +9,7 @@ from fsl_sub.exceptions import ArgumentError
 class TestParallelEnvs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.config = yaml.load('''
+        cls.config = yaml.safe_load('''
 method: sge
 thread_control:
   - OMP_THREADS
