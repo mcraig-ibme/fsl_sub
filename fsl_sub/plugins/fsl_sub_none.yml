@@ -7,12 +7,12 @@ modulecmd: False
 
 # List all environment variables that control thread usage
 # will set these to parallel environment threads
-thread_control: None
+thread_control: Null
 
 method_opts:
   None:
     queues: False
-    large_job_split_pe: None
+    large_job_split_pe: Null
     mail_support: False
     map_ram: False
     job_priorities: False
