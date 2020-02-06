@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='fsl_sub',
-    version='2.2.4',
+    version='2.2.5',
     description='FSL Cluster Submission Script',
     author='Duncan Mortimer',
     author_email='duncan.mortimer@ndcn.ox.ac.uk',

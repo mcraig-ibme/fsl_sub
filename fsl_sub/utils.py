@@ -200,6 +200,12 @@ def check_command_file(cmds):
         with open(cmds, 'r') as cmd_file:
             for lineno, line in enumerate(cmd_file.readlines()):
                 cmd = line.split()[0]
+                if cmd == 'dummy':
+                    # FEAT creates an array task file that contains
+                    # the line 'dummy' as a previous queued task will
+                    # have populated this file with the real command(s)
+                    # by the time this command file is actually used
+                    continue
                 try:
                     check_command(cmd)
                 except CommandError:

@@ -1864,6 +1864,12 @@ class TestUtils(unittest.TestCase):
             test_file.name
         )
         os.remove(test_script.name)
+        test_file = tempfile.NamedTemporaryFile(delete=False)
+        test_file.write(b"dummy\n")
+        os.chmod(test_file.name, stat.S_IRUSR)
+        test_file.close()
+        fsl_sub.utils.check_command_file(test_file.name)
+        os.remove(test_file.name)
 
 
 class TestFileIsImage(unittest.TestCase):

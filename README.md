@@ -156,6 +156,11 @@ The options available will depend on how fsl_sub has been configured for your pa
 
 ## Advanced Usage
 
+### Multi-stage pipelines
+
+Where you need to submit multiple stages in advance with job holds on the previous step but do not know in advance the command you wish to run you may create an array task file containing the text 'dummy'. Validation of the array task file will be skipped allowing the task to be submitted.
+You should then arrange for a predecessor to populate the array task file with the relevant command(s) to run.
+
 ### Specifying Memory Requirements
 
 If fsl_sub is being called from within a software package such that you have no ability to specify memory requirements then you can achieve this by setting the environment variable `FSLSUB_MEMORY_REQUIRED`, e.g.
