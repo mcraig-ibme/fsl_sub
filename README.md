@@ -94,7 +94,7 @@ The top level of the configuration file defines the following:
 * method: Name of plugin to use - _None_ for no cluster submission engine
 * ram_units: Default G, one of K/M/G/T/P - When specifiying memory what units will this be in (Kilobytes, Megabytes, Gigabytes, Terabytes, Petabytes)
 * modulecmd: Default False, False or path to _module_ program - If you use _shell modules_ to configure your shell environment and the _module_ program is not in your default search path, set this to the full path of the _module_ program/
-* thread_control: Default None, None or list of environment variables to set to the requested number of threads, e.g.:
+* thread_control: Default Null, Null or list of environment variables to set to the requested number of threads, e.g.:
 
   thread_control:
     \- OMP_NUM_THREADS
@@ -111,7 +111,7 @@ For the default _None_ engine, the options should be left as below:
 
   None:
     queues: False
-    large_job_split_pe: None
+    large_job_split_pe: Null
     mail_support: False
     map_ram: False
     job_priorities: False
