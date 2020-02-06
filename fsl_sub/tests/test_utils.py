@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 import io
+import os
+import stat
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch, mock_open
 from fsl_sub.exceptions import (
@@ -1829,6 +1832,38 @@ class TestUtils(unittest.TestCase):
                 fsl_sub.utils.check_command_file,
                 'afile'
             )
+
+    def test_check_command_file2(self):
+        test_file = tempfile.NamedTemporaryFile(delete=False)
+        test_file.write(b"/no/path/googoo /tmp")
+        test_file.close()
+        self.assertRaises(
+            fsl_sub.utils.CommandError,
+            fsl_sub.utils.check_command_file,
+            test_file.name
+        )
+        os.remove(test_file.name)
+        test_script = tempfile.NamedTemporaryFile(delete=False)
+        test_script.write(b"ls /tmp")
+        os.chmod(test_script.name, stat.S_IRUSR | stat.S_IXUSR)
+        test_script.close()
+        test_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        test_file.write(str(test_script.name))
+        test_file.close()
+        fsl_sub.utils.check_command_file(test_file.name)
+
+        os.remove(test_script.name)
+        os.remove(test_file.name)
+        test_script = tempfile.NamedTemporaryFile(delete=False)
+        test_script.write(b"ls /tmp")
+        os.chmod(test_script.name, stat.S_IRUSR)
+        test_script.close()
+        self.assertRaises(
+            fsl_sub.utils.CommandError,
+            fsl_sub.utils.check_command_file,
+            test_file.name
+        )
+        os.remove(test_script.name)
 
 
 class TestFileIsImage(unittest.TestCase):
