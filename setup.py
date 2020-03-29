@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
+import sys
 from setuptools import setup, find_packages
+sys.path.insert(0, './fsl_sub')
+from version import VERSION
 
 setup(
     name='fsl_sub',
-    version='2.2.5',
+    version=VERSION,
     description='FSL Cluster Submission Script',
     author='Duncan Mortimer',
     author_email='duncan.mortimer@ndcn.ox.ac.uk',
