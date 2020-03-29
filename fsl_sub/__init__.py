@@ -47,7 +47,7 @@ from fsl_sub.version import VERSION
 
 def fsl_sub_warnings_formatter(
         message, category, filename, lineno, file=None, line=None):
-    return str(message)
+    return str(message) + '\n'
 
 
 warnings.formatwarning = fsl_sub_warnings_formatter
