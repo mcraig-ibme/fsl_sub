@@ -1,7 +1,10 @@
 #!/usr/bin/python
+import os
+import os.path
 import unittest
 import yaml
 import fsl_sub.parallel
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 from fsl_sub.exceptions import ArgumentError
 
@@ -49,6 +52,48 @@ queues:
     priority: 3
     group: 2
 ''')
+
+    def test_parallel_submit(self):
+        with TemporaryDirectory() as tempdir:
+            # make a file with commands to run
+            # parallel submit this
+            # check .o and .e files
+            pfile_name = "pjobs"
+            cfile = os.path.join(tempdir, pfile_name)
+            outputs = ['a', 'b', 'c']
+            with open(cfile, 'w') as cf:
+                for a in outputs:
+                    cf.write("echo " + a + '\n')
+            os.chdir(tempdir)
+            jid = str(fsl_sub.submit(
+                    cfile,
+                    name=None,
+                    array_task=True))
+            with self.subTest("Check output files"):
+                for st in range(len(outputs)):
+                    stask_id = str(st + 1)
+                    of = ".".join((pfile_name, 'o' + jid, stask_id))
+                    ef = ".".join((pfile_name, 'e' + jid, stask_id))
+                    self.assertEqual(
+                        os.path.getsize(
+                            os.path.join(tempdir, ef)
+                        ),
+                        0
+                    )
+                    self.assertNotEqual(
+                        os.path.getsize(
+                            os.path.join(tempdir, of)
+                        ),
+                        0
+                    )
+            with self.subTest("Check .o content"):
+                for st in range(len(outputs)):
+                    stask_id = str(st + 1)
+                    of = ".".join((pfile_name, 'o' + jid, stask_id))
+                    ef = ".".join((pfile_name, 'e' + jid, stask_id))
+                    with open(os.path.join(tempdir, of), 'r') as ofile:
+                        output = ofile.readline()
+                    self.assertEqual(output, outputs[st] + '\n')
 
     def test_parallel_envs(self):
         with self.subTest('Test 1'):
