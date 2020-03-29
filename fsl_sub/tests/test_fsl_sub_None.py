@@ -6,6 +6,16 @@ import fsl_sub.plugins.fsl_sub_plugin_None
 from unittest.mock import (patch, mock_open, call)
 
 
+class TestRequireMethods(unittest.TestCase):
+    def test_available_methods(self):
+        methods = dir(fsl_sub.plugins.fsl_sub_plugin_None)
+        for method in [
+                'plugin_version', 'qtest', 'queue_exists',
+                'submit', 'example_conf', 'job_status']:
+            with self.subTest(method):
+                self.assertTrue(method in methods)
+
+
 class TestNone(unittest.TestCase):
     @patch('fsl_sub.plugins.fsl_sub_plugin_None.os.getpid', autospec=True)
     @patch('fsl_sub.plugins.fsl_sub_plugin_None.sp.run', autospec=True)

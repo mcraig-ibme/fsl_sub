@@ -11,6 +11,10 @@ from fsl_sub.exceptions import BadSubmission
 from fsl_sub.utils import parse_array_specifier
 
 
+def plugin_version():
+    return '1.0.0'
+
+
 def qtest():
     '''Command that confirms method is available'''
     return True
