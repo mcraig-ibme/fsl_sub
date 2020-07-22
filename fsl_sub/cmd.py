@@ -163,7 +163,7 @@ There are several batch queues configured on the cluster:
         formatter_class=MyArgParseFormatter,
         description='FSL cluster submission.',
         epilog=epilog,
-        )
+    )
     single_g = parser.add_argument_group(
         'Simple Tasks',
         'Options for submitting individual tasks.'
@@ -321,9 +321,9 @@ There are several batch queues configured on the cluster:
         email_g.add_argument(
             '-M', '--mailto',
             default="{username}@{hostname}".format(
-                        username=getpass.getuser(),
-                        hostname=socket.gethostname()
-                    ),
+                username=getpass.getuser(),
+                hostname=socket.gethostname()
+            ),
             help="Who to email."
         )
     else:
@@ -335,9 +335,9 @@ There are several batch queues configured on the cluster:
         email_g.add_argument(
             '-M', '--mailto',
             default="{username}@{hostname}".format(
-                        username=getpass.getuser(),
-                        hostname=socket.gethostname()
-                    ),
+                username=getpass.getuser(),
+                hostname=socket.gethostname()
+            ),
             help="Not supported - will be ignored"
         )
     basic_g.add_argument(
@@ -366,7 +366,7 @@ There are several batch queues configured on the cluster:
             metavar="-".join((
                 str(min),
                 str(max)
-                )),
+            )),
             choices=range(min, max),
             help="Specify a lower job priority (where supported)."
             "Takes a negative integer."
@@ -559,13 +559,13 @@ def example_config_parser(parser_class=argparse.ArgumentParser):
     parser = parser_class(
         prog="fsl_sub_config",
         description='FSL cluster submission configuration examples.',
-        )
+    )
     parser.add_argument(
-            'plugin',
-            choices=plug_ins,
-            help="Output an example fsl_sub configuration which may be "
-            "customised for your system."
-        )
+        'plugin',
+        choices=plug_ins,
+        help="Output an example fsl_sub configuration which may be "
+        "customised for your system."
+    )
     return parser
 
 
@@ -575,17 +575,17 @@ def report_parser(parser_class=argparse.ArgumentParser):
     parser = parser_class(
         prog="fsl_sub_report",
         description='FSL cluster job reporting.',
-        )
+    )
     parser.add_argument(
         'job_id',
         type=int,
         help="Report job details for this job ID."
-        )
+    )
     parser.add_argument(
         '--subjob_id',
         type=int,
         help="Report job details for this subjob ID's only."
-        )
+    )
     parser.add_argument(
         '--parseable',
         action="store_true",
@@ -632,18 +632,18 @@ def report_cmd(args=None):
     except BadConfiguration as e:
         cmd_parser.error("Bad configuration: " + str(e))
     order = [
-            'id', 'name',
-            'script', 'arguments',
-            'submission_time', 'parents',
-            'children', 'job_directory', 'tasks',
-        ]
+        'id', 'name',
+        'script', 'arguments',
+        'submission_time', 'parents',
+        'children', 'job_directory', 'tasks',
+    ]
     task_order = [
-                    'status', 'start_time',
-                    'end_time', 'sub_time',
-                    'utime', 'stime',
-                    'exit_status', 'error_messages',
-                    'maxmemory'
-                ]
+        'status', 'start_time',
+        'end_time', 'sub_time',
+        'utime', 'stime',
+        'exit_status', 'error_messages',
+        'maxmemory'
+    ]
     if job_details is None:
         cmd_parser.error(
             "Unrecognised job id " + str(options.job_id))
@@ -957,7 +957,7 @@ def update(args=None):
         try:
             updated = conda_update(
                 fsldir=fsldir, packages=packages
-                )
+            )
             print("{0} updated.".format(", ".join(updated)))
         except UpdateError as e:
             sys.exit(
