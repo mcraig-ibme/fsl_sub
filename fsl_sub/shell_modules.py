@@ -110,7 +110,7 @@ def get_modules(module_parent):
                     modules.append(line)
         else:
             raise NoModule(module_parent)
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         raise NoModule(module_parent)
     return sorted(modules)
 
@@ -125,7 +125,7 @@ def latest_module(module_parent):
             return False
         else:
             return modules[-1]
-    except NoModule as e:
+    except NoModule:
         raise
 
 
