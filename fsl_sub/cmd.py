@@ -117,13 +117,13 @@ There are several batch queues configured on the cluster:
                 ))
             if 'copros' in q:
                 epilog += (
-                    pad + "Coprocessors available: " +
-                    "; ".join(q['copros']) + '\n'
+                    pad + "Coprocessors available: "
+                    + "; ".join(q['copros']) + '\n'
                 )
             if 'parallel_envs' in q:
                 epilog += (
-                    pad + "Parallel environments available: " +
-                    "; ".join(q['parallel_envs']) + '\n'
+                    pad + "Parallel environments available: "
+                    + "; ".join(q['parallel_envs']) + '\n'
                 )
             if 'map_ram' in q and q['map_ram']:
                 epilog += (
@@ -402,8 +402,8 @@ There are several batch queues configured on the cluster:
         '-R', '--jobram',
         default=None,
         type=int,
-        help="Max total RAM required for job (integer in " +
-        config['ram_units'] + "B). "
+        help="Max total RAM required for job (integer in "
+        + config['ram_units'] + "B). "
         "This is very important if your job requires more "
         "than the queue slot memory limit as then your job can be "
         "split over multiple slots automatically - see autoslotsbyram."
@@ -762,8 +762,8 @@ def main(args=None):
         plugin_version = PLUGINS[grid_module].plugin_version
     except AttributeError as e:
         raise BadConfiguration(
-            "Failed to load plugin " + grid_module +
-            " ({0})".format(str(e))
+            "Failed to load plugin " + grid_module
+            + " ({0})".format(str(e))
         )
 
     cmd_parser = build_parser(
@@ -801,8 +801,8 @@ def main(args=None):
                 sys.exit(0)
         except NoFsl as e:
             logger.warn(
-                "No FSL found - " + str(e) +
-                " assuming is image")
+                "No FSL found - " + str(e)
+                + " assuming is image")
             sys.exit(0)
         except CommandError as e:
             cmd_parser.error(str(e))
@@ -826,8 +826,8 @@ def main(args=None):
     elif options['array_native'] is None:
         array_task = False
         if (
-                options['array_hold'] is not None or
-                options['array_limit'] is not None):
+                options['array_hold'] is not None
+                or options['array_limit'] is not None):
             cmd_parser.error(
                 "Array controls not applicable to non-array tasks")
         command = options['args']
