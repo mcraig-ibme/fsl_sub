@@ -177,9 +177,9 @@ default_queues:
 
 '''
 USER_EMAIL = "{username}@{hostname}".format(
-                    username=getpass.getuser(),
-                    hostname=socket.gethostname()
-                )
+    username=getpass.getuser(),
+    hostname=socket.gethostname()
+)
 
 
 class FakePlugin(object):
@@ -244,34 +244,34 @@ class SubmitTests(unittest.TestCase):
         mock_loadplugins.return_value = plugins
         fsl_sub.submit(['mycommand', ], queue='unconfigured.q')
         plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
-                ['mycommand', ],
-                architecture=None,
-                array_hold=None,
-                array_limit=None,
-                array_specifier=None,
-                array_task=False,
-                coprocessor=None,
-                coprocessor_toolkit=None,
-                coprocessor_class=None,
-                coprocessor_class_strict=False,
-                coprocessor_multi='1',
-                job_name='mycommand',
-                parallel_env=None,
-                queue='unconfigured.q',
-                threads=1,
-                jobhold=None,
-                jobram=None,
-                jobtime=None,
-                logdir=None,
-                mail_on='a',
-                mailto=USER_EMAIL,
-                priority=None,
-                ramsplit=True,
-                requeueable=True,
-                resources=None,
-                usescript=False,
-                project=None
-            )
+            ['mycommand', ],
+            architecture=None,
+            array_hold=None,
+            array_limit=None,
+            array_specifier=None,
+            array_task=False,
+            coprocessor=None,
+            coprocessor_toolkit=None,
+            coprocessor_class=None,
+            coprocessor_class_strict=False,
+            coprocessor_multi='1',
+            job_name='mycommand',
+            parallel_env=None,
+            queue='unconfigured.q',
+            threads=1,
+            jobhold=None,
+            jobram=None,
+            jobtime=None,
+            logdir=None,
+            mail_on='a',
+            mailto=USER_EMAIL,
+            priority=None,
+            ramsplit=True,
+            requeueable=True,
+            resources=None,
+            usescript=False,
+            project=None
+        )
 
     def test_mem_env(
             self, mock_prjl, mock_checkcmd, mock_loadplugins,

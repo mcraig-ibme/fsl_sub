@@ -31,7 +31,7 @@ class TestNone(unittest.TestCase):
 
         args = ['myjob', 'arg1', 'arg2', ]
         mock_sprun.return_value = subprocess.CompletedProcess(
-                args, 0, "")
+            args, 0, "")
 
         mock_writer = mock_open()
         with patch('fsl_sub.plugins.fsl_sub_plugin_None.open', mock_writer):
@@ -45,7 +45,7 @@ class TestNone(unittest.TestCase):
                 stdout=mock_writer.return_value,
                 stderr=mock_writer.return_value,
                 universal_newlines=True
-                )
+            )
 
         self.assertEqual(job_id, 12345)
         expected_calls = [
@@ -106,16 +106,17 @@ mycommand2 arg3 arg4
                 logdir=logdir,
                 array_task=arraytask,
             )
-            self.assertDictEqual({
-                'NONE_TASK_ID': "2",
-                'NONE_TASK_FIRST': '1',
-                'NONE_TASK_LAST': '2',
-                'NONE_TASK_STEPSIZE': '1',
-                'FSLSUB_ARRAYCOUNT_VAR': '',
-                'FSLSUB_ARRAYTASKID_VAR': 'NONE_TASK_ID',
-                'FSLSUB_ARRAYSTARTID_VAR': 'NONE_TASK_FIRST',
-                'FSLSUB_ARRAYENDID_VAR': 'NONE_TASK_LAST',
-                'FSLSUB_ARRAYSTEPSIZE_VAR': 'NONE_TASK_STEPSIZE',
+            self.assertDictEqual(
+                {
+                    'NONE_TASK_ID': "2",
+                    'NONE_TASK_FIRST': '1',
+                    'NONE_TASK_LAST': '2',
+                    'NONE_TASK_STEPSIZE': '1',
+                    'FSLSUB_ARRAYCOUNT_VAR': '',
+                    'FSLSUB_ARRAYTASKID_VAR': 'NONE_TASK_ID',
+                    'FSLSUB_ARRAYSTARTID_VAR': 'NONE_TASK_FIRST',
+                    'FSLSUB_ARRAYENDID_VAR': 'NONE_TASK_LAST',
+                    'FSLSUB_ARRAYSTEPSIZE_VAR': 'NONE_TASK_STEPSIZE',
                 },
                 dict(fsl_sub.plugins.fsl_sub_plugin_None.os.environ))
             self.assertEqual(job_id, mock_pid)
@@ -184,16 +185,17 @@ mycommand2 arg3 arg4
                 array_task=arraytask,
                 array_specifier=spec
             )
-            self.assertDictEqual({
-                'NONE_TASK_ID': "8",
-                'NONE_TASK_FIRST': '4',
-                'NONE_TASK_LAST': '8',
-                'NONE_TASK_STEPSIZE': '4',
-                'FSLSUB_ARRAYCOUNT_VAR': '',
-                'FSLSUB_ARRAYTASKID_VAR': 'NONE_TASK_ID',
-                'FSLSUB_ARRAYSTARTID_VAR': 'NONE_TASK_FIRST',
-                'FSLSUB_ARRAYENDID_VAR': 'NONE_TASK_LAST',
-                'FSLSUB_ARRAYSTEPSIZE_VAR': 'NONE_TASK_STEPSIZE',
+            self.assertDictEqual(
+                {
+                    'NONE_TASK_ID': "8",
+                    'NONE_TASK_FIRST': '4',
+                    'NONE_TASK_LAST': '8',
+                    'NONE_TASK_STEPSIZE': '4',
+                    'FSLSUB_ARRAYCOUNT_VAR': '',
+                    'FSLSUB_ARRAYTASKID_VAR': 'NONE_TASK_ID',
+                    'FSLSUB_ARRAYSTARTID_VAR': 'NONE_TASK_FIRST',
+                    'FSLSUB_ARRAYENDID_VAR': 'NONE_TASK_LAST',
+                    'FSLSUB_ARRAYSTEPSIZE_VAR': 'NONE_TASK_STEPSIZE',
                 },
                 dict(fsl_sub.plugins.fsl_sub_plugin_None.os.environ))
             self.assertEqual(job_id, mock_pid)

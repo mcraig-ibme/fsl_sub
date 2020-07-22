@@ -28,7 +28,7 @@ def project_list():
 
     try:
         projects = PLUGINS[grid_module].project_list()
-    except AttributeError as e:
+    except AttributeError:
         raise BadConfiguration(
             "Failed to load plugin " + grid_module
         )

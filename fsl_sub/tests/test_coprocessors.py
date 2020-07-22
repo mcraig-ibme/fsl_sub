@@ -174,9 +174,9 @@ class TestCoprocessors(unittest.TestCase):
             mock_get_modules.return_value = ['6.5', '7.0', '7.5', ]
             self.assertEqual(
                 fsl_sub.coprocessors.coproc_toolkits(
-                        'cuda'),
+                    'cuda'),
                 ['6.5', '7.0', '7.5', ]
-                )
+            )
             mock_get_modules.assert_called_once_with('cuda')
 #  This isn't really a useful test!
 

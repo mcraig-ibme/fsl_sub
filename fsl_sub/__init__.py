@@ -130,8 +130,8 @@ def report(
         job_status = PLUGINS[grid_module].job_status
     except AttributeError as e:
         raise BadConfiguration(
-            "Failed to load plugin " + grid_module +
-            " ({0})".format(str(e))
+            "Failed to load plugin " + grid_module
+            + " ({0})".format(str(e))
         )
 
     return job_status(job_id, subjob_id)
@@ -156,8 +156,8 @@ def submit(
     validate_command=True,
     mail_on=None,
     mailto="{username}@{hostname}".format(
-                            username=getpass.getuser(),
-                            hostname=socket.gethostname()),
+        username=getpass.getuser(),
+        hostname=socket.gethostname()),
     logdir=None,
     coprocessor=None,
     coprocessor_toolkit=None,
@@ -268,8 +268,8 @@ def submit(
         BadSubmission = PLUGINS[grid_module].BadSubmission
     except AttributeError as e:
         raise BadConfiguration(
-            "Failed to load plugin " + grid_module +
-            " ({0})".format(str(e))
+            "Failed to load plugin " + grid_module
+            + " ({0})".format(str(e))
         )
 
     config['qtest'] = qtest()
@@ -317,13 +317,13 @@ def submit(
                 mail_on = mconfig['mail_mode']
             except KeyError:
                 warnings.warn(
-                    "Mail not configured but enabled in configuration for " +
-                    config['method'])
+                    "Mail not configured but enabled in configuration for "
+                    + config['method'])
         else:
             # Mail modes is a dictionary
             if mail_on not in mconfig['mail_modes']:
                 raise BadSubmission(
-                        "Unrecognised mail mode " + mail_on)
+                    "Unrecognised mail mode " + mail_on)
 
     # For simple numbers pass these in as list, if they are strings
     # then leave them alone
@@ -353,9 +353,9 @@ def submit(
         else:
             raise BadSubmission("Command should be a list or string")
         if (
-                array_hold is not None or
-                array_limit is not None or
-                array_specifier is not None):
+                array_hold is not None
+                or array_limit is not None
+                or array_specifier is not None):
             raise BadSubmission(
                 "Array controls not applicable to non-array tasks")
         job_args = command
@@ -424,20 +424,20 @@ def submit(
     else:
         split_on_ram = mconfig['map_ram'] and ramsplit
 
-        if (split_on_ram and
-                parallel_env is None and
-                'large_job_split_pe' in mconfig):
+        if (split_on_ram
+                and parallel_env is None
+                and 'large_job_split_pe' in mconfig):
             parallel_env = mconfig['large_job_split_pe']
 
         if queue is None:
             queue_details = getq_and_slots(
-                    job_time=jobtime,
-                    job_ram=jobram,
-                    job_threads=threads,
-                    queues=config['queues'],
-                    coprocessor=coprocessor,
-                    ll_env=parallel_env
-                    )
+                job_time=jobtime,
+                job_ram=jobram,
+                job_threads=threads,
+                queues=config['queues'],
+                coprocessor=coprocessor,
+                ll_env=parallel_env
+            )
             logger.debug("Automatic queue selection:")
             logger.debug(queue_details)
             (queue, slots_required) = queue_details
@@ -461,8 +461,8 @@ def submit(
             parallel_env = None
         if threads > 1 and parallel_env is None:
             raise BadSubmission(
-                    "Job requires {} slots but no parallel envrionment "
-                    "available or requested".format(threads))
+                "Job requires {} slots but no parallel envrionment "
+                "available or requested".format(threads))
         if threads > 1 and mconfig['thread_ram_divide'] and not split_on_ram:
             split_on_ram = True
 
@@ -577,8 +577,8 @@ def getq_and_slots(
     # Filter on coprocessor availability
     if coprocessor is not None:
         queue_list = [
-            q for q in queue_list if 'copros' in queues[q] and
-            coprocessor in queues[q]['copros']]
+            q for q in queue_list if 'copros' in queues[q]
+            and coprocessor in queues[q]['copros']]
     else:
         queue_list = [
             q for q in queue_list if 'copros' not in queues[q]
@@ -589,8 +589,8 @@ def getq_and_slots(
     # Filter on parallel environment availability
     if ll_env is not None:
         queue_list = [
-            q for q in queue_list if 'parallel_envs' in queues[q] and
-            ll_env in queues[q]['parallel_envs']
+            q for q in queue_list if 'parallel_envs' in queues[q]
+            and ll_env in queues[q]['parallel_envs']
         ]
     if not queue_list:
         raise BadSubmission("No matching queues found")
@@ -614,9 +614,10 @@ def getq_and_slots(
     queue_list.sort(key=lambda x: queues[x]['priority'], reverse=True)
     queue_list.sort(key=lambda x: (queues[x]['group'], slots[x]))
 
-    ql = [q for q in queue_list if queues[q]['time'] >= job_time and
-          queues[q]['max_size'] >= job_ram and
-          queues[q]['max_slots'] >= job_threads]
+    ql = [
+        q for q in queue_list if queues[q]['time'] >= job_time
+        and queues[q]['max_size'] >= job_ram
+        and queues[q]['max_slots'] >= job_threads]
     if not ql:
         raise BadSubmission("No matching queues found")
 

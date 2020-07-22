@@ -202,8 +202,8 @@ class TestConfig(unittest.TestCase):
             with self.assertRaises(fsl_sub.config.BadConfiguration) as me:
                 fsl_sub.config.queue_config('long.q')
             self.assertEqual(
-                    me.exception.args[0],
-                    "Unable to find definition for queue long.q")
+                me.exception.args[0],
+                "Unable to find definition for queue long.q")
         fsl_sub.config.queue_config.cache_clear()
         with self.subTest('Test 4'):
             mock_read_config.return_value = {
@@ -211,8 +211,8 @@ class TestConfig(unittest.TestCase):
             with self.assertRaises(fsl_sub.config.BadConfiguration) as me:
                 fsl_sub.config.queue_config()
             self.assertEqual(
-                    me.exception.args[0],
-                    "Unable to find queue definitions")
+                me.exception.args[0],
+                "Unable to find queue definitions")
 
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_uses_projects(self, mock_read_config):

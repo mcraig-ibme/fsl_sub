@@ -56,8 +56,8 @@ def submit(
                 commands = ll_tasks.readlines()
         except Exception as e:
             raise BadSubmission(
-                "Unable to read array task file " +
-                command) from e
+                "Unable to read array task file "
+                + command) from e
         command_lines.extend(commands)
         logger.info(
             "Running commands in: " + command)
@@ -75,7 +75,7 @@ def submit(
                 array_start,
                 array_end,
                 array_stride
-                ) = parse_array_specifier(array_specifier)
+            ) = parse_array_specifier(array_specifier)
             if not array_start:
                 raise BadSubmission("array_specifier doesn't make sense")
             if not array_end:
@@ -122,10 +122,10 @@ def submit(
                             "executing: (" + str(repeat) + ")" + str(cmd))
 
                         result = sp.run(
-                                    cmd,
-                                    stdout=stdout_file,
-                                    stderr=stderr_file,
-                                    universal_newlines=True)
+                            cmd,
+                            stdout=stdout_file,
+                            stderr=stderr_file,
+                            universal_newlines=True)
                         if result.returncode != 0:
                             raise BadSubmission(
                                 stderr_file.seek(0).readlines())

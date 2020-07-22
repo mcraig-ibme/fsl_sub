@@ -66,9 +66,9 @@ queues:
                     cf.write("echo " + a + '\n')
             os.chdir(tempdir)
             jid = str(fsl_sub.submit(
-                    cfile,
-                    name=None,
-                    array_task=True))
+                cfile,
+                name=None,
+                array_task=True))
             with self.subTest("Check output files"):
                 for st in range(len(outputs)):
                     stask_id = str(st + 1)

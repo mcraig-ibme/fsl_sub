@@ -48,4 +48,4 @@ setup(
             'fsl_sub_update=fsl_sub.cmd:update',
         ]
     }
-    )
+)

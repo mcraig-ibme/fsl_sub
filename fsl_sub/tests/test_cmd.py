@@ -341,9 +341,9 @@ default_queues:
 
 '''
 USER_EMAIL = "{username}@{hostname}".format(
-                    username=getpass.getuser(),
-                    hostname=socket.gethostname()
-                )
+    username=getpass.getuser(),
+    hostname=socket.gethostname()
+)
 
 
 class FakePlugin(object):
@@ -1522,7 +1522,7 @@ method_opts:
 @patch(
     'fsl_sub.cmd.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
-    )
+)
 @patch(
     'fsl_sub.cmd.conda_check_update', autospec=True
 )
@@ -1703,7 +1703,7 @@ fsl_sub (1.0.0 -> 2.0.0)
 @patch(
     'fsl_sub.cmd.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
-    )
+)
 @patch(
     'fsl_sub.cmd.conda_find_packages', autospec=True
 )
@@ -1843,7 +1843,7 @@ A copy in your home folder will override the file in "
 can be set to point at the configuration file, this will override all"
 other files.
 '''
-                )
+            )
         mock_fp.assert_called_with(
             'fsl_sub_plugin_*',
             fsldir='/usr/local/fsl',

@@ -92,13 +92,13 @@ def minutes_to_human(minutes):
     if minutes < 60:
         result = "{}m".format(minutes)
     elif minutes < 60 * 24:
-        result = "{:.1f}".format(minutes/60)
+        result = "{:.1f}".format(minutes / 60)
         (a, b) = result.split('.')
         if b == '0':
             result = a
         result += 'h'
     else:
-        result = "{:.1f}".format(minutes/(60 * 24))
+        result = "{:.1f}".format(minutes / (60 * 24))
         (a, b) = result.split('.')
         if b == '0':
             result = a
@@ -165,8 +165,8 @@ def human_to_ram(ram, output='M', units='G', as_int=True):
     except ValueError:
         raise ValueError("RAM amount not a valid number")
     size = (
-        ram * 2 ** scale_factors[units] /
-        2 ** scale_factors[output])
+        ram * 2 ** scale_factors[units]
+        / 2 ** scale_factors[output])
     if as_int:
         size = int(math.ceil(size))
     return size
@@ -240,15 +240,16 @@ def file_is_image(filename):
                         'bin',
                         'imtest'),
                     filename
-                    ])[0] == '1':
+                ]
+            )[0] == '1':
                 return True
         except KeyError:
             raise NoFsl(
                 "FSLDIR environment variable not found")
         except subprocess.CalledProcessError as e:
             raise CommandError(
-                "Error trying to check image file - " +
-                str(e))
+                "Error trying to check image file - "
+                + str(e))
     return False
 
 
@@ -337,16 +338,16 @@ def conda_channel(fsldir=None):
 
     try:
         fsl_pyenv = open(
-                os.path.join(
-                    fsldir,
-                    'etc',
-                    'fslconf',
-                    'fslpython_environment.yml'),
-                "r")
+            os.path.join(
+                fsldir,
+                'etc',
+                'fslconf',
+                'fslpython_environment.yml'),
+            "r")
     except Exception as e:
         raise NoCondaEnvFile(
-            "Unable to access fslpython_environment.yml file: " +
-            str(e))
+            "Unable to access fslpython_environment.yml file: "
+            + str(e))
     conda_env = yaml.safe_load(fsl_pyenv)
     for channel in conda_env['channels']:
         if channel.endswith('fslconda/channel'):
@@ -487,8 +488,8 @@ def conda_check_update(packages=None, fsldir=None):
             "Unable to check for updates ({0})".format(str(e))
         )
     try:
-        if (conda_result['message'] ==
-                'All requested packages already installed.'):
+        if (conda_result['message']
+                == 'All requested packages already installed.'):
             return None
         else:
             to_link = conda_result['actions']['LINK']
@@ -561,8 +562,8 @@ def conda_update(packages=None, fsldir=None):
         )
     try:
         if ('message' in conda_result and (
-                conda_result['message'] ==
-                'All requested packages already installed.')):
+                conda_result['message']
+                == 'All requested packages already installed.')):
             return None
         if not conda_result['success']:
             raise UpdateError(conda_result['message'])
@@ -634,9 +635,9 @@ def conda_install(packages, fsldir=None):
             "Unable to install ({0})".format(str(e))
         )
     try:
-        if ('message' in conda_result and
-                conda_result['message'] ==
-                'All requested packages already installed.'):
+        if ('message' in conda_result
+            and conda_result['message']
+                == 'All requested packages already installed.'):
             return None
         if not conda_result['success']:
             raise InstallError(
