@@ -19,6 +19,8 @@ thread_control:
   - MKL_DOMAIN_NUM_THREADS
   - OPENBLAS_NUM_THREADS
   - GOTO_NUM_THREADS
+preserve_modules: True
+export_vars: []
 method_opts:
     sge:
         queues: True
@@ -195,6 +197,9 @@ class FakePlugin(object):
     def plugin_version(self):
         pass
 
+    def already_queued(self):
+        return False
+
 
 @patch(
     'fsl_sub.shell_modules.read_config',
@@ -255,6 +260,7 @@ class SubmitTests(unittest.TestCase):
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi='1',
+            export_vars=[],
             job_name='mycommand',
             parallel_env=None,
             queue='unconfigured.q',
@@ -303,6 +309,7 @@ class SubmitTests(unittest.TestCase):
                 coprocessor_class=None,
                 coprocessor_class_strict=False,
                 coprocessor_multi='1',
+                export_vars=[],
                 job_name='mycommand',
                 parallel_env=None,
                 queue='a.qa,a.qb,a.qc',
@@ -340,6 +347,7 @@ class SubmitTests(unittest.TestCase):
                     coprocessor_class=None,
                     coprocessor_class_strict=False,
                     coprocessor_multi='1',
+                    export_vars=[],
                     job_name='mycommand',
                     parallel_env=None,
                     queue='a.qa,a.qc',
@@ -377,6 +385,7 @@ class SubmitTests(unittest.TestCase):
                     coprocessor_class=None,
                     coprocessor_class_strict=False,
                     coprocessor_multi='1',
+                    export_vars=[],
                     job_name='mycommand',
                     parallel_env=None,
                     queue='a.qa,a.qc',
@@ -414,6 +423,7 @@ class SubmitTests(unittest.TestCase):
                     coprocessor_class=None,
                     coprocessor_class_strict=False,
                     coprocessor_multi='1',
+                    export_vars=[],
                     job_name='mycommand',
                     parallel_env=None,
                     queue='a.qa,a.qb,a.qc',
@@ -462,6 +472,7 @@ class SubmitTests(unittest.TestCase):
                 coprocessor_class=None,
                 coprocessor_class_strict=False,
                 coprocessor_multi='1',
+                export_vars=[],
                 job_name='mycommand',
                 parallel_env=None,
                 queue='a.qa,a.qb,a.qc',
@@ -511,6 +522,7 @@ class SubmitTests(unittest.TestCase):
                 coprocessor_class=None,
                 coprocessor_class_strict=False,
                 coprocessor_multi='1',
+                export_vars=[],
                 job_name='mycommand',
                 parallel_env=None,
                 queue='a.qa,a.qb,a.qc',
@@ -560,6 +572,7 @@ class SubmitTests(unittest.TestCase):
                 coprocessor_class=None,
                 coprocessor_class_strict=False,
                 coprocessor_multi='1',
+                export_vars=[],
                 job_name='mycommand',
                 parallel_env=None,
                 queue='a.qa,a.qb,a.qc',

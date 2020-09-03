@@ -51,7 +51,7 @@ First, install Miniconda from <https://conda.io/miniconda.html>, install as per 
 
 and install fsl_sub with:
 
-> conda install -c https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/channel fsl_sub
+> conda install -c <https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/channel> fsl_sub
 
 ### Installing plugins
 
@@ -65,7 +65,7 @@ If you only need to run programs locally, fsl_sub ships with a local job plugin,
 
 > conda install fsl_sub_plugin_sge
 
-(or _fsl_sub_plugin_slurm.git_ and _fsl_sub_plugin_slurm_ respectively)
+(or _fsl\_sub\_plugin\_slurm.git_ and _fsl\_sub\_plugin\_slurm_ respectively)
 
 ### Configuration
 
@@ -96,12 +96,14 @@ The top level of the configuration file defines the following:
 * modulecmd: Default False, False or path to _module_ program - If you use _shell modules_ to configure your shell environment and the _module_ program is not in your default search path, set this to the full path of the _module_ program/
 * thread_control: Default Null, Null or list of environment variables to set to the requested number of threads, e.g.:
 
+```yaml
   thread_control:
-    \- OMP_NUM_THREADS
-    \- MKL_NUM_THREADS
-    \- MKL_DOMAIN_NUM_THREADS
-    \- OPENBLAS_NUM_THREADS
-    \- GOTO_NUM_THREADS
+    - OMP_NUM_THREADS
+    - MKL_NUM_THREADS
+    - MKL_DOMAIN_NUM_THREADS
+    - OPENBLAS_NUM_THREADS
+    - GOTO_NUM_THREADS
+```
 
 ##### Method Options
 
@@ -109,6 +111,7 @@ The next section, _method\_opts_ defines options for your grid submission engine
 If you have requested an example configuration script from your grid submission plugin of choice then the appropriate section will have all the expected configuration options listed with descriptions of their expected values.
 For the default _None_ engine, the options should be left as below:
 
+```yaml
   None:
     queues: False
     large_job_split_pe: Null
@@ -121,6 +124,7 @@ For the default _None_ engine, the options should be left as below:
     job_resources: False
     script_conf: False
     projects: False
+```
 
 ##### Coprocessor Options
 
@@ -244,65 +248,67 @@ import fsl_sub.consts
 
 This returns a dictionary describing the job (including completed tasks):
 
-        id
-        name
-        script (if available)
-        arguments (if available)
-        submission_time
-        tasks (dict keyed on sub-task ID):
-            status:
-                fsl_sub.consts.QUEUED
-                fsl_sub.consts.RUNNING
-                fsl_sub.consts.FINISHED
-                fsl_sub.consts.FAILEDNQUEUED
-                fsl_sub.consts.SUSPENDED
-                fsl_sub.consts.HELD
-            start_time
-            end_time
-            sub_time
-            utime
-            stime
-            exit_status
-            error_message
-            maxmemory (in Mbytes)
-        parents (if available)
-        children (if available)
-        job_directory (if available)
+* id
+* name
+* script (if available)
+* arguments (if available)
+* submission_time
+* tasks (dict keyed on sub-task ID):
+  * status:
+    * fsl_sub.consts.QUEUED
+    * fsl_sub.consts.RUNNING
+    * fsl_sub.consts.FINISHED
+    * fsl_sub.consts.FAILEDNQUEUED
+    * fsl_sub.consts.SUSPENDED
+    * fsl_sub.consts.HELD
+  * start_time
+  * end_time
+  * sub_time
+  * utime
+  * stime
+  * exit_status
+  * error_message
+  * maxmemory (in Mbytes)
+* parents (if available)
+* children (if available)
+* job_directory (if available)
 
 ### submit
 
 Arguments:
 
-    command,
-    name=None,
-    threads=1,
-    queue=None,
-    jobhold=None,
-    array_task=False,
-    array_hold=None,
-    array_limit=None,
-    array_specifier=None,
-    parallel_env=None,
-    jobram=None,
-    jobtime=None,
-    resources=None,
-    ramsplit=True,
-    priority=None,
-    validate_command=True,
-    mail_on=None,
-    mailto=(defaults to username@hostname),
-    logdir=None,
-    coprocessor=None,
-    coprocessor_toolkit=None,
-    coprocessor_class=None,
-    coprocessor_class_strict=False,
-    coprocessor_multi="1",
-    usescript=False,
-    architecture=None,
-    requeueable=True,
-    native_holds=False,
-    as_tuple=True,
-    project=None
+* architecture=None
+* array_task=False
+* array_hold=None
+* array_limit=None
+* array_specifier=None
+* as_tuple=True
+* command
+* coprocessor=None
+* coprocessor_toolkit=None
+* coprocessor_class=None
+* coprocessor_class_strict=False
+* coprocessor_multi="1"
+* export_vars=[]
+* jobhold=None
+* jobram=None
+* jobtime=None
+* keep_jobscript=False
+* logdir=None
+* mail_on=None
+* mailto=(defaults to username@hostname)
+* name=None
+* native_holds=False
+* parallel_env=None
+* priority=None
+* project=None
+* queue=None
+* ramsplit=True
+* requeueable=True
+* resources=None
+* threads=1
+* usescript=False
+* validate_command=True
 
 Submit job(s) to a queue, returns the job id as an int (pass as_tuple=True
 to return a single value tuple).
@@ -316,63 +322,69 @@ is as per a single task.
 
 Required Arguments:
 
-    command - string or list containing command to run
-                or the file name of the array task file.
-                If array_specifier is given then this must be
-                a string/list containing the command to run.
+* command - string or list containing command to run
+    or the file name of the array task file.
+    If array_specifier is given then this must be
+    a string/list containing the command to run.
 
 Optional Arguments:
 
-    job_name - Symbolic name for task (defaults to first component of command)
-    array_task - is the command is an array task (defaults to False)
-    jobhold - id(s) of jobs to hold for (string or list)
-    array_hold - complex hold string
-    array_limit - limit concurrently scheduled array
-            tasks to specified number
-    array_specifier - n[-m[:s]] n subtasks or starts at n, ends at m with
-            a step of s.
-    as_tuple - if true then return job ID as a single value tuple
-    parallel_env - parallel environment name
-    jobram - RAM required by job (total of all threads)
-    jobtime - time (in minutes for task)
-    requeueable - job may be requeued on node failure
-    resources - list of resource request strings
-    ramsplit - break tasks into multiple slots to meet RAM constraints
-    priority - job priority (0-1023)
-    mail_on - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
-            's'uspended, 'n'o mail
-    mailto - email address to receive job info
-    native_holds - whether to process the jobhold or array_hold input
-    logdir - directory to put log files in
-    coprocessor - name of coprocessor required
-    coprocessor_toolkit - coprocessor toolkit version
-    coprocessor_class - class of coprocessor required
-    coprocessor_class_strict - whether to choose only this class
-            or all more capable
-    coprocessor_multi - how many coprocessors you need (or
-            complex description) (string)
-    queue - Explicit queue to submit to - use jobram/jobtime in preference to
-            this
-    usescript - queue config is defined in script
-    project - Cluster project to submit job to, defaults to None
+* job_name - Symbolic name for task (defaults to first component of command)
+* array_hold - complex hold string
+* array_limit - limit concurrently scheduled array
+    tasks to specified number
+* array_specifier - n[-m[:s]] n subtasks or starts at n, ends at m with
+* array_task - is the command is an array task (defaults to False)
+* as_tuple - if true then return job ID as a single value tuple
+* coprocessor - name of coprocessor required
+* coprocessor_toolkit - coprocessor toolkit version
+* coprocessor_class - class of coprocessor required
+* coprocessor_class_strict - whether to choose only this class
+    or all more capable
+* coprocessor_multi - how many coprocessors you need (or
+    complex description) (string)
+* export_vars - list of environment variables to copy from current environment
+    or list of variable=setting to set new or override current variable
+* jobhold - id(s) of jobs to hold for (string or list)
+    a step of s.
+* jobram - RAM required by job (total of all threads)
+* jobtime - time (in minutes for task)
+* keep_jobscript - whether to preserve (as jobid.sh) the script that was submitted
+    to the cluster (ignored for 'None' submission type)
+* logdir - directory to put log files in
+* mail_on - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
+    's'uspended, 'n'o mail
+* mailto - email address to receive job info
+* native_holds - whether to process the jobhold or array_hold input
+* parallel_env - parallel environment name
+* priority - job priority (0-1023)
+* project - Cluster project to submit job to, defaults to None
+* queue - Explicit queue to submit to - use jobram/jobtime in preference to
+    this
+* requeueable - job may be requeued on node failure
+* resources - list of resource request strings
+* ramsplit - break tasks into multiple slots to meet RAM constraints
+* usescript - queue config is defined in script
 
 ### calc_slots
 
 Arguments:
-    job_ram
-    slot_size
-    job_threads
+
+* job_ram
+* slot_size
+* job_threads
 
 Calculates the number of queue slots necessary to achieve the RAM and thread requirements of a job. This is used internally within submit so wouldn't normally need to be run.
 
 ### getq_and_slots
 
 Arguments:
-    queues
-    job_time=0
-    job_ram=0,
-    job_threads=1
-    coprocessor=None
-    ll_env=None
+
+* queues
+* job_time=0
+* job_ram=0,
+* job_threads=1
+* coprocessor=None
+* ll_env=None
 
 This returns a tuple consisting of the queue and the number of slots required for the specified job parameters.

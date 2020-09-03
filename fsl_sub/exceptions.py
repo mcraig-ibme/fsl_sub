@@ -2,6 +2,10 @@
 # Copyright (c) 2018, University of Oxford (Duncan Mortimer)
 
 
+class BadOS(Exception):
+    pass
+
+
 class ArgumentError(Exception):
     pass
 

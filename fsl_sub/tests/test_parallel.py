@@ -7,6 +7,7 @@ import fsl_sub.parallel
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 from fsl_sub.exceptions import ArgumentError
+from fsl_sub.config import read_config
 
 
 class TestParallelEnvs(unittest.TestCase):
@@ -54,6 +55,7 @@ queues:
 ''')
 
     def test_parallel_submit(self):
+        read_config.cache_clear()
         with TemporaryDirectory() as tempdir:
             # make a file with commands to run
             # parallel submit this

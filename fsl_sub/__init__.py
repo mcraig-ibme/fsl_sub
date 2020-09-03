@@ -36,7 +36,6 @@ from fsl_sub.projects import (
 )
 from fsl_sub.utils import (
     load_plugins,
-    affirmative,
     check_command,
     check_command_file,
     control_threads,
@@ -169,7 +168,9 @@ def submit(
     requeueable=True,
     native_holds=False,
     as_tuple=False,
-    project=None
+    project=None,
+    export_vars=[],
+    keep_jobscript=False
 ):
     '''Submit job(s) to a queue, returns the job id as an int (pass as_tuple=True
     to return a single value tuple).
@@ -219,6 +220,10 @@ def submit(
             this
     usescript - queue config is defined in script
     project - Cluster project to submit job to, defaults to None
+    export_vars - list of environment variables to preserve for job
+            ignored if job is copying complete environment
+    keep_jobscript - whether to generate and keep a script defining the parameters
+            used to run your task
     '''
     logger = logging.getLogger(__name__)
     logger.debug("Submit called with:")
@@ -243,19 +248,6 @@ def submit(
     config = read_config()
     valid_config(config)
 
-    try:
-        already_run = os.environ['FSLSUBALREADYRUN']
-    except KeyError:
-        already_run = 'false'
-    os.environ['FSLSUBALREADYRUN'] = 'true'
-
-    if config['method'] != 'None':
-        if affirmative(already_run):
-            config['method'] == 'None'
-            warnings.warn(
-                'Warning: job on queue attempted to submit parallel jobs -'
-                'running jobs serially instead.'
-            )
     grid_module = 'fsl_sub_plugin_' + config['method']
     if grid_module not in PLUGINS:
         raise BadConfiguration(
@@ -266,11 +258,19 @@ def submit(
         qtest = PLUGINS[grid_module].qtest
         queue_exists = PLUGINS[grid_module].queue_exists
         BadSubmission = PLUGINS[grid_module].BadSubmission
+        already_queued = PLUGINS[grid_module].already_queued
     except AttributeError as e:
         raise BadConfiguration(
             "Failed to load plugin " + grid_module
             + " ({0})".format(str(e))
         )
+    if config['method'] != 'None':
+        if already_queued():
+            config['method'] == 'None'
+            warnings.warn(
+                'Warning: job on queue attempted to submit parallel jobs -'
+                'running jobs serially instead.'
+            )
 
     config['qtest'] = qtest()
     if config['qtest'] is None:
@@ -537,7 +537,10 @@ def submit(
         usescript=usescript,
         architecture=architecture,
         requeueable=requeueable,
-        project=q_project)
+        project=q_project,
+        export_vars=export_vars,
+        keep_jobscript=keep_jobscript
+    )
 
     if as_tuple:
         return (job_id,)

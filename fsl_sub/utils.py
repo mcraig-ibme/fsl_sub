@@ -15,6 +15,7 @@ from functools import lru_cache
 from math import ceil
 from fsl_sub.exceptions import (
     CommandError,
+    BadOS,
     BadSubmission,
     BadConfiguration,
     InstallError,
@@ -29,6 +30,15 @@ from fsl_sub.exceptions import (
 from fsl_sub.system import (
     system_stdout,
 )
+from shutil import which
+
+
+def bash_cmd():
+    '''Where is bash?'''
+    bash = which('bash')
+    if bash is None:
+        raise BadOS("Unable to find BASH")
+    return bash
 
 
 @lru_cache()
@@ -657,3 +667,33 @@ def conda_install(packages, fsldir=None):
         raise InstallError(
             "Unexpected update output - {0} missing".format(str(e))
         )
+
+
+def flatten_list(args):
+    flattened = []
+    for item in args:
+        if type(item) == list:
+            flattened.extend([i for i in item])
+        else:
+            flattened.append(item)
+    return flattened
+
+
+def fix_permissions(fname, mode):
+    '''Change permissions on fname, honouring umask. Mode should be octal number'''
+    umask = os.umask(0)
+    os.umask(umask)
+    new_mode = mode & ~umask
+    os.chmod(fname, new_mode)
+
+
+def listplusnl(l):
+    for i in l:
+        yield i
+        yield '\n'
+
+
+def writelines_nl(fh, lines):
+    '''Takes a file handle and a list of lines (sans newline) to write out, adding
+    newlines'''
+    fh.writelines(listplusnl(lines))

@@ -12,7 +12,7 @@ from fsl_sub.utils import parse_array_specifier
 
 
 def plugin_version():
-    return '1.0.0'
+    return '1.1.0'
 
 
 def qtest():
@@ -23,6 +23,11 @@ def qtest():
 def queue_exists(qname, qtest=qtest()):
     '''Command that confirms a queue is available'''
     return True
+
+
+def already_queued():
+    '''Is this a running in a submitted job?'''
+    return False
 
 
 def submit(

@@ -20,6 +20,8 @@ thread_control:
   - MKL_DOMAIN_NUM_THREADS
   - OPENBLAS_NUM_THREADS
   - GOTO_NUM_THREADS
+preserve_modules: True
+export_vars: []
 method_opts:
     sge:
         queues: True
@@ -185,6 +187,8 @@ thread_control:
   - MKL_DOMAIN_NUM_THREADS
   - OPENBLAS_NUM_THREADS
   - GOTO_NUM_THREADS
+preserve_modules: True
+export_vars: []
 method_opts:
     sge:
         queues: True
@@ -358,6 +362,9 @@ class FakePlugin(object):
 
     def plugin_version(self):
         return '1.2.0'
+
+    def already_queued(self):
+        return False
 
 
 class TestMisc(unittest.TestCase):
@@ -1487,17 +1494,7 @@ class TestExampleConf(unittest.TestCase):
 
     @unittest.mock.patch('fsl_sub.cmd.sys.stdout', new_callable=io.StringIO)
     def test_example_config(self, mock_stdout):
-        exp_conf = '''# Job submission method to use.
-method: None
-# Default units for RAM given
-# (P, T, G, M, K)
-ram_units: G
-modulecmd: False
-
-# List all environment variables that control thread usage
-# will set these to parallel environment threads
-thread_control: Null
-
+        exp_conf = '''# These are added to defaults
 method_opts:
   None:
     queues: False

@@ -7,6 +7,22 @@ import yaml
 from fsl_sub.exceptions import BadConfiguration
 from functools import lru_cache
 
+default_config = {
+    'method': 'None',
+    'ram_units': 'G',
+    'modulecmd': False,
+    'thread_control': [
+        'OMP_NUM_THREADS',
+        'MKL_NUM_THREADS',
+        'MKL_DOMAIN_NUM_THREADS',
+        'OPENBLAS_NUM_THREADS',
+        'GOTO_NUM_THREADS'
+    ],
+    'method_opts': {},
+    'preserve_modules': True,
+    'export_vars': [],
+}
+
 
 def valid_config(config):
     '''Check config file has required entries'''
@@ -14,7 +30,9 @@ def valid_config(config):
     tl_keys = [
         'method', 'ram_units',
         'modulecmd', 'thread_control',
-        'method_opts', ]
+        'method_opts',
+        'preserve_modules',
+        'export_vars']
 
     mopts_keys = [
         'queues', 'large_job_split_pe',
@@ -45,6 +63,9 @@ def valid_config(config):
                 "Missing {} option in configuration file".format(
                     k
                 ))
+    if not config['method_opts']:
+        raise BadConfiguration(
+            "No options dictionary for cluster method " + config['method'])
     for method, conf in config['method_opts'].items():
         for k in mopts_keys:
             if k not in conf.keys():
@@ -134,7 +155,8 @@ def read_config():
     except Exception as e:
         raise BadConfiguration(
             "Unable to load configuration: " + str(e))
-    return config_dict
+    this_config = _merge_dict(default_config, config_dict)
+    return this_config
 
 
 @lru_cache()
@@ -207,3 +229,13 @@ def queue_config(queue=None):
             raise BadConfiguration(
                 "Unable to find definition for queue " + queue
             )
+
+
+def _merge_dict(base_dict, addition_dict):
+    for k, v in base_dict.items():
+        if k in addition_dict:
+            if type(addition_dict[k]) == dict:
+                addition_dict[k] = _merge_dict(v, addition_dict[k])
+    new_dict = base_dict.copy()
+    new_dict.update(addition_dict)
+    return new_dict

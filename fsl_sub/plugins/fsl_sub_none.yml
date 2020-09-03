@@ -1,14 +1,4 @@
-# Job submission method to use.
-method: None
-# Default units for RAM given
-# (P, T, G, M, K)
-ram_units: G
-modulecmd: False
-
-# List all environment variables that control thread usage
-# will set these to parallel environment threads
-thread_control: Null
-
+# These are added to defaults
 method_opts:
   None:
     queues: False

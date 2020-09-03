@@ -2,6 +2,7 @@
 import unittest
 import yaml
 import fsl_sub.coprocessors
+import fsl_sub.config
 
 from unittest.mock import patch
 
@@ -12,7 +13,20 @@ thread_control:
   - MKL_DOMAIN_NUM_THREADS
   - OPENBLAS_NUM_THREADS
   - GOTO_NUM_THREADS
-
+method: "grid"
+method_opts:
+    grid:
+        queues: True
+        large_job_split_pe: Null
+        mail_support: False
+        map_ram: False
+        job_priorities: False
+        array_holds: False
+        array_limit: False
+        architecture: False
+        job_resources: False
+        script_conf: False
+        projects: False
 queues:
     cuda.q:
         time: 18000
@@ -130,6 +144,10 @@ coproc_opts:
 
 class TestCoprocessors(unittest.TestCase):
     def setUp(self):
+        fsl_sub.config.has_queues.cache_clear()
+        fsl_sub.config.read_config.cache_clear()
+        fsl_sub.config.method_config.cache_clear()
+        fsl_sub.config.queue_config.cache_clear()
         global test_config
         patcher = patch(
             'fsl_sub.config.read_config', autospec=True)

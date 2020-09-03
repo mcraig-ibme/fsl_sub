@@ -428,6 +428,24 @@ There are several batch queues configured on the cluster:
             help="No parallel environments configured"
         )
     if has_queues():
+        advanced_g.add_argument(
+            '--keep_jobscript',
+            action="store_true",
+            help="Whether to create and save a job submission script that records "
+            "the submission and command arguments. This is not supported for the basic "
+            "'None' plugin so is ignored"
+        )
+        advanced_g.add_argument(
+            '--export',
+            action='append',
+            default=[],
+            help="Job will inherit this environment variable. Repeat this option "
+            "for as many variables as you require or configure your ~/.fsl_sub.yml "
+            "file:\nexport_envvars:\n  - MYENVVAR\n  - ANOTHERENVVAR\n"
+            "If you need to change the value of an environment variable then this may "
+            "be possible by providing:\n--export=VARNAME=NEWVALUE\nThis is cluster backend "
+            "dependent so may not be supported."
+        )
         if uses_projects():
             advanced_g.add_argument(
                 '--project',
@@ -882,7 +900,9 @@ def main(args=None):
             requeueable=not options['not_requeueable'],
             native_holds=options['native_holds'],
             as_tuple=False,
-            project=project
+            project=project,
+            export_vars=options['export_vars'],
+            keep_jobscript=options['keep_jobscript']
         )
     except BadSubmission as e:
         cmd_parser.exit(

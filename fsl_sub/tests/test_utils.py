@@ -21,6 +21,15 @@ from fsl_sub.exceptions import (
 import fsl_sub.utils
 
 
+class TestFlattenList(unittest.TestCase):
+    def test_flatten_list(self):
+        self.assertListEqual(
+            fsl_sub.utils.flatten_list(
+                [1, 2, '-v', [4, 5, ], {'key': 'value'}]),
+            [1, 2, '-v', 4, 5, {'key': 'value'}]
+        )
+
+
 class TestConversions(unittest.TestCase):
     def test_human_to_ram(self):
         with self.subTest('no units'):
@@ -1944,6 +1953,29 @@ class TestArraySpec(unittest.TestCase):
             fsl_sub.utils.parse_array_specifier,
             '1-2:A'
         )
+
+
+@patch('fsl_sub.utils.os.umask', autospec=True)
+class TestFixPerms(unittest.TestCase):
+    def test_fixperms(self, mock_osum):
+        with self.subTest('0002'):
+            mock_osum.return_value = 0o0002
+            with tempfile.NamedTemporaryFile(mode='wt') as ntf:
+                fsl_sub.utils.fix_permissions(ntf.name, 0o666)
+                perms = os.stat(ntf.name)
+                self.assertEqual(
+                    perms.st_mode & 0o777,
+                    0o664)
+
+        with self.subTest('0022'):
+            mock_osum.return_value = 0o0022
+
+            with tempfile.NamedTemporaryFile(mode='wt') as ntf:
+                fsl_sub.utils.fix_permissions(ntf.name, 0o666)
+                perms = os.stat(ntf.name)
+                self.assertEqual(
+                    perms.st_mode & 0o777,
+                    0o644)
 
 
 if __name__ == '__main__':

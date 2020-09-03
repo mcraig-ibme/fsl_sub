@@ -9,6 +9,39 @@ from unittest.mock import patch
 
 
 class TestConfig(unittest.TestCase):
+    def test__merge_dict(self):
+        a = {'avalue': {'another': 'dict'}, 'bvalue': 1, 'cvalue': [0, 1, ]}
+        b = {'dvalue': 1}
+        c = {'cvalue': [2, 3, 4, ]}
+        d = {'avalue': {'something': 'else', 'yetanother': 'value'}}
+        e = {'avalue': {'another': 'item', 'yetanother': 'value'}}
+        with self.subTest('Add key/value'):
+            self.assertDictEqual(
+                fsl_sub.config._merge_dict(a, b),
+                {'avalue': {
+                    'another': 'dict'}, 'bvalue': 1,
+                    'cvalue': [0, 1], 'dvalue': 1}
+            )
+        with self.subTest('Replace list'):
+            self.assertDictEqual(
+                fsl_sub.config._merge_dict(a, c),
+                {'avalue': {'another': 'dict'}, 'bvalue': 1, 'cvalue': [2, 3, 4]}
+            )
+        with self.subTest('Augment dict'):
+            self.assertDictEqual(
+                fsl_sub.config._merge_dict(a, d),
+                {'avalue': {
+                    'another': 'dict', 'something': 'else',
+                    'yetanother': 'value'}, 'bvalue': 1, 'cvalue': [0, 1]}
+            )
+        with self.subTest('Replace dict key/value'):
+            self.assertDictEqual(
+                fsl_sub.config._merge_dict(a, e),
+                {'avalue': {
+                    'another': 'item', 'yetanother': 'value'},
+                    'bvalue': 1, 'cvalue': [0, 1]}
+            )
+
     @patch('fsl_sub.config.os.path.expanduser', autospec=True)
     def test_find_config_file(
             self, mock_expanduser):
@@ -85,17 +118,47 @@ class TestConfig(unittest.TestCase):
         finally:
             shutil.rmtree(test_dir)
 
+    @patch.dict(
+        'fsl_sub.config.default_config',
+        {'bdict': "somevalue"}, clear=True)
+    @patch('fsl_sub.config.find_config_file', autospec=True)
+    def test_read_config_merge(self, mock_find_config_file):
+        fsl_sub.config.read_config.cache_clear()
+        example_yaml = '''
+adict:
+    alist:
+        - 1
+        - 2
+    astring: hello
+'''
+        mock_find_config_file.return_value = '/etc/fsl_sub.conf'
+        with patch(
+                'fsl_sub.config.open',
+                unittest.mock.mock_open(read_data=example_yaml)) as m:
+            self.assertDictEqual(
+                fsl_sub.config.read_config(),
+                {
+                    'adict': {
+                        'alist': [1, 2],
+                        'astring': 'hello',
+                    },
+                    'bdict': 'somevalue',
+                }
+            )
+            m.assert_called_once_with('/etc/fsl_sub.conf', 'r')
+
+    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
     @patch('fsl_sub.config.find_config_file', autospec=True)
     def test_read_config(self, mock_find_config_file):
         with self.subTest("Test good read"):
             fsl_sub.config.read_config.cache_clear()
             example_yaml = '''
-    adict:
-        alist:
-            - 1
-            - 2
-        astring: hello
-    '''
+adict:
+    alist:
+        - 1
+        - 2
+    astring: hello
+'''
             mock_find_config_file.return_value = '/etc/fsl_sub.conf'
             with patch(
                     'fsl_sub.config.open',
@@ -118,6 +181,7 @@ class TestConfig(unittest.TestCase):
                     fsl_sub.config.BadConfiguration,
                     fsl_sub.config.read_config)
 
+    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_method_config(self, mock_read_config):
         fsl_sub.config.method_config.cache_clear()
@@ -151,6 +215,7 @@ class TestConfig(unittest.TestCase):
                 me.exception.args[0],
                 "Unable to find configuration for method2")
 
+    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_coprocessor_config(self, mock_read_config):
         fsl_sub.config.coprocessor_config.cache_clear()
@@ -184,6 +249,7 @@ class TestConfig(unittest.TestCase):
                 me.exception.args[0],
                 "Unable to find configuration for phi")
 
+    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_queue_config(self, mock_read_config):
         fsl_sub.config.queue_config.cache_clear()
@@ -214,6 +280,7 @@ class TestConfig(unittest.TestCase):
                 me.exception.args[0],
                 "Unable to find queue definitions")
 
+    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_uses_projects(self, mock_read_config):
         fsl_sub.config.method_config.cache_clear()
