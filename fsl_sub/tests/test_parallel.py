@@ -19,7 +19,7 @@ thread_control:
   - OMP_THREADS
   - MKL_NUM_THREADS
 method_opts:
-  None:
+  shell:
     large_job_split_pe: []
     mail_support: False
     map_ram: False

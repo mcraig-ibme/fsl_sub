@@ -1,14 +1,16 @@
 # These are added to defaults
 method_opts:
-  None:
+  shell:
     queues: False
     large_job_split_pe: Null
     mail_support: False
     map_ram: False
     job_priorities: False
     array_holds: False
-    array_limit: False
     architecture: False
     job_resources: False
     script_conf: False
     projects: False
+    run_parallel: True
+    parallel_disable_matches:
+      - '*_gpu'

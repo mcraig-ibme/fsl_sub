@@ -1,0 +1,13 @@
+---
+method: 'shell'
+ram_units: 'G'
+modulecmd: False
+thread_control:
+  - 'OMP_NUM_THREADS'
+  - 'MKL_NUM_THREADS'
+  - 'MKL_DOMAIN_NUM_THREADS'
+  - 'OPENBLAS_NUM_THREADS'
+  - 'GOTO_NUM_THREADS'
+method_opts: {}
+coproc_opts: {}
+queues: {}

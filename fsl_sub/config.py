@@ -2,109 +2,15 @@
 # Copyright (c) 2018, University of Oxford (Duncan Mortimer)
 
 import os
+import os.path
 import yaml
 
-from fsl_sub.exceptions import BadConfiguration
+from fsl_sub.exceptions import (BadConfiguration, MissingConfiguration, )
+from fsl_sub.utils import (
+    get_plugin_example_conf,
+    available_plugins,
+)
 from functools import lru_cache
-
-default_config = {
-    'method': 'None',
-    'ram_units': 'G',
-    'modulecmd': False,
-    'thread_control': [
-        'OMP_NUM_THREADS',
-        'MKL_NUM_THREADS',
-        'MKL_DOMAIN_NUM_THREADS',
-        'OPENBLAS_NUM_THREADS',
-        'GOTO_NUM_THREADS'
-    ],
-    'method_opts': {},
-    'preserve_modules': True,
-    'export_vars': [],
-}
-
-
-def valid_config(config):
-    '''Check config file has required entries'''
-
-    tl_keys = [
-        'method', 'ram_units',
-        'modulecmd', 'thread_control',
-        'method_opts',
-        'preserve_modules',
-        'export_vars']
-
-    mopts_keys = [
-        'queues', 'large_job_split_pe',
-        'mail_support', 'map_ram',
-        'job_priorities', 'array_holds',
-        'array_limit', 'architecture',
-        'job_resources', 'script_conf',
-        'projects',
-    ]
-
-    copro_opts_keys = [
-        'uses_modules', 'classes',
-        'no_binding', 'resource',
-    ]
-
-    copro_mod_opts_keys = [
-        'module_parent'
-    ]
-
-    copro_class_opts_keys = [
-        'default_class', 'include_more_capable',
-        'class_types', 'class_resource'
-    ]
-
-    for k in tl_keys:
-        if k not in config.keys():
-            raise BadConfiguration(
-                "Missing {} option in configuration file".format(
-                    k
-                ))
-    if not config['method_opts']:
-        raise BadConfiguration(
-            "No options dictionary for cluster method " + config['method'])
-    for method, conf in config['method_opts'].items():
-        for k in mopts_keys:
-            if k not in conf.keys():
-                raise BadConfiguration(
-                    "Missing {0} option in method '{1}'s definition in "
-                    "configuration file".format(
-                        k, method
-                    ))
-    if 'coproc_opts' in config.keys():
-        for copro, conf in config['coproc_opts'].items():
-            for k in copro_opts_keys:
-                if k not in conf.keys():
-                    raise BadConfiguration(
-                        "Missing {0} option in coprocessor {1}s definition in"
-                        "configuration file".format(
-                            k, method
-                        )
-                    )
-
-            if conf['uses_modules']:
-                for k in copro_mod_opts_keys:
-                    if k not in conf.keys():
-                        raise BadConfiguration(
-                            "Missing {0} option in coprocessor {1}s"
-                            " definition in configuration file".format(
-                                k, copro
-                            )
-                        )
-            if conf['classes']:
-                for k in copro_class_opts_keys:
-                    if k not in conf.keys():
-                        raise BadConfiguration(
-                            "Missing {0} option in coprocessor {1}s"
-                            " definition in configuration file".format(
-                                k, copro
-                            )
-                        )
-
-    return True
 
 
 def find_config_file():
@@ -138,23 +44,62 @@ def find_config_file():
                 os.path.realpath(__file__),
                 os.path.pardir,
                 'plugins',
-                'fsl_sub_none.yml')))
+                'fsl_sub_shell.yml')))
 
     for p in search_path:
         if os.path.exists(p):
             return p
 
-    raise BadConfiguration("Unable to find fsl_sub config")
+    raise MissingConfiguration("Unable to find fsl_sub config")
+
+
+def _internal_config_file(filename):
+    return os.path.join(os.path.realpath(os.path.dirname(__file__)), filename)
+
+
+def load_default_config():
+    dc_file = _internal_config_file("default_config.yml")
+    try:
+        with open(dc_file, 'r') as yaml_source:
+            default_config = yaml.safe_load(yaml_source)
+    except yaml.YAMLError as e:
+        raise BadConfiguration(
+            "Unable to understand default configuration: " + str(e))
+    except FileNotFoundError:
+        raise MissingConfiguration(
+            "Unable to find default configuration file: " + dc_file)
+    except PermissionError:
+        raise MissingConfiguration(
+            "Unable to open default configuration file: " + dc_file)
+    for plugin in available_plugins():
+        try:
+            p_dc = yaml.safe_load(get_plugin_example_conf(plugin))
+        except yaml.YAMLError as e:
+            raise BadConfiguration(
+                "Unable to understand plugin {0}'s default configuration: ".format(plugin) + str(e))
+
+        default_config = _merge_dict(default_config, p_dc)
+
+    default_config['method'] = 'shell'
+    return default_config
 
 
 @lru_cache()
 def read_config():
+    default_config = load_default_config()
+    config_file = find_config_file()
     try:
-        with open(find_config_file(), 'r') as yaml_source:
+        with open(config_file, 'r') as yaml_source:
             config_dict = yaml.safe_load(yaml_source)
-    except Exception as e:
+    except yaml.YAMLError as e:
         raise BadConfiguration(
-            "Unable to load configuration: " + str(e))
+            "Unable to understand configuration file: " + str(e))
+    except (FileNotFoundError, PermissionError, ):
+        raise BadConfiguration(
+            "Unable to open configuration file: " + config_file
+        )
+    except MissingConfiguration:
+        config_dict = {}
     this_config = _merge_dict(default_config, config_dict)
     return this_config
 
@@ -175,6 +120,69 @@ def method_config(method):
         raise BadConfiguration(
             "Unable to find configuration for {}".format(method)
         )
+
+
+def _read_config_file(fname):
+    '''Return content of file as string'''
+    try:
+        with open(fname, 'r') as default_source:
+            e_conf = default_source.read()
+    except FileNotFoundError:
+        raise MissingConfiguration(
+            "Unable to find default configuration file: " + fname
+        )
+    return e_conf
+
+
+def example_config(method=None):
+    '''Merges the method default config output with the general defaults and returns
+    the example config as a string'''
+
+    methods = ['shell', ]
+    e_conf = ''
+
+    # Example config files
+    dc_file = _internal_config_file("default_config.yml")
+    qc_file = _internal_config_file("example_queue_config.yml")
+    cc_file = _internal_config_file("example_coproc_config.yml")
+
+    # Load top-level config
+    e_conf = _read_config_file(dc_file)
+    # If a plugin method has been provided set 'method' to this
+    if method is not None:
+        methods.append(method)
+        for match in ("'shell'", '"shell"', 'shell'):
+            e_conf = e_conf.replace("method: {0}\n".format(match), "method: '{0}'\n".format(method))
+
+    # Remove method_opts and re-add at end of file:
+    e_conf = e_conf.replace('method_opts: {}\n', '')
+    e_conf += 'method_opts:\n'
+
+    # Add the method opts for the methods ('shell' + value of method)
+    for m in methods:
+        plugin_conf = get_plugin_example_conf(m)
+
+        for match in ("'{0}'".format(m), '"{0}"'.format(m), '{0}'.format(m)):
+            plugin_conf = plugin_conf.replace("method: {0}\n".format(match), '')
+
+        plugin_conf = plugin_conf.replace("method_opts:\n", '')
+        if not e_conf.endswith('\n'):
+            e_conf += '\n'
+
+        e_conf = e_conf + plugin_conf
+        if not e_conf.endswith('\n'):
+            e_conf += '\n'
+
+    if method is not None:
+        # Add the example co-processor config
+        e_conf += _read_config_file(qc_file).replace('---\n', '')
+
+        # Add the example queue config
+        e_conf += _read_config_file(cc_file).replace('---\n', '')
+        e_conf = e_conf.replace('queues: {}\n', '')
+        e_conf = e_conf.replace('coproc_opts: {}\n', '')
+
+    return e_conf
 
 
 @lru_cache()

@@ -79,7 +79,7 @@ def available_plugins():
 
 def available_plugin_packages():
     return [
-        'fsl_sub_plugin_' + a for a in available_plugins() if a.lower != 'none'
+        'fsl_sub_plugin_' + a for a in available_plugins() if a.lower != 'shell'
     ]
 
 

@@ -445,6 +445,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -455,6 +456,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -491,6 +493,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -501,6 +504,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -535,6 +539,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -545,6 +550,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -580,6 +586,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -590,6 +597,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on='n',
             mailto=USER_EMAIL,
@@ -625,6 +633,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -635,6 +644,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto='user@test.com',
@@ -670,6 +680,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -680,6 +691,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto='user@test.com',
@@ -715,6 +727,7 @@ class TestMain(unittest.TestCase):
             array_task=True,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -725,6 +738,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -759,6 +773,7 @@ class TestMain(unittest.TestCase):
             array_task=True,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -769,6 +784,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -805,6 +821,7 @@ class TestMain(unittest.TestCase):
             array_task=True,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -815,6 +832,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -849,6 +867,7 @@ class TestMain(unittest.TestCase):
             array_task=True,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -859,6 +878,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -894,6 +914,7 @@ class TestMain(unittest.TestCase):
             array_task=True,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -904,6 +925,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -941,6 +963,7 @@ class TestMain(unittest.TestCase):
             array_task=True,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -951,6 +974,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -987,6 +1011,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -997,6 +1022,7 @@ class TestMain(unittest.TestCase):
             jobhold=['20002'],
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -1033,6 +1059,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -1043,6 +1070,7 @@ class TestMain(unittest.TestCase):
             jobhold='20002:aa',
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -1080,6 +1108,7 @@ class TestMain(unittest.TestCase):
             array_task=True,
             coprocessor=None,
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -1090,6 +1119,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -1126,6 +1156,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor='cuda',
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -1136,6 +1167,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -1175,6 +1207,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor='cuda',
             coprocessor_toolkit='7.5',
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -1185,6 +1218,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -1224,6 +1258,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor='cuda',
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class='K',
             coprocessor_class_strict=False,
             coprocessor_multi=1,
@@ -1234,6 +1269,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -1274,6 +1310,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor='cuda',
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class='K',
             coprocessor_class_strict=True,
             coprocessor_multi=1,
@@ -1284,6 +1321,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -1323,6 +1361,7 @@ class TestMain(unittest.TestCase):
             array_task=False,
             coprocessor='cuda',
             coprocessor_toolkit=None,
+            export_vars=[],
             coprocessor_class=None,
             coprocessor_class_strict=False,
             coprocessor_multi='2',
@@ -1333,6 +1372,7 @@ class TestMain(unittest.TestCase):
             jobhold=None,
             jobram=None,
             jobtime=None,
+            keep_jobscript=False,
             logdir=None,
             mail_on=None,
             mailto=USER_EMAIL,
@@ -1376,6 +1416,7 @@ class TestMain(unittest.TestCase):
                 array_task=False,
                 coprocessor=None,
                 coprocessor_toolkit=None,
+                export_vars=[],
                 coprocessor_class=None,
                 coprocessor_class_strict=False,
                 coprocessor_multi=1,
@@ -1386,6 +1427,7 @@ class TestMain(unittest.TestCase):
                 jobhold=None,
                 jobram=None,
                 jobtime=None,
+                keep_jobscript=False,
                 logdir=None,
                 mail_on=None,
                 mailto=USER_EMAIL,
@@ -1431,6 +1473,7 @@ class TestMain(unittest.TestCase):
                     array_task=False,
                     coprocessor=None,
                     coprocessor_toolkit=None,
+                    export_vars=[],
                     coprocessor_class=None,
                     coprocessor_class_strict=False,
                     coprocessor_multi=1,
@@ -1441,6 +1484,7 @@ class TestMain(unittest.TestCase):
                     jobhold=None,
                     jobram=None,
                     jobtime=None,
+                    keep_jobscript=False,
                     logdir=None,
                     mail_on=None,
                     mailto=USER_EMAIL,
@@ -1468,7 +1512,7 @@ class TestExampleConf(unittest.TestCase):
             parser_class=ErrorRaisingArgumentParser)
         none_config = os.path.join(
             os.path.dirname(__file__), '..',
-            'plugins', 'fsl_sub_none.yml')
+            'plugins', 'fsl_sub_shell.yml')
         with open(none_config, 'r') as yfile:
             cls.exp_conf = yfile.read()
 
@@ -1488,28 +1532,30 @@ class TestExampleConf(unittest.TestCase):
 
     def test_example_config_parser_known_plugin(self):
         self.assertEqual(
-            self.parser.parse_args(['None']).plugin,
-            'None'
+            self.parser.parse_args(['shell']).plugin,
+            'shell'
         )
 
     @unittest.mock.patch('fsl_sub.cmd.sys.stdout', new_callable=io.StringIO)
     def test_example_config(self, mock_stdout):
         exp_conf = '''# These are added to defaults
 method_opts:
-  None:
+  shell:
     queues: False
     large_job_split_pe: Null
     mail_support: False
     map_ram: False
     job_priorities: False
     array_holds: False
-    array_limit: False
     architecture: False
     job_resources: False
     script_conf: False
     projects: False
+    run_parallel: True
+    parallel_disable_matches:
+      - '*_gpu'
 '''
-        fsl_sub.cmd.example_config(['None', ])
+        fsl_sub.cmd.example_config(['shell', ])
         self.assertEqual(
             mock_stdout.getvalue(),
             exp_conf + '\n'

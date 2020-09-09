@@ -20,7 +20,6 @@ from fsl_sub.config import (
     coprocessor_config,
     has_queues,
     uses_projects,
-    valid_config,
 )
 import fsl_sub.consts
 from fsl_sub.coprocessors import (
@@ -427,13 +426,39 @@ There are several batch queues configured on the cluster:
             default=None,
             help="No parallel environments configured"
         )
+    array_g.add_argument(
+        '-t', '--array_task',
+        default=None,
+        help="Specify a task file of commands to execute in parallel."
+    )
+    array_g.add_argument(
+        '--array_native',
+        default=None,
+        help="Binary/Script will handle array task internally. "
+        "Mutually exclusive with --array_task. Requires "
+        "an argument n[-m[:s]] which provides number of tasks (n) or "
+        "start (n), end (m) and increment of sub-task ID between sub-"
+        "tasks (s). Binary/script can use FSLSUB_JOBID_VAR, "
+        "FSLSUB_ARRAYTASKID_VAR, FSLSUB_ARRAYSTARTID_VAR, "
+        "FSLSUB_ARRAYENDID_VAR, FSLSUB_ARRAYSTEPSIZE_VAR, "
+        "FSLSUB_ARRAYCOUNT_VAR environment variables to identify the "
+        "environment variables that are set by the cluster manager to "
+        "identify the sub-task that is running."
+    )
+    advanced_g.add_argument(
+        '-x', '--array_limit',
+        default=None,
+        type=int,
+        help="Specify the maximum number of parallel job sub-tasks to run "
+        "concurrently."
+    )
     if has_queues():
         advanced_g.add_argument(
             '--keep_jobscript',
             action="store_true",
             help="Whether to create and save a job submission script that records "
             "the submission and command arguments. This is not supported for the basic "
-            "'None' plugin so is ignored"
+            "'shell' plugin so is ignored"
         )
         advanced_g.add_argument(
             '--export',
@@ -471,31 +496,6 @@ There are several batch queues configured on the cluster:
             help="Disable the automatic requesting of multiple threads "
             "sufficient to allow your job to run within the RAM constraints."
         )
-        array_g.add_argument(
-            '-t', '--array_task',
-            default=None,
-            help="Specify a task file of commands to execute in parallel."
-        )
-        array_g.add_argument(
-            '--array_native',
-            default=None,
-            help="Binary/Script will handle array task internally. "
-            "Mutually exclusive with --array_task. Requires "
-            " and argument n[-m[:s]] which provides number of tasks (n) or "
-            "start (n), end (m) and increment of sub-task ID between sub-"
-            "tasks (s). Binary/script can use FSLSUB_ARRAYTASKID_VAR, "
-            "FSLSUB_ARRAYSTARTID_VAR, FSLSUB_ARRAYENDID_VAR, "
-            "FSLSUB_ARRAYSTEPSIZE_VAR, FSLSUB_ARRAYCOUNT_VAR environment "
-            "variables to identify the environment variables that are set by "
-            "the cluster manager to identify the sub-task that is running."
-        )
-        advanced_g.add_argument(
-            '-x', '--array_limit',
-            default=None,
-            type=int,
-            help="Specify the maximum number of parallel job sub-tasks to run "
-            "concurrently."
-        )
     else:
         advanced_g.add_argument(
             '--project',
@@ -511,22 +511,6 @@ There are several batch queues configured on the cluster:
         basic_g.add_argument(
             '-S', '--noramsplit',
             action='store_true',
-            help="Not relevant when not running in a cluster environment"
-        )
-        array_g.add_argument(
-            '-t', '--array_task',
-            default=None,
-            help="Not relevant when not running in a cluster environment"
-        )
-        array_g.add_argument(
-            '--array_native',
-            default=None,
-            help="Not relevant when not running in a cluster environment"
-        )
-        advanced_g.add_argument(
-            '-x', '--array_limit',
-            default=None,
-            type=int,
             help="Not relevant when not running in a cluster environment"
         )
     basic_g.add_argument(
@@ -763,7 +747,6 @@ def main(args=None):
     plugin_logger.addHandler(lhdr)
     try:
         config = read_config()
-        valid_config(config)
         cp_info = coproc_info()
     except BadConfiguration as e:
         logger.error("Error in fsl_sub configuration - " + str(e))
@@ -901,7 +884,7 @@ def main(args=None):
             native_holds=options['native_holds'],
             as_tuple=False,
             project=project,
-            export_vars=options['export_vars'],
+            export_vars=options['export'],
             keep_jobscript=options['keep_jobscript']
         )
     except BadSubmission as e:

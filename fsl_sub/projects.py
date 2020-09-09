@@ -1,7 +1,6 @@
 import os
 from fsl_sub.config import (
     read_config,
-    valid_config,
 )
 from fsl_sub.exceptions import (
     BadConfiguration,
@@ -16,9 +15,7 @@ def project_list():
 
     config = read_config()
 
-    valid_config(config)
-
-    if config['method'] == 'None':
+    if config['method'] == 'shell':
         return None
 
     grid_module = 'fsl_sub_plugin_' + config['method']

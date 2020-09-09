@@ -26,7 +26,6 @@ from fsl_sub.config import (
     read_config,
     method_config,
     coprocessor_config,
-    valid_config,
     uses_projects,
 )
 import fsl_sub.consts
@@ -92,9 +91,7 @@ def report(
 
     config = read_config()
 
-    valid_config(config)
-
-    if config['method'] == 'None':
+    if config['method'] == 'shell':
         ntime = datetime.datetime.now()
         return {
             'id': 123456,
@@ -246,7 +243,6 @@ def submit(
     PLUGINS = load_plugins()
 
     config = read_config()
-    valid_config(config)
 
     grid_module = 'fsl_sub_plugin_' + config['method']
     if grid_module not in PLUGINS:
@@ -264,9 +260,9 @@ def submit(
             "Failed to load plugin " + grid_module
             + " ({0})".format(str(e))
         )
-    if config['method'] != 'None':
+    if config['method'] != 'shell':
         if already_queued():
-            config['method'] == 'None'
+            config['method'] == 'shell'
             warnings.warn(
                 'Warning: job on queue attempted to submit parallel jobs -'
                 'running jobs serially instead.'
@@ -274,7 +270,7 @@ def submit(
 
     config['qtest'] = qtest()
     if config['qtest'] is None:
-        config['method'] == 'None'
+        config['method'] == 'shell'
         warnings.warn(
             'Warning: fsl_sub configured for {0} but {0}'
             ' software not found.'.format(config['method'])
@@ -420,7 +416,6 @@ def submit(
     if mconfig['queues'] is False:
         queue = None
         split_on_ram = None
-
     else:
         split_on_ram = mconfig['map_ram'] and ramsplit
 
@@ -454,6 +449,12 @@ def submit(
                 slots_required = 1
 
         threads = max(slots_required, threads)
+        # If a subsequent task calls fsl_sub too then we need to avoid
+        # further parallelisation. Store allowed number of threads in
+        # FSLSUB_PARALLEL...
+        # Clear previous FSLSUB_PARALLEL values...
+        export_vars = [a for a in export_vars if a != 'FSLSUB_PARALLEL' and not a.startswith('FSLSUB_PARALLEL=')]
+        export_vars.append('FSLSUB_PARALLEL=' + str(threads))
 
         control_threads(config['thread_control'], threads)
 

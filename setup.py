@@ -35,8 +35,8 @@ setup(
     install_requires=['pyyaml'],
     python_requires='~=3.5',
     package_data={
-        'fsl_sub': ['fsl_sub.yml'],
-        'fsl_sub.plugins': ['fsl_sub_none.yml'],
+        'fsl_sub': ['default_config.yml', 'example_queue_config.yml', 'example_coproc_config.yml'],
+        'fsl_sub.plugins': ['fsl_sub_shell.yml'],
     },
     include_package_data=True,
     entry_points={

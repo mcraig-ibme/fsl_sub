@@ -30,6 +30,10 @@ class BadConfiguration(Exception):
     pass
 
 
+class MissingConfiguration(Exception):
+    pass
+
+
 class UnrecognisedModule(Exception):
     pass
 

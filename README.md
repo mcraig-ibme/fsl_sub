@@ -69,7 +69,7 @@ If you only need to run programs locally, fsl_sub ships with a local job plugin,
 
 ### Configuration
 
-A configuration file in YAML format is required to describe your cluster environment, examples are provided with the plugins and an example for the installed plugin can be generated with:
+A configuration file in YAML format is required to describe your cluster environment, examples are provided with the plugins and an example for an installed plugin can be generated with:
 
 > fsl_sub_config _backend\_name_
 
@@ -85,13 +85,34 @@ put in your home folder calling it .fsl_sub.yml. A copy in your home folder will
 Finally, the environment variable FSLSUB_CONF can be set to point at the configuration
 file, this will override all other files.
 
+It is not necessary to specify all the options, the default values are those given in the example configuration output, but as a bare minimum you will need, to specify the method (default 'shell') of running jobs and in the case of a cluster submission plugin, a list of queues available on the system.
+
+```yaml
+method: <plugin method>
+queues:
+    aqueue:
+        time: 10000
+```
+
+Where \<plugin method> is the name of the plugin, e.g. 'sge'.
+
+See the plugin documentation for details on how to configure the plugin, using the 'method_opts' section, e.g:
+
+```yaml
+method_ops:
+    'sge':
+        queues: true
+```
+
+See below for details.
+
 #### Configuration Sections
 
 ##### Top Level
 
 The top level of the configuration file defines the following:
 
-* method: Name of plugin to use - _None_ for no cluster submission engine
+* method: Name of plugin to use - _shell_ for no cluster submission engine
 * ram_units: Default G, one of K/M/G/T/P - When specifiying memory what units will this be in (Kilobytes, Megabytes, Gigabytes, Terabytes, Petabytes)
 * modulecmd: Default False, False or path to _module_ program - If you use _shell modules_ to configure your shell environment and the _module_ program is not in your default search path, set this to the full path of the _module_ program/
 * thread_control: Default Null, Null or list of environment variables to set to the requested number of threads, e.g.:
@@ -107,24 +128,28 @@ The top level of the configuration file defines the following:
 
 ##### Method Options
 
-The next section, _method\_opts_ defines options for your grid submission engine. If you are not using a grid submission engine then the _None_ sub-section will be used.
+The next section, _method\_opts_ defines options for your grid submission engine. If you are not using a grid submission engine then the _shell_ sub-section will be used.
 If you have requested an example configuration script from your grid submission plugin of choice then the appropriate section will have all the expected configuration options listed with descriptions of their expected values.
-For the default _None_ engine, the options should be left as below:
+
+###### Shell Plugin
+
+If you don't have a cluster and are running jobs locally then the built-in _shell_ job runner can offer some basic parallelisation of array tasks.
+To change the operation of these plugin, create a .fsl_sub_yml file in your home folder (or in another location/filename with the environment variable FSLSUB_CONF set to the full path to the file) with the following content:
 
 ```yaml
-  None:
-    queues: False
-    large_job_split_pe: Null
-    mail_support: False
-    map_ram: False
-    job_priorities: False
-    array_holds: False
-    array_limit: False
-    architecture: False
-    job_resources: False
-    script_conf: False
-    projects: False
+method_opts:
+  shell:
+    run_parallel: True
+    parallel_disable_matches:
+      - '*_gpu'
 ```
+
+These two options can take values as below:
+
+* `run_parallel`: This turns on (True) or off (False) the ability to run array tasks in parallel
+* `parallel_disable_matches`: This takes a list of patterns that match program names that *must* not be parallelised. By default the GPU optimised FSL programs will run linearly (programs ending `_gpu`) as these are often a limited resource. This takes a list of matches which may start or end with a '*' to match end or start of program name respectively), full paths can be specified to identify specific installs of a program.
+
+The shell plugin will attempt to run up-to the same number of jobs as CPU cores on the computer, attempting to honour any CPU masking that may be in effect (on Linux). Threads can be limited using the `--array_limit` fsl_sub option or by setting the environment variable `FSLSUB_PARALLEL` to the maximum number of parallel processes.
 
 ##### Coprocessor Options
 
@@ -188,6 +213,7 @@ FSLSUB_PROJECT=myproj myscript_that_submits
 
 When running as an array task you may wish to know which sub-task you are, this might be useful to automatically determine which member of the array you are. This information is provided in environment variables by the queuing software. To determine which variable to read, fsl_sub will set the following environment variables to the name of the equivalent queue variable:
 
+* `FSLSUB_JOBID_VAR`: The ID of the master job
 * `FSLSUB_ARRAYTASKID_VAR`: The ID of the sub-task
 * `FSLSUB_ARRAYSTARTID_VAR`: The ID of the first sub-task
 * `FSLSUB_ARRAYENDID_VAR`: The ID of the last sub-task
@@ -350,7 +376,7 @@ Optional Arguments:
 * jobram - RAM required by job (total of all threads)
 * jobtime - time (in minutes for task)
 * keep_jobscript - whether to preserve (as jobid.sh) the script that was submitted
-    to the cluster (ignored for 'None' submission type)
+    to the cluster (ignored for 'shell' submission type)
 * logdir - directory to put log files in
 * mail_on - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
     's'uspended, 'n'o mail

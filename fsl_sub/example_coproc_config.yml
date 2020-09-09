@@ -1,0 +1,56 @@
+# The following defines configuration options for co-processor queues
+# Define queues with a copro key set to the name of the appropriate option
+# set and ensure that your queue method has a way of interpreting this
+coproc_opts:
+  cuda:
+    # Which scheduler resource requests GPU facilities
+    resource: gpu
+    # Whether there are multiple coprocessor classes/types
+    classes: True
+    # This defines the short code for the types and the resource
+    # which will be requested and a documentation string for the help
+    # text
+    class_types:
+      G:
+        # Queue resource to request (on SLURM this may be a constraint or type)
+        resource: TitanX
+        # Documentation about this hardware
+        doc: TitanX. No-ECC, single-precision workloads
+        # Capability level for this hardware, integer value that
+        # allows differentiation between hardware models.
+        capability: 1
+      K:
+        resource: k80
+        doc: Kepler. ECC, double- or single-precision workloads
+        capability: 2
+      P:
+        resource: p100
+        doc: >
+          Pascal. ECC, double-, single- and half-precision
+          workloads
+        capability: 3
+      V:
+        resource: v100
+        doc: >
+          Volta. ECC, double-, single-, half-
+          and quarter-precision workloads
+        capability: 4
+      A:
+        resource: a100
+        doc: >
+          Ampere. ECC, double-, single-, half-
+          and Tensor - single-, half-, quarter- and eigth-precision
+          workloads
+        capability: 5
+    # If a class is not specified, which class should we use?
+    default_class: P
+    # Should we also allow running on more capable hardware?
+    # Requires constraints on SLURM
+    include_more_capable: True
+    # Should we use Shell modules to load the environment settings for
+    # the hardware?
+    uses_modules: True
+    # What is the name of the parent module for this co-processor?
+    module_parent: cuda
+    # Does the SURLM cluster use constraints to specify GPU types?
+    slurm_constraints: True

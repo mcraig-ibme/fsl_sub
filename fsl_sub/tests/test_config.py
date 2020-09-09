@@ -94,7 +94,7 @@ class TestConfig(unittest.TestCase):
                         'fsl_sub.config.os.path.exists',
                         return_value=False):
                     self.assertRaises(
-                        fsl_sub.config.BadConfiguration,
+                        fsl_sub.config.MissingConfiguration,
                         fsl_sub.config.find_config_file
                     )
 
@@ -108,7 +108,7 @@ class TestConfig(unittest.TestCase):
                             '..',
                             '..',
                             'plugins',
-                            'fsl_sub_none.yml')
+                            'fsl_sub_shell.yml')
                     )
 
                     self.assertEqual(
@@ -118,11 +118,107 @@ class TestConfig(unittest.TestCase):
         finally:
             shutil.rmtree(test_dir)
 
-    @patch.dict(
-        'fsl_sub.config.default_config',
-        {'bdict': "somevalue"}, clear=True)
+    @patch('fsl_sub.config.get_plugin_example_conf')
+    @patch('fsl_sub.config._internal_config_file')
+    def test_example_conf(self, mock_dcf, mock_gpe):
+        base_config = '''ram_units: 'G'
+modulecmd: False
+thread_control:
+    - 'OMP_NUM_THREADS'
+method_opts: {}
+queues: {}
+coproc_opts: {}
+'''
+        coproc_config = '''---
+coproc_opts:
+  bitblit:
+    resource: bits
+'''
+        queue_config = '''---
+queues:
+  short.q:
+    runtime: 100
+'''
+        method_config = (
+            '''method: 'shell'
+method_opts:
+    shell:
+        queues: False''',
+            '''method: sge
+method_opts:
+    sge:
+        queues: True''', )
+        merged_method_config = '''method_opts:
+    shell:
+        queues: False
+    sge:
+        queues: True'''
+        expected_output = (
+            "---\nmethod: 'sge'\n"
+            + base_config.replace(
+                'method_opts: {}\n', '').replace(
+                    'queues: {}\n', '').replace(
+                        'coproc_opts: {}\n', '')
+            + merged_method_config
+            + coproc_config.replace('---\n', '\n')
+            + queue_config.replace('---\n', '')
+        )
+        with self.subTest('Single quoted method'):
+            with tempfile.NamedTemporaryFile(mode='w') as ntf:
+                ntf.write("---\nmethod: 'shell'\n" + base_config)
+                ntf.flush()
+                with tempfile.NamedTemporaryFile(mode='w') as ntf_cp:
+                    ntf_cp.write(coproc_config)
+                    ntf_cp.flush()
+                    with tempfile.NamedTemporaryFile(mode='w') as ntf_cq:
+                        ntf_cq.write(queue_config)
+                        ntf_cq.flush()
+                        mock_dcf.side_effect = (ntf.name, ntf_cp.name, ntf_cq.name, )
+                        mock_gpe.side_effect = method_config
+
+                        e_conf = fsl_sub.config.example_config(method='sge')
+                        self.assertEqual(e_conf, expected_output)
+                        mock_dcf.reset_mock(return_value=True, side_effect=True)
+                        mock_gpe.reset_mock(return_value=True, side_effect=True)
+
+        with self.subTest('Double quoted method'):
+            with tempfile.NamedTemporaryFile(mode='w') as ntf:
+                ntf.write('---\nmethod: "shell"\n' + base_config)
+                ntf.flush()
+                with tempfile.NamedTemporaryFile(mode='w') as ntf_cp:
+                    ntf_cp.write(coproc_config)
+                    ntf_cp.flush()
+                    with tempfile.NamedTemporaryFile(mode='w') as ntf_cq:
+                        ntf_cq.write(queue_config)
+                        ntf_cq.flush()
+                        mock_dcf.side_effect = (ntf.name, ntf_cp.name, ntf_cq.name, )
+                        mock_gpe.side_effect = method_config
+                        self.assertEqual(e_conf, expected_output)
+                        mock_dcf.reset_mock(return_value=True, side_effect=True)
+                        mock_gpe.reset_mock(return_value=True, side_effect=True)
+
+        with self.subTest('unquoted quoted method'):
+            with tempfile.NamedTemporaryFile(mode='w') as ntf:
+                ntf.write('---\nmethod: shell\n' + base_config)
+                ntf.flush()
+                with tempfile.NamedTemporaryFile(mode='w') as ntf_cp:
+                    ntf_cp.write(coproc_config)
+                    ntf_cp.flush()
+                    with tempfile.NamedTemporaryFile(mode='w') as ntf_cq:
+                        ntf_cq.write(queue_config)
+                        ntf_cq.flush()
+                        mock_dcf.side_effect = (ntf.name, ntf_cp.name, ntf_cq.name, )
+                        mock_gpe.side_effect = method_config
+                        self.assertEqual(e_conf, expected_output)
+                        mock_dcf.reset_mock(return_value=True, side_effect=True)
+                        mock_gpe.reset_mock(return_value=True, side_effect=True)
+
+    @patch(
+        'fsl_sub.config.load_default_config',
+        autospec=True,
+        return_value={'bdict': "somevalue", })
     @patch('fsl_sub.config.find_config_file', autospec=True)
-    def test_read_config_merge(self, mock_find_config_file):
+    def test_read_config_merge(self, mock_find_config_file, mock_ldc):
         fsl_sub.config.read_config.cache_clear()
         example_yaml = '''
 adict:
@@ -147,9 +243,63 @@ adict:
             )
             m.assert_called_once_with('/etc/fsl_sub.conf', 'r')
 
-    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
+    @patch('fsl_sub.config._internal_config_file', autospec=True)
+    @patch('fsl_sub.config.get_plugin_example_conf', autospec=True)
+    @patch('fsl_sub.config.available_plugins', autospec=True)
+    def test_load_default_config(self, mock_ap, mock_gpec, mock__icf):
+        base_conf = '''---
+method: 'shell'
+thread_control: []
+method_opts: {}
+coproc_opts: {}
+queues: {}
+'''
+        plugins = [
+            '''---
+method_opts:
+  shell:
+    queues: False
+''',
+            '''---
+method: 'sge'
+method_opts:
+  sge:
+    queues: True
+''', ]
+        expected_config = {
+            'method': 'shell',
+            'thread_control': [],
+            'method_opts': {
+                'shell': {
+                    'queues': False,
+                },
+                'sge': {
+                    'queues': True,
+                },
+            },
+            'coproc_opts': {},
+            'queues': {},
+        }
+        with tempfile.NamedTemporaryFile(mode='w') as ntf:
+            ntf.write(base_conf)
+            ntf.flush()
+            mock_ap.return_value = ['shell', 'sge', ]
+            mock__icf.return_value = ntf.name
+            mock_gpec.side_effect = plugins
+            self.assertDictEqual(fsl_sub.config.load_default_config(), expected_config)
+            mock_ap.reset_mock()
+            mock__icf.reset_mock()
+            mock_gpec.reset_mock()
+            plugins[1] = plugins[1].replace('method_opts:\n', "method: 'sge'\nmethod_opts:\n")
+            mock_gpec.side_effect = plugins
+            self.assertDictEqual(fsl_sub.config.load_default_config(), expected_config)
+
+    @patch(
+        'fsl_sub.config.load_default_config',
+        autospec=True,
+        return_value={})
     @patch('fsl_sub.config.find_config_file', autospec=True)
-    def test_read_config(self, mock_find_config_file):
+    def test_read_config(self, mock_find_config_file, mock_ldc):
         with self.subTest("Test good read"):
             fsl_sub.config.read_config.cache_clear()
             example_yaml = '''
@@ -181,9 +331,12 @@ adict:
                     fsl_sub.config.BadConfiguration,
                     fsl_sub.config.read_config)
 
-    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
+    @patch(
+        'fsl_sub.config.load_default_config',
+        autospec=True,
+        return_value={})
     @patch('fsl_sub.config.read_config', autospec=True)
-    def test_method_config(self, mock_read_config):
+    def test_method_config(self, mock_read_config, mock_ldc):
         fsl_sub.config.method_config.cache_clear()
         with self.subTest('Test 1'):
             mock_read_config.return_value = {
@@ -215,9 +368,12 @@ adict:
                 me.exception.args[0],
                 "Unable to find configuration for method2")
 
-    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
+    @patch(
+        'fsl_sub.config.load_default_config',
+        autospec=True,
+        return_value={})
     @patch('fsl_sub.config.read_config', autospec=True)
-    def test_coprocessor_config(self, mock_read_config):
+    def test_coprocessor_config(self, mock_read_config, mock_ldc):
         fsl_sub.config.coprocessor_config.cache_clear()
         with self.subTest('Test 1'):
             mock_read_config.return_value = {
@@ -249,9 +405,12 @@ adict:
                 me.exception.args[0],
                 "Unable to find configuration for phi")
 
-    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
+    @patch(
+        'fsl_sub.config.load_default_config',
+        autospec=True,
+        return_value={})
     @patch('fsl_sub.config.read_config', autospec=True)
-    def test_queue_config(self, mock_read_config):
+    def test_queue_config(self, mock_read_config, mock_ldc):
         fsl_sub.config.queue_config.cache_clear()
         mock_read_config.return_value = {
             'queues': {'short.q': 'option', }, }
@@ -280,9 +439,12 @@ adict:
                 me.exception.args[0],
                 "Unable to find queue definitions")
 
-    @patch.dict('fsl_sub.config.default_config', {}, clear=True)
+    @patch(
+        'fsl_sub.config.load_default_config',
+        autospec=True,
+        return_value={})
     @patch('fsl_sub.config.read_config', autospec=True)
-    def test_uses_projects(self, mock_read_config):
+    def test_uses_projects(self, mock_read_config, mock_ldc):
         fsl_sub.config.method_config.cache_clear()
         with self.subTest('Test 1'):
             mock_read_config.return_value = {
