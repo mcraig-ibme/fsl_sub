@@ -21,6 +21,8 @@ from fsl_sub.config import (
     has_queues,
     uses_projects,
 )
+from fsl_sub.config import example_config as e_conf
+
 import fsl_sub.consts
 from fsl_sub.coprocessors import (
     coproc_info,
@@ -62,7 +64,6 @@ from fsl_sub.utils import (
     conda_update,
     file_is_image,
     find_fsldir,
-    get_plugin_example_conf,
     load_plugins,
     minutes_to_human,
     titlize_key,
@@ -520,6 +521,11 @@ There are several batch queues configured on the cluster:
         help="Estimated job length in minutes, used to automatically choose "
         "the queue name."
     )
+    advanced_g.add_argument(
+        '--show_config',
+        action="store_true",
+        help="Display the configuration currently in force"
+    )
     parser.add_argument(
         '-v', '--verbose',
         action='store_true',
@@ -554,7 +560,10 @@ def example_config_parser(parser_class=argparse.ArgumentParser):
     '''Parse the command line, returns a dict keyed on option'''
     logger = logging.getLogger(__name__)
     plug_ins = available_plugins()
-
+    if len(plug_ins) == 1:
+        default = plug_ins[0]
+    else:
+        default = plug_ins[-1]
     logger.debug("plugins found:")
     logger.debug(plug_ins)
 
@@ -565,6 +574,8 @@ def example_config_parser(parser_class=argparse.ArgumentParser):
     parser.add_argument(
         'plugin',
         choices=plug_ins,
+        nargs='?',
+        default=default,
         help="Output an example fsl_sub configuration which may be "
         "customised for your system."
     )
@@ -616,7 +627,7 @@ def example_config(args=None):
     logger.addHandler(lhdr)
     example_parser = example_config_parser()
     options = example_parser.parse_args(args=args)
-    print(get_plugin_example_conf(options.plugin))
+    print(e_conf(options.plugin))
 
 
 def report_cmd(args=None):
@@ -771,6 +782,9 @@ def main(args=None):
         config, cp_info, plugin_name=grid_module,
         plugin_version=plugin_version())
     options = vars(cmd_parser.parse_args(args=args))
+    if options['show_config']:
+        print(str(config))
+        sys.exit(0)
     if not cp_info['available']:
         options['coprocessor'] = None
         options['coprocessor_class'] = None
