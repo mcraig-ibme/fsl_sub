@@ -104,9 +104,7 @@ class TestConfig(unittest.TestCase):
                         clear=True):
                     location = os.path.abspath(
                         os.path.join(
-                            __file__,
-                            '..',
-                            '..',
+                            os.path.dirname(fsl_sub.config.__file__),
                             'plugins',
                             'fsl_sub_shell.yml')
                     )
