@@ -149,7 +149,7 @@ def example_config(method=None):
     # Load top-level config
     e_conf = _read_config_file(dc_file)
     # If a plugin method has been provided set 'method' to this
-    if method is not None:
+    if method is not None and method not in methods:
         methods.append(method)
         for match in ("'shell'", '"shell"', 'shell'):
             e_conf = e_conf.replace("method: {0}\n".format(match), "method: '{0}'\n".format(method))
