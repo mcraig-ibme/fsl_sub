@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+import io
 import getpass
 import os
 import socket
+import sys
+import tempfile
 import unittest
 import yaml
 import fsl_sub
@@ -183,6 +186,8 @@ USER_EMAIL = "{username}@{hostname}".format(
     hostname=socket.gethostname()
 )
 
+real_read_config = fsl_sub.config.read_config
+
 
 class FakePlugin(object):
     def submit(self):
@@ -199,6 +204,35 @@ class FakePlugin(object):
 
     def already_queued(self):
         return False
+
+
+def ShellConfig():
+    config = real_read_config()
+    config['method'] = 'shell'
+    return config
+
+
+@patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid', return_value=111)
+@patch('fsl_sub.config.read_config', side_effect=ShellConfig)
+class ShellPluginSubmitTests(unittest.TestCase):
+    def setUp(self):
+        self.tempd = tempfile.TemporaryDirectory()
+        self.here = os.getcwd()
+        os.chdir(self.tempd.name)
+        self.addCleanup(self.restore_dir)
+
+    def restore_dir(self):
+        os.chdir(self.here)
+        self.tempd.cleanup()
+
+    def test_basic_functionality(self, mock_rc, mock_gp):
+        with io.StringIO() as text_trap:
+            sys.stdout = text_trap
+            fsl_sub.cmd.main(['-q', 'vs.q', 'echo', 'hello'])
+            self.assertEqual(text_trap.getvalue(), '111\n')
+        with open(os.path.join(self.tempd.name, 'echo.o111'), mode='r') as ofile:
+            output = ofile.read()
+        self.assertEqual(output.strip(), 'hello')
 
 
 @patch(

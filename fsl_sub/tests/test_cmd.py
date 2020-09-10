@@ -1185,7 +1185,6 @@ class TestMain(unittest.TestCase):
     def test_coprocessor_toolkit(self, *args):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
-
             fsl_sub.cmd.main([
                 '--coprocessor', 'cuda',
                 '--coprocessor_toolkit', '7.5',
@@ -1391,7 +1390,6 @@ class TestMain(unittest.TestCase):
         args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
         args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
         args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        fsl_sub.config.method_config.cache_clear()
         with patch(
                 'fsl_sub.projects.read_config',
                 autospec=True,
@@ -1446,7 +1444,6 @@ class TestMain(unittest.TestCase):
         args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
         args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
         args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        fsl_sub.config.method_config.cache_clear()
         with patch(
                 'fsl_sub.projects.read_config',
                 autospec=True,

@@ -144,10 +144,7 @@ coproc_opts:
 
 class TestCoprocessors(unittest.TestCase):
     def setUp(self):
-        fsl_sub.config.has_queues.cache_clear()
         fsl_sub.config.read_config.cache_clear()
-        fsl_sub.config.method_config.cache_clear()
-        fsl_sub.config.queue_config.cache_clear()
         global test_config
         patcher = patch(
             'fsl_sub.config.read_config', autospec=True)

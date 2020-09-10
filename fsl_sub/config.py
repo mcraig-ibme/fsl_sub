@@ -104,7 +104,6 @@ def read_config():
     return this_config
 
 
-@lru_cache()
 def method_config(method):
     '''Returns the configuration dict for the requested submission
     method, e.g. sge'''
@@ -185,7 +184,6 @@ def example_config(method=None):
     return e_conf
 
 
-@lru_cache()
 def has_queues(method=None):
     '''Returns True if method has queues'''
     if method is None:
@@ -201,7 +199,6 @@ def uses_projects(method=None):
     return m_config['projects']
 
 
-@lru_cache()
 def coprocessor_config(coprocessor):
     '''Returns the configuration dict for the requested coprocessor,
     e.g. cuda'''
@@ -219,7 +216,6 @@ def coprocessor_config(coprocessor):
         )
 
 
-@lru_cache()
 def queue_config(queue=None):
     '''Returns the config dict for all queues or the config dict
     for the specified queue'''

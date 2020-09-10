@@ -335,18 +335,18 @@ adict:
         return_value={})
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_method_config(self, mock_read_config, mock_ldc):
-        fsl_sub.config.method_config.cache_clear()
+
         with self.subTest('Test 1'):
             mock_read_config.return_value = {
                 'method_opts': {'method': 'config', }, }
             self.assertEqual('config', fsl_sub.config.method_config('method'))
-        fsl_sub.config.method_config.cache_clear()
+
         with self.subTest('Test 2'):
             self.assertRaises(
                 TypeError,
                 fsl_sub.config.method_config
             )
-        fsl_sub.config.method_config.cache_clear()
+
         with self.subTest('Test 3'):
             mock_read_config.return_value = {
                 'method_o': {'method': 'config', }, }
@@ -355,7 +355,7 @@ adict:
             self.assertEqual(
                 me.exception.args[0],
                 "Unable to find method configuration dictionary")
-        fsl_sub.config.method_config.cache_clear()
+
         with self.subTest('Test 4'):
             mock_read_config.return_value = {
                 'method_opts': {'method': 'config', }, }
@@ -372,19 +372,19 @@ adict:
         return_value={})
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_coprocessor_config(self, mock_read_config, mock_ldc):
-        fsl_sub.config.coprocessor_config.cache_clear()
+
         with self.subTest('Test 1'):
             mock_read_config.return_value = {
                 'coproc_opts': {'cuda': 'option', }, }
             self.assertEqual(
                 'option', fsl_sub.config.coprocessor_config('cuda'))
-        fsl_sub.config.coprocessor_config.cache_clear()
+
         with self.subTest('Test 2'):
             self.assertRaises(
                 TypeError,
                 fsl_sub.config.coprocessor_config
             )
-        fsl_sub.config.coprocessor_config.cache_clear()
+
         with self.subTest('Test 3'):
             mock_read_config.return_value = {
                 'coproc_o': {'cuda': 'option', }, }
@@ -393,7 +393,7 @@ adict:
             self.assertEqual(
                 me.exception.args[0],
                 "Unable to find coprocessor configuration dictionary")
-        fsl_sub.config.coprocessor_config.cache_clear()
+
         with self.subTest('Test 4'):
             mock_read_config.return_value = {
                 'coproc_opts': {'cuda': 'option', }, }
@@ -409,25 +409,25 @@ adict:
         return_value={})
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_queue_config(self, mock_read_config, mock_ldc):
-        fsl_sub.config.queue_config.cache_clear()
+
         mock_read_config.return_value = {
             'queues': {'short.q': 'option', }, }
         with self.subTest('Test 1'):
             self.assertEqual(
                 'option', fsl_sub.config.queue_config('short.q'))
-        fsl_sub.config.queue_config.cache_clear()
+
         with self.subTest('Test 2'):
             self.assertDictEqual(
                 {'short.q': 'option', },
                 fsl_sub.config.queue_config())
-        fsl_sub.config.queue_config.cache_clear()
+
         with self.subTest('Test 3'):
             with self.assertRaises(fsl_sub.config.BadConfiguration) as me:
                 fsl_sub.config.queue_config('long.q')
             self.assertEqual(
                 me.exception.args[0],
                 "Unable to find definition for queue long.q")
-        fsl_sub.config.queue_config.cache_clear()
+
         with self.subTest('Test 4'):
             mock_read_config.return_value = {
                 'q': {'short.q': 'option', }, }
@@ -443,19 +443,19 @@ adict:
         return_value={})
     @patch('fsl_sub.config.read_config', autospec=True)
     def test_uses_projects(self, mock_read_config, mock_ldc):
-        fsl_sub.config.method_config.cache_clear()
+
         with self.subTest('Test 1'):
             mock_read_config.return_value = {
                 'method': 'method',
                 'method_opts': {'method': {'projects': False, }, }, }
             self.assertFalse(fsl_sub.config.uses_projects())
-        fsl_sub.config.method_config.cache_clear()
+
         with self.subTest('Test 2'):
             mock_read_config.return_value = {
                 'method': 'method',
                 'method_opts': {'method': {'projects': True, }, }, }
             self.assertTrue(fsl_sub.config.uses_projects())
-        fsl_sub.config.method_config.cache_clear()
+
 
 
 if __name__ == '__main__':
