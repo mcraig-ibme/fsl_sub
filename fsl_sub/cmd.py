@@ -10,6 +10,7 @@ import os
 import socket
 import sys
 import traceback
+import yaml
 from fsl_sub import (
     submit,
     report,
@@ -783,7 +784,7 @@ def main(args=None):
         plugin_version=plugin_version())
     options = vars(cmd_parser.parse_args(args=args))
     if options['show_config']:
-        print(str(config))
+        print(yaml.safe_dump(config))
         sys.exit(0)
     if not cp_info['available']:
         options['coprocessor'] = None
