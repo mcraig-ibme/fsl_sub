@@ -873,6 +873,15 @@ def main(args=None):
         project = None
 
     try:
+        exports = options['exports']
+    except KeyError:
+        exports = []
+    try:
+        keep_jobscript = options['keep']
+    except KeyError:
+        keep_jobscript = False
+
+    try:
         job_id = submit(
             command,
             architecture=options['arch'],
@@ -904,8 +913,8 @@ def main(args=None):
             native_holds=options['native_holds'],
             as_tuple=False,
             project=project,
-            export_vars=options['export'],
-            keep_jobscript=options['keep_jobscript']
+            export_vars=exports,
+            keep_jobscript=keep_jobscript
         )
     except BadSubmission as e:
         cmd_parser.exit(
