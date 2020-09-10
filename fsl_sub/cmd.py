@@ -749,6 +749,11 @@ def report_cmd(args=None):
             print('|'.join(line))
 
 
+class YamlIndentDumper(yaml.Dumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super(YamlIndentDumper, self).increase_indent(flow, False)
+
+
 def main(args=None):
     lhdr = logging.StreamHandler()
     fmt = LogFormatter()
@@ -784,7 +789,7 @@ def main(args=None):
         plugin_version=plugin_version())
     options = vars(cmd_parser.parse_args(args=args))
     if options['show_config']:
-        print(yaml.safe_dump(config))
+        print(yaml.safe_dump(config, dumper=YamlIndentDumper, default_flow_style=False))
         sys.exit(0)
     if not cp_info['available']:
         options['coprocessor'] = None
