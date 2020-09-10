@@ -1538,28 +1538,14 @@ class TestExampleConf(unittest.TestCase):
 
     @unittest.mock.patch('fsl_sub.cmd.sys.stdout', new_callable=io.StringIO)
     def test_example_config(self, mock_stdout):
-        exp_conf = '''# These are added to defaults
-method_opts:
-  shell:
-    queues: False
-    large_job_split_pe: Null
-    mail_support: False
-    map_ram: False
-    job_priorities: False
-    array_holds: False
-    architecture: False
-    job_resources: False
-    script_conf: False
-    projects: False
-    run_parallel: True
-    parallel_disable_matches:
-      - '*_gpu'
-'''
         fsl_sub.cmd.example_config(['shell', ])
-        self.assertEqual(
-            mock_stdout.getvalue(),
-            exp_conf + '\n'
+        self.assertTrue(
+            mock_stdout.getvalue().startswith('---\n')
         )
+        try:
+            yaml.safe_load(mock_stdout.getvalue())
+        except yaml.YAMLError:
+            self.fail("Example config not valid YAML")
 
 
 @patch(
