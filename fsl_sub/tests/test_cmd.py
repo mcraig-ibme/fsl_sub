@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import argparse
+import copy
 import getpass
 import io
 import os
@@ -423,6 +424,41 @@ class TestMisc(unittest.TestCase):
     'fsl_sub.coprocessors.get_modules',
     autospec=True, return_value=['7.5', '8.0', ])
 class TestMain(unittest.TestCase):
+    def setUp(self):
+        self. base_args = {
+            'architecture': None,
+            'array_hold': None,
+            'array_limit': None,
+            'array_specifier': None,
+            'array_task': False,
+            'coprocessor': None,
+            'coprocessor_toolkit': None,
+            'export_vars': [],
+            'coprocessor_class': None,
+            'coprocessor_class_strict': False,
+            'coprocessor_multi': 1,
+            'name': None,
+            'parallel_env': None,
+            'queue': None,
+            'threads': 1,
+            'jobhold': None,
+            'jobram': None,
+            'jobtime': None,
+            'keep_jobscript': False,
+            'logdir': None,
+            'mail_on': None,
+            'mailto': USER_EMAIL,
+            'priority': None,
+            'ramsplit': True,
+            'requeueable': True,
+            'resources': None,
+            'usescript': False,
+            'validate_command': True,
+            'native_holds': False,
+            'as_tuple': False,
+            'project': None
+        }
+
     def test_noramsplit(self, *args):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
@@ -435,40 +471,11 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
-
+        test_args = copy.deepcopy(self.base_args)
+        test_args['ramsplit'] = False
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=False,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_parallelenv(self, *args):
@@ -483,40 +490,12 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
-
+        test_args = copy.deepcopy(self.base_args)
+        test_args['parallel_env'] = 'shmem'
+        test_args['threads'] = 2
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env='shmem',
-            queue=None,
-            threads=2,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
         args[2].reset_mock()
         with io.StringIO() as text_trap:
@@ -530,39 +509,12 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['parallel_env'] = 'shmem'
+        test_args['threads'] = 2
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env='shmem',
-            queue=None,
-            threads=2,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_mailoptions(self, *args):
@@ -577,46 +529,19 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['mail_on'] = 'n'
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on='n',
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_mailto(self, *args):
+        mailto = 'user@test.com'
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['--mailto', 'user@test.com', '1', '2', ])
+            fsl_sub.cmd.main(['--mailto', mailto, '1', '2', ])
 
             sys.stdout = sys.__stdout__
 
@@ -624,45 +549,17 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['mailto'] = mailto
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto='user@test.com',
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
         args[2].reset_mock()
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['-M', 'user@test.com', '1', '2', ])
+            fsl_sub.cmd.main(['-M', mailto, '1', '2', ])
 
             sys.stdout = sys.__stdout__
 
@@ -673,37 +570,7 @@ class TestMain(unittest.TestCase):
 
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto='user@test.com',
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_array_task(self, *args):
@@ -718,39 +585,11 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['array_task'] = True
         args[2].assert_called_with(
             'taskfile',
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=True,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
         args[2].reset_mock()
         with io.StringIO() as text_trap:
@@ -766,37 +605,7 @@ class TestMain(unittest.TestCase):
             )
         args[2].assert_called_with(
             'taskfile',
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=True,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_array_limit(self, *args):
@@ -812,39 +621,12 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['array_task'] = True
+        test_args['array_limit'] = 2
         args[2].assert_called_with(
             'commandfile',
-            architecture=None,
-            array_hold=None,
-            array_limit=2,
-            array_specifier=None,
-            array_task=True,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
         args[2].reset_mock()
         with io.StringIO() as text_trap:
@@ -858,143 +640,66 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['array_task'] = True
+        test_args['array_limit'] = 2
         args[2].assert_called_with(
             'commandfile',
-            architecture=None,
-            array_hold=None,
-            array_limit=2,
-            array_specifier=None,
-            array_task=True,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_array_hold(self, *args):
+        hold_id = '20002'
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
             fsl_sub.cmd.main(
-                ['--array_task', 'commandfile', '--array_hold', '20002', ])
+                ['--array_task', 'commandfile', '--array_hold', hold_id, ])
             sys.stdout = sys.__stdout__
 
             self.assertEqual(
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['array_task'] = True
+        test_args['array_hold'] = [hold_id, ]
         args[2].assert_called_with(
             'commandfile',
-            architecture=None,
-            array_hold=['20002'],
-            array_limit=None,
-            array_specifier=None,
-            array_task=True,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_array_hold_native(self, *args):
+        hold_id = '20002:aa'
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
             fsl_sub.cmd.main(
                 [
                     '--array_task', 'commandfile',
-                    '--array_hold', '20002:aa', '--native_holds', ])
+                    '--array_hold', hold_id, '--native_holds', ])
             sys.stdout = sys.__stdout__
 
             self.assertEqual(
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['array_task'] = True
+        test_args['array_hold'] = hold_id
+        test_args['native_holds'] = True
         args[2].assert_called_with(
             'commandfile',
-            architecture=None,
-            array_hold='20002:aa',
-            array_limit=None,
-            array_specifier=None,
-            array_task=True,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=True,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_job_hold(self, *args):
+        hold_id = '20002'
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
             fsl_sub.cmd.main(
-                ['--jobhold', '20002', 'commandfile'])
+                ['--jobhold', hold_id, 'commandfile'])
 
             sys.stdout = sys.__stdout__
 
@@ -1002,95 +707,41 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['jobhold'] = [hold_id, ]
         args[2].assert_called_with(
             ['commandfile'],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=['20002'],
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_job_hold_native(self, *args):
+        hold_id = '20002:aa'
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
             fsl_sub.cmd.main(
-                ['--jobhold', '20002:aa', '--native_holds', 'commandfile', ])
+                ['--jobhold', hold_id, '--native_holds', 'commandfile', ])
             sys.stdout = sys.__stdout__
 
             self.assertEqual(
                 text_trap.getvalue(),
                 '123\n'
             )
-
+        test_args = copy.deepcopy(self.base_args)
+        test_args['jobhold'] = hold_id
+        test_args['native_holds'] = True
         args[2].assert_called_with(
             ['commandfile'],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold='20002:aa',
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=True,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_array_native(self, *args):
+        array_desc = '1-4:2'
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
             fsl_sub.cmd.main(
-                ['--array_native', '1-4:2', 'command', ])
+                ['--array_native', array_desc, 'command', ])
 
             sys.stdout = sys.__stdout__
 
@@ -1098,40 +749,12 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
-
+        test_args = copy.deepcopy(self.base_args)
+        test_args['array_task'] = True
+        test_args['array_specifier'] = array_desc
         args[2].assert_called_with(
             ['command'],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier='1-4:2',
-            array_task=True,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_coprocessor(self, *args):
@@ -1146,40 +769,12 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
+        test_args = copy.deepcopy(self.base_args)
+        test_args['coprocessor'] = 'cuda'
 
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor='cuda',
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_coprocessor_toolkit(self, *args):
@@ -1196,40 +791,12 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
-
+        test_args = copy.deepcopy(self.base_args)
+        test_args['coprocessor'] = 'cuda'
+        test_args['coprocessor_toolkit'] = '7.5'
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor='cuda',
-            coprocessor_toolkit='7.5',
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_coprocessor_class(self, *args):
@@ -1247,40 +814,12 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
-
+        test_args = copy.deepcopy(self.base_args)
+        test_args['coprocessor'] = 'cuda'
+        test_args['coprocessor_class'] = 'K'
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor='cuda',
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class='K',
-            coprocessor_class_strict=False,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_coprocessor_class_strict(self, *args):
@@ -1299,40 +838,13 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
-
+        test_args = copy.deepcopy(self.base_args)
+        test_args['coprocessor'] = 'cuda'
+        test_args['coprocessor_class'] = 'K'
+        test_args['coprocessor_class_strict'] = True
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor='cuda',
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class='K',
-            coprocessor_class_strict=True,
-            coprocessor_multi=1,
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_coprocessor_multi(self, *args):
@@ -1350,40 +862,12 @@ class TestMain(unittest.TestCase):
                 text_trap.getvalue(),
                 '123\n'
             )
-
+        test_args = copy.deepcopy(self.base_args)
+        test_args['coprocessor'] = 'cuda'
+        test_args['coprocessor_multi'] = '2'
         args[2].assert_called_with(
             ['1', '2', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor='cuda',
-            coprocessor_toolkit=None,
-            export_vars=[],
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi='2',
-            name=None,
-            parallel_env=None,
-            queue=None,
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on=None,
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            validate_command=True,
-            native_holds=False,
-            as_tuple=False,
-            project=None
+            **test_args
         )
 
     def test_project(self, *args):
@@ -1405,39 +889,11 @@ class TestMain(unittest.TestCase):
                     text_trap.getvalue(),
                     '123\n'
                 )
+            test_args = copy.deepcopy(self.base_args)
+            test_args['project'] = 'Aproject'
             args[2].assert_called_with(
                 ['1', '2', ],
-                architecture=None,
-                array_hold=None,
-                array_limit=None,
-                array_specifier=None,
-                array_task=False,
-                coprocessor=None,
-                coprocessor_toolkit=None,
-                export_vars=[],
-                coprocessor_class=None,
-                coprocessor_class_strict=False,
-                coprocessor_multi=1,
-                name=None,
-                parallel_env=None,
-                queue=None,
-                threads=1,
-                jobhold=None,
-                jobram=None,
-                jobtime=None,
-                keep_jobscript=False,
-                logdir=None,
-                mail_on=None,
-                mailto=USER_EMAIL,
-                priority=None,
-                ramsplit=True,
-                requeueable=True,
-                resources=None,
-                usescript=False,
-                validate_command=True,
-                native_holds=False,
-                as_tuple=False,
-                project='Aproject'
+                **test_args
             )
 
     def test_project_env(self, *args):
@@ -1461,39 +917,11 @@ class TestMain(unittest.TestCase):
                     self.assertEqual(
                         text_trap.getvalue(),
                         '123\n')
+                test_args = copy.deepcopy(self.base_args)
+                test_args['project'] = 'Bproject'
                 args[2].assert_called_with(
                     ['1', '2', ],
-                    architecture=None,
-                    array_hold=None,
-                    array_limit=None,
-                    array_specifier=None,
-                    array_task=False,
-                    coprocessor=None,
-                    coprocessor_toolkit=None,
-                    export_vars=[],
-                    coprocessor_class=None,
-                    coprocessor_class_strict=False,
-                    coprocessor_multi=1,
-                    name=None,
-                    parallel_env=None,
-                    queue=None,
-                    threads=1,
-                    jobhold=None,
-                    jobram=None,
-                    jobtime=None,
-                    keep_jobscript=False,
-                    logdir=None,
-                    mail_on=None,
-                    mailto=USER_EMAIL,
-                    priority=None,
-                    ramsplit=True,
-                    requeueable=True,
-                    resources=None,
-                    usescript=False,
-                    validate_command=True,
-                    native_holds=False,
-                    as_tuple=False,
-                    project='Bproject'
+                    **test_args
                 )
 
 

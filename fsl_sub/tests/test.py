@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 import io
 import getpass
 import os
@@ -8,6 +9,7 @@ import tempfile
 import unittest
 import yaml
 import fsl_sub
+from unittest import skipIf
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from fsl_sub.exceptions import BadSubmission
@@ -214,6 +216,7 @@ def ShellConfig():
 
 @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid', return_value=111)
 @patch('fsl_sub.config.read_config', side_effect=ShellConfig)
+@patch('fsl_sub.getq_and_slots', autospec=True, return_value=('vs.q', 2))
 class ShellPluginSubmitTests(unittest.TestCase):
     def setUp(self):
         self.tempd = tempfile.TemporaryDirectory()
@@ -225,14 +228,47 @@ class ShellPluginSubmitTests(unittest.TestCase):
         os.chdir(self.here)
         self.tempd.cleanup()
 
-    def test_basic_functionality(self, mock_rc, mock_gp):
+    def test_basic_functionality(self, mock_gqas, mock_rc, mock_gp):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
             fsl_sub.cmd.main(['-q', 'vs.q', 'echo', 'hello'])
+            sys.stdout = sys.__stdout__
             self.assertEqual(text_trap.getvalue(), '111\n')
         with open(os.path.join(self.tempd.name, 'echo.o111'), mode='r') as ofile:
             output = ofile.read()
         self.assertEqual(output.strip(), 'hello')
+
+    # doesn't work with Python 3.6!
+    @skipIf(sys.version_info.major <= 3 and sys.version_info.minor < 8, 'Requires python 3.8+')
+    def test_set_fslsub_parallel(self, mock_gqas, mock_rc, mock_gp):
+        with patch.dict('fsl_sub.os.environ', {}, clear=True) as mock_env:
+            with patch('fsl_sub.cmd.submit', return_value=111) as mock_submit:
+                with io.StringIO() as text_trap:
+                    sys.stdout = text_trap
+                    fsl_sub.cmd.main(['-n', '-q', 'vs.q', '-t', 'mytasks'])
+                    sys.stdout = sys.__stdout__
+                    self.assertEqual(text_trap.getvalue(), '111\n')
+        mock_submit.assert_called()
+        try:
+            self.assertEqual('0', mock_env.getvalue()['FSLSUB_PARALLEL'])
+        except KeyError:
+            self.assertFail("FSLSUB_PARALLEL not set")
+
+    @skipIf(sys.version_info.major <= 3 and sys.version_info.minor < 8, 'Requires python 3.8+')
+    @patch('fsl_sub.parallel.process_pe_def', autospec=True, return_value=('openmp', 2))
+    def test_set_fslsub_parallel2(self, mock_ppd, mock_gqas, mock_rc, mock_gp):
+        with patch.dict('fsl_sub.os.environ', {}, clear=True) as mock_env:
+            with patch('fsl_sub.cmd.submit', return_value=111) as mock_submit:
+                with io.StringIO() as text_trap:
+                    sys.stdout = text_trap
+                    fsl_sub.cmd.main(['-n', '-q', 'vs.q', '-s', 'openmp,2', '-t', 'mytasks', ])
+                    sys.stdout = sys.__stdout__
+                    self.assertEqual(text_trap.getvalue(), '111\n')
+        mock_submit.assert_called()
+        try:
+            self.assertEqual('2', mock_env.getvalue()['FSLSUB_PARALLEL'])
+        except KeyError:
+            self.assertFail("FSLSUB_PARALLEL not set")
 
 
 @patch(
@@ -262,10 +298,36 @@ class ShellPluginSubmitTests(unittest.TestCase):
     return_value=['a', 'b', ])
 class SubmitTests(unittest.TestCase):
     def setUp(self):
-        try:
-            del os.environ['FSLSUBALREADYRUN']
-        except KeyError:
-            pass
+        self.base_args = {
+            'architecture': None,
+            'array_hold': None,
+            'array_limit': None,
+            'array_specifier': None,
+            'array_task': False,
+            'coprocessor': None,
+            'coprocessor_toolkit': None,
+            'coprocessor_class': None,
+            'coprocessor_class_strict': False,
+            'coprocessor_multi': '1',
+            'export_vars': ['FSLSUB_PARALLEL', ],
+            'job_name': 'mycommand',
+            'parallel_env': None,
+            'queue': 'a.qa,a.qb,a.qc',
+            'threads': 1,
+            'jobhold': None,
+            'jobram': None,
+            'jobtime': None,
+            'keep_jobscript': False,
+            'logdir': None,
+            'mail_on': 'a',
+            'mailto': USER_EMAIL,
+            'priority': None,
+            'ramsplit': True,
+            'requeueable': True,
+            'resources': None,
+            'usescript': False,
+            'project': None
+        }
 
     def test_unknown_queue(
         self, mock_prjl, mock_checkcmd, mock_loadplugins,
@@ -282,37 +344,11 @@ class SubmitTests(unittest.TestCase):
         plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
         mock_loadplugins.return_value = plugins
         fsl_sub.submit(['mycommand', ], queue='unconfigured.q')
+        test_args = copy.deepcopy(self.base_args)
+        test_args['queue'] = 'unconfigured.q'
         plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
             ['mycommand', ],
-            architecture=None,
-            array_hold=None,
-            array_limit=None,
-            array_specifier=None,
-            array_task=False,
-            coprocessor=None,
-            coprocessor_toolkit=None,
-            coprocessor_class=None,
-            coprocessor_class_strict=False,
-            coprocessor_multi='1',
-            export_vars=['FSLSUB_PARALLEL=1', ],
-            job_name='mycommand',
-            parallel_env=None,
-            queue='unconfigured.q',
-            threads=1,
-            jobhold=None,
-            jobram=None,
-            jobtime=None,
-            keep_jobscript=False,
-            logdir=None,
-            mail_on='a',
-            mailto=USER_EMAIL,
-            priority=None,
-            ramsplit=True,
-            requeueable=True,
-            resources=None,
-            usescript=False,
-            project=None
-        )
+            **test_args)
 
     def test_mem_env(
             self, mock_prjl, mock_checkcmd, mock_loadplugins,
@@ -334,34 +370,7 @@ class SubmitTests(unittest.TestCase):
 
             plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                 ['mycommand', ],
-                architecture=None,
-                array_hold=None,
-                array_limit=None,
-                array_specifier=None,
-                array_task=False,
-                coprocessor=None,
-                coprocessor_toolkit=None,
-                coprocessor_class=None,
-                coprocessor_class_strict=False,
-                coprocessor_multi='1',
-                export_vars=['FSLSUB_PARALLEL=1', ],
-                job_name='mycommand',
-                parallel_env=None,
-                queue='a.qa,a.qb,a.qc',
-                threads=1,
-                jobhold=None,
-                jobram=None,
-                jobtime=None,
-                keep_jobscript=False,
-                logdir=None,
-                mail_on='a',
-                mailto=USER_EMAIL,
-                priority=None,
-                ramsplit=True,
-                requeueable=True,
-                resources=None,
-                usescript=False,
-                project=None
+                **self.base_args
             )
         plugins['fsl_sub_plugin_sge'].submit.reset_mock()
         with self.subTest('env set - no memory specified'):
@@ -369,38 +378,14 @@ class SubmitTests(unittest.TestCase):
                     'fsl_sub.os.environ',
                     {'FSLSUB_MEMORY_REQUIRED': '8G', },
                     clear=True):
+                test_args = copy.deepcopy(self.base_args)
+                test_args['queue'] = 'a.qa,a.qc'
+                test_args['jobram'] = 8
                 fsl_sub.submit(['mycommand', ], jobram=None)
 
                 plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                     ['mycommand', ],
-                    architecture=None,
-                    array_hold=None,
-                    array_limit=None,
-                    array_specifier=None,
-                    array_task=False,
-                    coprocessor=None,
-                    coprocessor_toolkit=None,
-                    coprocessor_class=None,
-                    coprocessor_class_strict=False,
-                    coprocessor_multi='1',
-                    export_vars=['FSLSUB_PARALLEL=1', ],
-                    job_name='mycommand',
-                    parallel_env=None,
-                    queue='a.qa,a.qc',
-                    threads=1,
-                    jobhold=None,
-                    jobram=8,
-                    jobtime=None,
-                    keep_jobscript=False,
-                    logdir=None,
-                    mail_on='a',
-                    mailto=USER_EMAIL,
-                    priority=None,
-                    ramsplit=True,
-                    requeueable=True,
-                    resources=None,
-                    usescript=False,
-                    project=None
+                    **test_args
                 )
         plugins['fsl_sub_plugin_sge'].submit.reset_mock()
         with self.subTest('env set no units - no memory specified'):
@@ -408,38 +393,14 @@ class SubmitTests(unittest.TestCase):
                     'fsl_sub.os.environ',
                     {'FSLSUB_MEMORY_REQUIRED': '8', },
                     clear=True):
+                test_args = copy.deepcopy(self.base_args)
+                test_args['queue'] = 'a.qa,a.qc'
+                test_args['jobram'] = 8
                 fsl_sub.submit(['mycommand', ], jobram=None)
 
                 plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                     ['mycommand', ],
-                    architecture=None,
-                    array_hold=None,
-                    array_limit=None,
-                    array_specifier=None,
-                    array_task=False,
-                    coprocessor=None,
-                    coprocessor_toolkit=None,
-                    coprocessor_class=None,
-                    coprocessor_class_strict=False,
-                    coprocessor_multi='1',
-                    export_vars=['FSLSUB_PARALLEL=1', ],
-                    job_name='mycommand',
-                    parallel_env=None,
-                    queue='a.qa,a.qc',
-                    threads=1,
-                    jobhold=None,
-                    jobram=8,
-                    jobtime=None,
-                    keep_jobscript=False,
-                    logdir=None,
-                    mail_on='a',
-                    mailto=USER_EMAIL,
-                    priority=None,
-                    ramsplit=True,
-                    requeueable=True,
-                    resources=None,
-                    usescript=False,
-                    project=None
+                    **test_args
                 )
         plugins['fsl_sub_plugin_sge'].submit.reset_mock()
         with self.subTest('env set small - no memory specified'):
@@ -447,38 +408,14 @@ class SubmitTests(unittest.TestCase):
                     'fsl_sub.os.environ',
                     {'FSLSUB_MEMORY_REQUIRED': '32M', },
                     clear=True):
+                test_args = copy.deepcopy(self.base_args)
+                test_args['queue'] = 'a.qa,a.qb,a.qc'
+                test_args['jobram'] = 1
                 fsl_sub.submit(['mycommand', ], jobram=None)
 
                 plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                     ['mycommand', ],
-                    architecture=None,
-                    array_hold=None,
-                    array_limit=None,
-                    array_specifier=None,
-                    array_task=False,
-                    coprocessor=None,
-                    coprocessor_toolkit=None,
-                    coprocessor_class=None,
-                    coprocessor_class_strict=False,
-                    coprocessor_multi='1',
-                    export_vars=['FSLSUB_PARALLEL=1', ],
-                    job_name='mycommand',
-                    parallel_env=None,
-                    queue='a.qa,a.qb,a.qc',
-                    threads=1,
-                    jobhold=None,
-                    jobram=1,
-                    jobtime=None,
-                    keep_jobscript=False,
-                    logdir=None,
-                    mail_on='a',
-                    mailto=USER_EMAIL,
-                    priority=None,
-                    ramsplit=True,
-                    requeueable=True,
-                    resources=None,
-                    usescript=False,
-                    project=None
+                    **test_args
                 )
         plugins['fsl_sub_plugin_sge'].submit.reset_mock()
 
@@ -501,34 +438,7 @@ class SubmitTests(unittest.TestCase):
 
             plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                 ['mycommand', ],
-                architecture=None,
-                array_hold=None,
-                array_limit=None,
-                array_specifier=None,
-                array_task=False,
-                coprocessor=None,
-                coprocessor_toolkit=None,
-                coprocessor_class=None,
-                coprocessor_class_strict=False,
-                coprocessor_multi='1',
-                export_vars=['FSLSUB_PARALLEL=1', ],
-                job_name='mycommand',
-                parallel_env=None,
-                queue='a.qa,a.qb,a.qc',
-                threads=1,
-                jobhold=None,
-                jobram=None,
-                jobtime=None,
-                keep_jobscript=False,
-                logdir=None,
-                mail_on='a',
-                mailto=USER_EMAIL,
-                priority=None,
-                ramsplit=True,
-                requeueable=True,
-                resources=None,
-                usescript=False,
-                project=None
+                **self.base_args
             )
         plugins['fsl_sub_plugin_sge'].submit.reset_mock()
 
@@ -547,39 +457,13 @@ class SubmitTests(unittest.TestCase):
         plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
 
         mock_loadplugins.return_value = plugins
+
         with self.subTest('env not set - no memory specified'):
             fsl_sub.submit('mycommand arg1 arg2')
 
             plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                 ['mycommand', 'arg1', 'arg2', ],
-                architecture=None,
-                array_hold=None,
-                array_limit=None,
-                array_specifier=None,
-                array_task=False,
-                coprocessor=None,
-                coprocessor_toolkit=None,
-                coprocessor_class=None,
-                coprocessor_class_strict=False,
-                coprocessor_multi='1',
-                export_vars=['FSLSUB_PARALLEL=1', ],
-                job_name='mycommand',
-                parallel_env=None,
-                queue='a.qa,a.qb,a.qc',
-                threads=1,
-                jobhold=None,
-                jobram=None,
-                jobtime=None,
-                keep_jobscript=False,
-                logdir=None,
-                mail_on='a',
-                mailto=USER_EMAIL,
-                priority=None,
-                ramsplit=True,
-                requeueable=True,
-                resources=None,
-                usescript=False,
-                project=None
+                **self.base_args
             )
         plugins['fsl_sub_plugin_sge'].submit.reset_mock()
 
@@ -603,34 +487,7 @@ class SubmitTests(unittest.TestCase):
 
             plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
                 ['mycommand', 'arg1', 'arg2', ],
-                architecture=None,
-                array_hold=None,
-                array_limit=None,
-                array_specifier=None,
-                array_task=False,
-                coprocessor=None,
-                coprocessor_toolkit=None,
-                coprocessor_class=None,
-                coprocessor_class_strict=False,
-                coprocessor_multi='1',
-                export_vars=['FSLSUB_PARALLEL=1', ],
-                job_name='mycommand',
-                parallel_env=None,
-                queue='a.qa,a.qb,a.qc',
-                threads=1,
-                jobhold=None,
-                jobram=None,
-                jobtime=None,
-                keep_jobscript=False,
-                logdir=None,
-                mail_on='a',
-                mailto=USER_EMAIL,
-                priority=None,
-                ramsplit=True,
-                requeueable=True,
-                resources=None,
-                usescript=False,
-                project=None
+                **self.base_args
             )
         plugins['fsl_sub_plugin_sge'].submit.reset_mock()
 # This needs some tests writing:
