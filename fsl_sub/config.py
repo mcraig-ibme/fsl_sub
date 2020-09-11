@@ -182,8 +182,10 @@ def example_config(method=None):
         (queue_defs, warnings) = get_plugin_queue_defs(method)
         if queue_defs:
             e_conf += queue_defs
+            if warnings:
+                logger.warn("# The following issues were generated when capturing the cluster queues: ")
             for message in warnings:
-                logger.warn(message)
+                logger.warn("# " + message)
         else:
             # Add the example queue config
             e_conf += _read_config_file(cc_file).replace('---\n', '')
