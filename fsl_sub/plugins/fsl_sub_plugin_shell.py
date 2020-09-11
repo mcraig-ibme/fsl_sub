@@ -81,6 +81,7 @@ def submit(
     child_env['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
     child_env['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
     child_env['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
+    child_env['FSLSUB_PARALLEL'] = '1'
     jobs = []
     array_args = {}
 
