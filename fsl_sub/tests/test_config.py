@@ -457,6 +457,5 @@ adict:
             self.assertTrue(fsl_sub.config.uses_projects())
 
 
-
 if __name__ == '__main__':
     unittest.main()
