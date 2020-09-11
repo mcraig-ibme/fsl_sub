@@ -69,6 +69,7 @@ from fsl_sub.utils import (
     minutes_to_human,
     titlize_key,
     user_input,
+    YamlIndentDumper,
 )
 from fsl_sub.version import VERSION
 
@@ -747,11 +748,6 @@ def report_cmd(args=None):
                     else:
                         print(blank_none(task_detail))
             print('|'.join(line))
-
-
-class YamlIndentDumper(yaml.SafeDumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super(YamlIndentDumper, self).increase_indent(flow, False)
 
 
 def main(args=None):

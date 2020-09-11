@@ -33,6 +33,10 @@ def already_queued():
     return False
 
 
+def build_queue_defs():
+    return ('', [])
+
+
 def _disable_parallel(job):
     mconf = defaultdict(lambda: False, method_config('shell'))
 

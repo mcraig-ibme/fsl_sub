@@ -122,6 +122,16 @@ class TestConversions(unittest.TestCase):
                 fsl_sub.utils.human_to_ram('8.5K', output="M"),
                 1
             )
+        with self.subTest('Fractions - Round down'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('8.1G', output="G", round_down=True),
+                8
+            )
+        with self.subTest('Fractions - Round down (2)'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('8.8G', output="G", round_down=True),
+                8
+            )
         with self.subTest('PBs'):
             self.assertEqual(
                 fsl_sub.utils.human_to_ram('10P'),

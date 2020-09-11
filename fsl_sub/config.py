@@ -1,6 +1,7 @@
 # fsl_sub python module
 # Copyright (c) 2018, University of Oxford (Duncan Mortimer)
 
+import logging
 import os
 import os.path
 import yaml
@@ -8,6 +9,7 @@ import yaml
 from fsl_sub.exceptions import (BadConfiguration, MissingConfiguration, )
 from fsl_sub.utils import (
     get_plugin_example_conf,
+    get_plugin_queue_defs,
     available_plugins,
 )
 from functools import lru_cache
@@ -136,7 +138,7 @@ def _read_config_file(fname):
 def example_config(method=None):
     '''Merges the method default config output with the general defaults and returns
     the example config as a string'''
-
+    logger = logging.getLogger('fsl_sub')
     methods = ['shell', ]
     e_conf = ''
 
@@ -176,8 +178,16 @@ def example_config(method=None):
         # Add the example co-processor config
         e_conf += _read_config_file(qc_file).replace('---\n', '')
 
-        # Add the example queue config
-        e_conf += _read_config_file(cc_file).replace('---\n', '')
+        # Try to detect queues
+        (queue_defs, warnings) = get_plugin_queue_defs(method)
+        if queue_defs:
+            e_conf += queue_defs
+            for message in warnings:
+                logger.warn(message)
+        else:
+            # Add the example queue config
+            e_conf += _read_config_file(cc_file).replace('---\n', '')
+
         e_conf = e_conf.replace('queues: {}\n', '')
         e_conf = e_conf.replace('coproc_opts: {}\n', '')
 

@@ -98,6 +98,19 @@ def get_plugin_example_conf(plugin_name):
         )
 
 
+def get_plugin_queue_defs(plugin_name):
+    PLUGINS = load_plugins()
+    grid_module = 'fsl_sub_plugin_' + plugin_name
+
+    if grid_module not in PLUGINS:
+        raise CommandError("Plugin {} not found". format(plugin_name))
+
+    try:
+        return PLUGINS[grid_module].build_queue_defs()
+    except AttributeError:
+        return ('', [])
+
+
 def minutes_to_human(minutes):
     if minutes < 60:
         result = "{}m".format(minutes)
@@ -131,9 +144,8 @@ def blank_none(text):
         return str(text)
 
 
-def human_to_ram(ram, output='M', units='G', as_int=True):
+def human_to_ram(ram, output='M', units='G', as_int=True, round_down=False):
     '''Converts user supplied RAM quantity into output scale'''
-
     scale_factors = {
         'P': 50,
         'T': 40,
@@ -178,7 +190,10 @@ def human_to_ram(ram, output='M', units='G', as_int=True):
         ram * 2 ** scale_factors[units]
         / 2 ** scale_factors[output])
     if as_int:
-        size = int(math.ceil(size))
+        if round_down:
+            size = int(math.floor(size))
+        else:
+            size = int(math.ceil(size))
     return size
 
 
@@ -697,3 +712,8 @@ def writelines_nl(fh, lines):
     '''Takes a file handle and a list of lines (sans newline) to write out, adding
     newlines'''
     fh.writelines(listplusnl(lines))
+
+
+class YamlIndentDumper(yaml.SafeDumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super(YamlIndentDumper, self).increase_indent(flow, False)
