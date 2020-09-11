@@ -1,7 +1,7 @@
 # fsl_sub
 
 Job submission to cluster queues
-_Copyright 2018, University of Oxford (Duncan Mortimer)_
+_Copyright 2018-2020, University of Oxford (Duncan Mortimer)_
 
 ## Introduction
 
@@ -78,6 +78,8 @@ where _backend\_name_ is the last component of the plugin packaged, e.g. sge.
 To write this to a file use:
 
 > fsl_sub_config _backend\_name_ > fsl_sub.yml
+
+Where supported (check plugin), appropriate queue definitions will be created. You should check these for correctness, paying attention to any warnings in the comments at the start.
 
 This configuration file can be copied to _fsldir_/etc/fslconf calling it fsl_sub.yml, or
 put in your home folder calling it .fsl_sub.yml. A copy in your home folder will override the file in _fsldir_/etc/fslconf.
