@@ -89,7 +89,7 @@ def submit(
         if not mconf['run_parallel']:
             array_args['parallel_limit'] = 1
         if array_limit is not None:
-            logger.debug("Limiting number of parallel tasks to " + array_limit)
+            logger.debug("Limiting number of parallel tasks to " + str(array_limit))
             array_args['parallel_limit'] = array_limit
         if array_specifier:
             logger.debug("Attempting to parse array specifier " + array_specifier)
