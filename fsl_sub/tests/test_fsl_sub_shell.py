@@ -385,6 +385,7 @@ count:
         result_environ['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
         result_environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
         result_environ['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
+        result_environ['FSLSUB_PARALLEL'] = '1'
         # result_environ['JOB_ID'] = str(mock_pid) - mocked so doesn't get set
         with patch.dict(
                 'fsl_sub.plugins.fsl_sub_plugin_shell.os.environ',
@@ -429,6 +430,7 @@ count:
             result_environ['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
             result_environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
             result_environ['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
+            result_environ['FSLSUB_PARALLEL'] = '1'
             # result_environ['JOB_ID'] = str(mock_pid) - mocked so doesn't get set
             with patch.dict(
                     'fsl_sub.plugins.fsl_sub_plugin_shell.os.environ',
@@ -478,6 +480,7 @@ count:
             result_environ['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
             result_environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
             result_environ['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
+            result_environ['FSLSUB_PARALLEL'] = '1'
             # result_environ['JOB_ID'] = str(mock_pid) - mocked so doesn't get set
             with patch.dict(
                     'fsl_sub.plugins.fsl_sub_plugin_shell.os.environ',
@@ -523,6 +526,7 @@ count:
         result_environ['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
         result_environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
         result_environ['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
+        result_environ['FSLSUB_PARALLEL'] = '1'
         # result_environ['JOB_ID'] = str(mock_pid) - mocked so doesn't get set
         with patch.dict(
                 'fsl_sub.plugins.fsl_sub_plugin_shell.os.environ',
@@ -575,6 +579,7 @@ count:
         result_environ['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
         result_environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
         result_environ['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
+        result_environ['FSLSUB_PARALLEL'] = '1'
         # result_environ['JOB_ID'] = str(mock_pid) - mocked so doesn't get set
         with patch.dict(
                 'fsl_sub.plugins.fsl_sub_plugin_shell.os.environ',
