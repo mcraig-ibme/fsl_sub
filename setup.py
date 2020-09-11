@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-import sys
 from setuptools import setup, find_packages
-sys.path.insert(0, './fsl_sub')
-from version import VERSION
+from fsl_sub.version import VERSION
 
 setup(
     name='fsl_sub',
