@@ -453,8 +453,8 @@ def submit(
         # further parallelisation. Store allowed number of threads in
         # FSLSUB_PARALLEL...
         # Clear previous FSLSUB_PARALLEL values...
-        export_vars = [a for a in export_vars if a != 'FSLSUB_PARALLEL' and not a.startswith('FSLSUB_PARALLEL=')]
-        export_vars.append('FSLSUB_PARALLEL=' + str(threads))
+        if 'FSLSUB_PARALLEL' not in export_vars:
+            export_vars.append('FSLSUB_PARALLEL')
 
         control_threads(config['thread_control'], threads)
 
@@ -510,7 +510,11 @@ def submit(
                 mail_on, mailto, logdir, coprocessor, coprocessor_toolkit,
                 coprocessor_class, coprocessor_class_strict, coprocessor_multi,
                 usescript, architecture, requeueable]]))
-    # return job id as tuple
+
+    # If not already set, set FSLSUB_PARALLEL so any sub-fsl_subs know how many
+    # threads the parent has been allocated
+    if 'FSLSUB_PARALLEL' not in os.environ.keys():
+        os.environ['FSLSUB_PARALLEL'] = str(threads)
     job_id = queue_submit(
         command,
         job_name=task_name,

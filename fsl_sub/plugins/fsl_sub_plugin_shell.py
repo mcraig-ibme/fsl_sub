@@ -55,7 +55,6 @@ def submit(
         command,
         job_name,
         queue=None,
-        threads=None,
         array_task=False,
         array_limit=None,
         array_specifier=None,
@@ -116,9 +115,8 @@ def submit(
             if _disable_parallel(command[0]):
                 array_args['parallel_limit'] = 1
             else:
-                thread_limit = _limit_threads(threads, array_limit)
-                if thread_limit is not None:
-                    array_args['parallel_limit'] = thread_limit
+                if array_limit is not None:
+                    array_args['parallel_limit'] = array_limit
         else:
             try:
                 with open(command, 'r') as ll_tasks:
@@ -132,24 +130,13 @@ def submit(
             if any([_disable_parallel(m[0]) for m in jobs]):
                 array_args['parallel_limit'] = 1
             else:
-                thread_limit = _limit_threads(threads, array_limit)
-                if thread_limit is not None:
-                    array_args['parallel_limit'] = thread_limit
+                if array_limit is not None:
+                    array_args['parallel_limit'] = array_limit
 
         _run_parallel(jobs, pid, child_env, stdout, stderr, **array_args)
     else:
         _run_job(command, pid, child_env, stdout, stderr)
     return pid
-
-
-def _limit_threads(thr1, thr2):
-    if thr1 is None and thr2 is None:
-        return None
-    if thr1 is None:
-        return thr2
-    if thr2 is None:
-        return thr1
-    return min(thr1, thr2)
 
 
 def _grouper(iterable, n, fillvalue=None):
@@ -279,7 +266,7 @@ def _get_cores():
     available_cores = _cores()
     try:
         fslsub_parallel = int(os.environ['FSLSUB_PARALLEL'])
-        if available_cores > fslsub_parallel:
+        if fslsub_parallel > 0 and available_cores > fslsub_parallel:
             available_cores = fslsub_parallel
     except (KeyError, ValueError, ):
         pass

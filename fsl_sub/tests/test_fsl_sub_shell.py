@@ -39,12 +39,14 @@ class TestUtils(unittest.TestCase):
                     2
                 )
 
-    def test__limit_threads(self):
-        self.assertIsNone(fsl_sub.plugins.fsl_sub_plugin_shell._limit_threads(None, None))
-        self.assertEqual(1, fsl_sub.plugins.fsl_sub_plugin_shell._limit_threads(1, None))
-        self.assertEqual(1, fsl_sub.plugins.fsl_sub_plugin_shell._limit_threads(None, 1))
-        self.assertEqual(1, fsl_sub.plugins.fsl_sub_plugin_shell._limit_threads(2, 1))
-        self.assertEqual(1, fsl_sub.plugins.fsl_sub_plugin_shell._limit_threads(1, 2))
+        with self.subTest("With envvar=0"):
+            with patch.dict(
+                    'fsl_sub.plugins.fsl_sub_plugin_shell.os.environ',
+                    {'FSLSUB_PARALLEL': "0", }):
+                self.assertEqual(
+                    fsl_sub.plugins.fsl_sub_plugin_shell._get_cores(),
+                    4
+                )
 
     def test__end_job_number(self):
         self.assertEqual(9, fsl_sub.plugins.fsl_sub_plugin_shell._end_job_number(5, 1, 2))

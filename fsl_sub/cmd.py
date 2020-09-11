@@ -836,6 +836,10 @@ def main(args=None):
             cmd_parser.error(str(e))
     else:
         pe_name, threads = (None, 1, )
+        # If not already set, set FSLSUB_PARALLEL to 0 - shell plugin
+        # will use this to know it may decide freely the number of threads
+        if 'FSLSUB_PARALLEL' not in os.environ.keys():
+            os.environ['FSLSUB_PARALLEL'] = '0'
 
     if options['array_task'] is not None:
         if options['array_native']:
