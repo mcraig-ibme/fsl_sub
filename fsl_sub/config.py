@@ -174,7 +174,7 @@ def example_config(method=None):
 
     if method is not None:
         # Add the example co-processor config
-        e_conf += _read_config_file(qc_file).replace('---\n', '')
+        e_conf += _read_config_file(cc_file).replace('---\n', '')
 
         # Try to detect queues
         queue_defs = get_plugin_queue_defs(method)
@@ -182,7 +182,7 @@ def example_config(method=None):
             e_conf += queue_defs
         else:
             # Add the example queue config
-            e_conf += _read_config_file(cc_file).replace('---\n', '')
+            e_conf += _read_config_file(qc_file).replace('---\n', '')
 
         e_conf = e_conf.replace('queues: {}\n', '')
         e_conf = e_conf.replace('coproc_opts: {}\n', '')
