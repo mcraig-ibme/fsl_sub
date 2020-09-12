@@ -1,7 +1,6 @@
 # fsl_sub python module
 # Copyright (c) 2018, University of Oxford (Duncan Mortimer)
 
-import logging
 import os
 import os.path
 import yaml
@@ -138,7 +137,6 @@ def _read_config_file(fname):
 def example_config(method=None):
     '''Merges the method default config output with the general defaults and returns
     the example config as a string'''
-    logger = logging.getLogger('fsl_sub')
     methods = ['shell', ]
     e_conf = ''
 
@@ -182,10 +180,6 @@ def example_config(method=None):
         (queue_defs, warnings) = get_plugin_queue_defs(method)
         if queue_defs:
             e_conf += queue_defs
-            if warnings:
-                logger.warn("# The following issues were generated when capturing the cluster queues: ")
-            for message in warnings:
-                logger.warn("# " + message)
         else:
             # Add the example queue config
             e_conf += _read_config_file(cc_file).replace('---\n', '')

@@ -34,7 +34,7 @@ def already_queued():
 
 
 def build_queue_defs():
-    return ('', [])
+    return ''
 
 
 def _disable_parallel(job):
