@@ -93,6 +93,10 @@ def read_config():
     try:
         with open(config_file, 'r') as yaml_source:
             config_dict = yaml.safe_load(yaml_source)
+    except IsADirectoryError:
+        raise BadConfiguration(
+            "Unable to open configuration file - "
+            "looks like FSLSUB_CONF may be pointing at a directory? " + config_file)
     except yaml.YAMLError as e:
         raise BadConfiguration(
             "Unable to understand configuration file: " + str(e))
