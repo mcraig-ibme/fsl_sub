@@ -615,9 +615,14 @@ def getq_and_slots(
         job_time = 0
 
     slots = {}
-    for q in queue_list:
+    for index, q in enumerate(queue_list):
         slots[q] = calc_slots(
             job_ram, queues[q]['slot_size'], job_threads)
+        # If group/priority not specified then create pseudo-groups, one for each queue
+        if 'group' not in queues[q].keys():
+            queues[q]['group'] = index
+        if 'priority' not in queues[q].keys():
+            queues[q]['priority'] = 1
 
     queue_list.sort(key=lambda x: queues[x]['priority'], reverse=True)
     queue_list.sort(key=lambda x: (queues[x]['group'], slots[x]))
