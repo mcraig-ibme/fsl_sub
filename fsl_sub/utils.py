@@ -714,6 +714,13 @@ def writelines_nl(fh, lines):
     fh.writelines(listplusnl(lines))
 
 
+def add_nl(s):
+    '''Adds a newline to the end of the string if it is lacking...'''
+    if not s.endswith('\n'):
+        s += '\n'
+    return s
+
+
 class YamlIndentDumper(yaml.SafeDumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)

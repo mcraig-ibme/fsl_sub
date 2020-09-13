@@ -10,6 +10,7 @@ from fsl_sub.utils import (
     get_plugin_example_conf,
     get_plugin_queue_defs,
     available_plugins,
+    add_nl
 )
 from functools import lru_cache
 
@@ -165,21 +166,18 @@ def example_config(method=None):
             plugin_conf = plugin_conf.replace("method: {0}\n".format(match), '')
 
         plugin_conf = plugin_conf.replace("method_opts:\n", '')
-        if not e_conf.endswith('\n'):
-            e_conf += '\n'
-
+        e_conf = add_nl(e_conf)
         e_conf = e_conf + plugin_conf
-        if not e_conf.endswith('\n'):
-            e_conf += '\n'
+        e_conf = add_nl(e_conf)
 
     if method is not None:
         # Add the example co-processor config
         e_conf += _read_config_file(cc_file).replace('---\n', '')
-
+        e_conf = add_nl(e_conf)
         # Try to detect queues
         queue_defs = get_plugin_queue_defs(method)
         if queue_defs:
-            e_conf += 'queues:\n'
+            e_conf += '\nqueues:'
             e_conf += queue_defs
         else:
             # Add the example queue config
@@ -187,7 +185,7 @@ def example_config(method=None):
 
         e_conf = e_conf.replace('queues: {}\n', '')
         e_conf = e_conf.replace('coproc_opts: {}\n', '')
-
+        e_conf = add_nl(e_conf)
     return e_conf
 
 

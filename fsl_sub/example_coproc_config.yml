@@ -1,3 +1,4 @@
+---
 # The following defines configuration options for co-processor queues
 # Define queues with a copro key set to the name of the appropriate option
 # set and ensure that your queue method has a way of interpreting this

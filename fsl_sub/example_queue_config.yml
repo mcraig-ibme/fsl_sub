@@ -1,3 +1,4 @@
+---
 # Queue definitions (Partitions in SLURM)
 queues:
   # Queue name
