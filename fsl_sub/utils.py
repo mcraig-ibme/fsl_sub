@@ -108,7 +108,7 @@ def get_plugin_queue_defs(plugin_name):
     try:
         return PLUGINS[grid_module].build_queue_defs()
     except AttributeError:
-        return ('', [])
+        return ''
 
 
 def minutes_to_human(minutes):
