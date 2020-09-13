@@ -179,6 +179,7 @@ def example_config(method=None):
         # Try to detect queues
         queue_defs = get_plugin_queue_defs(method)
         if queue_defs:
+            e_conf += 'queues:\n'
             e_conf += queue_defs
         else:
             # Add the example queue config
