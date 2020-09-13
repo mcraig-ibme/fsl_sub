@@ -571,7 +571,7 @@ def getq_and_slots(
         queues, job_time=0, job_ram=0,
         job_threads=1, coprocessor=None,
         ll_env=None):
-    '''Calculate which queue to run the job on
+    '''Calculate which queue to run the job on. job_time is in minutes, job_ram in units given in configuration.
     Still needs job splitting across slots'''
     logger = logging.getLogger(__name__)
     if job_ram is None:
