@@ -877,7 +877,7 @@ def main(args=None):
     except KeyError:
         exports = []
     try:
-        keep_jobscript = options['keep']
+        keep_jobscript = options['keep_jobscript']
     except KeyError:
         keep_jobscript = False
 
