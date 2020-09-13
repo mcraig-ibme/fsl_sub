@@ -127,7 +127,7 @@ def _read_config_file(fname):
     '''Return content of file as string'''
     try:
         with open(fname, 'r') as default_source:
-            e_conf = default_source.read()
+            e_conf = default_source.read().strip()
     except FileNotFoundError:
         raise MissingConfiguration(
             "Unable to find default configuration file: " + fname
@@ -148,6 +148,7 @@ def example_config(method=None):
 
     # Load top-level config
     e_conf = _read_config_file(dc_file)
+    e_conf = add_nl(e_conf)
     # If a plugin method has been provided set 'method' to this
     if method is not None and method not in methods:
         methods.append(method)
@@ -177,7 +178,7 @@ def example_config(method=None):
         # Try to detect queues
         queue_defs = get_plugin_queue_defs(method)
         if queue_defs:
-            e_conf += '\nqueues:'
+            e_conf += 'queues:\n'
             e_conf += queue_defs
         else:
             # Add the example queue config
