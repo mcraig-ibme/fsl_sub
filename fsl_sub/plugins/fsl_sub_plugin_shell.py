@@ -93,9 +93,9 @@ def submit(
                 raise BadSubmission('FSLSUB_ARRAYTASKID_VAR points to a non-existant variable!')
         if task_subjid is not None:
             task_id = '.'.join((task_id, task_subjid))
-        log_jid = '-'.join((task_id, jid))
+        log_jid = '-'.join((task_id, str(jid)))
     else:
-        log_jid = jid
+        log_jid = str(jid)
 
     if logdir is None:
         logdir = os.getcwd()
