@@ -264,13 +264,13 @@ def submit(
         if already_queued():
             config['method'] == 'shell'
             warnings.warn(
-                'Warning: job on queue attempted to submit parallel jobs -'
-                'running jobs serially instead.'
+                'Warning: job on queue attempted to submit more jobs -'
+                'running jobs using shell plugin instead.'
             )
 
     config['qtest'] = qtest()
     if config['qtest'] is None:
-        config['method'] == 'shell'
+        config['method'] = 'shell'
         warnings.warn(
             'Warning: fsl_sub configured for {0} but {0}'
             ' software not found.'.format(config['method'])
@@ -500,7 +500,7 @@ def submit(
     else:
         q_project = None
 
-    logger.debug("Calling queue_submit with: ")
+    logger.debug("Calling queue_submit fsl_sub_plugin_{0} with: ".format(config['method']))
     logger.debug(
         ", ".join(
             [str(a) for a in [
