@@ -515,7 +515,7 @@ count:
         logfile_stderr = os.path.join(
             logdir, jobname + ".e" + str(mock_pid))
 
-        command = 'acmd'
+        command = ['acmd', ]
         arraytask = True
 
         test_environ = {'AVAR': 'AVAL', }
@@ -540,7 +540,7 @@ count:
                 array_specifier=spec,
                 logdir=logdir)
             mock__run_parallel.assert_called_once_with(
-                njobs * [[command]],
+                njobs * [command],
                 mock_pid,
                 result_environ,
                 logfile_stdout,
@@ -568,7 +568,7 @@ count:
         logfile_stderr = os.path.join(
             logdir, jobname + ".e" + str(mock_pid))
 
-        command = 'acmd_gpu'
+        command = ['acmd_gpu', ]
         arraytask = True
 
         test_environ = {'AVAR': 'AVAL', }
@@ -593,7 +593,7 @@ count:
                 array_specifier=spec,
                 logdir=logdir)
             mock__run_parallel.assert_called_once_with(
-                njobs * [[command]],
+                njobs * [command],
                 mock_pid,
                 result_environ,
                 logfile_stdout,
