@@ -224,6 +224,10 @@ When running as an array task you may wish to know which sub-task you are, this 
 
 Not all variables are set by all queue backends so ensure your software can cope with missing variables.
 
+### Submitting tasks from submitted tasks
+
+Most clusters will not allow a running job to submit a sub-task as it is fairly likely this will result in deadlocks. Consquently, subsquent calls to fsl\_sub will result in the use of the _shell_ plugin for job running. If this occurs from within a cluster job the job .o and .e files will have filenames of the form _\<job name>.[o|e]\<parent jobid>{.\<parent taskid>}-\<process id of fsl_sub>{.\<taskid>}_.
+
 ## Additional tools
 
 Included with the `fsl_sub` command are several addtional tools detailed below.
