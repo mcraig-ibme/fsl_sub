@@ -250,16 +250,14 @@ def submit(
             "{} not a supported method".format(config['method']))
 
     try:
-        queue_submit = PLUGINS[grid_module].submit
-        qtest = PLUGINS[grid_module].qtest
-        queue_exists = PLUGINS[grid_module].queue_exists
-        BadSubmission = PLUGINS[grid_module].BadSubmission
         already_queued = PLUGINS[grid_module].already_queued
+        qtest = PLUGINS[grid_module].qtest
     except AttributeError as e:
         raise BadConfiguration(
             "Failed to load plugin " + grid_module
             + " ({0})".format(str(e))
         )
+
     if config['method'] != 'shell':
         if already_queued():
             config['method'] = 'shell'
@@ -276,7 +274,23 @@ def submit(
             ' software not found.'.format(config['method'])
         )
 
+    logger.debug("Configuring plugin " + config['method'])
+    try:
+        queue_submit = PLUGINS[grid_module].submit
+        qtest = PLUGINS[grid_module].qtest
+        queue_exists = PLUGINS[grid_module].queue_exists
+        BadSubmission = PLUGINS[grid_module].BadSubmission
+        already_queued = PLUGINS[grid_module].already_queued
+    except AttributeError as e:
+        raise BadConfiguration(
+            "Failed to load plugin " + grid_module
+            + " ({0})".format(str(e))
+        )
+
+    logger.debug("Loading configuration for " + config['method'])
     mconfig = method_config(config['method'])
+    logger.debug("Method configuration is " + str(mconfig))
+
     parallel_env_requested = parallel_env
 
     if logdir is not None and logdir != "/dev/null":
