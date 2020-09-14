@@ -55,6 +55,10 @@ def _disable_parallel(job):
     return False
 
 
+def _get_logger():
+    return logging.getLogger('fsl_sub.' + __name__)
+
+
 def submit(
         command,
         job_name,
@@ -65,7 +69,7 @@ def submit(
         logdir=None,
         **kwargs):
     '''Submits the job'''
-    logger = logging.getLogger('fsl_sub.plugins')
+    logger = _get_logger()
     mconf = defaultdict(lambda: False, method_config('shell'))
     jobid_var = None
     taskid_var = None
@@ -181,7 +185,7 @@ def _grouper(iterable, n, fillvalue=None):
 
 
 def _run_job(job, job_id, child_env, stdout_file, stderr_file):
-    logger = logging.getLogger('fsl_sub.plugins')
+    logger = _get_logger()
     with open(stdout_file, mode='w') as stdout:
         with open(stderr_file, mode='w') as stderr:
             child_env['JOB_ID'] = str(job_id)
@@ -209,7 +213,7 @@ def _run_parallel(
         jobs, parent_id, parent_env, stdout_file, stderr_file,
         parallel_limit=None, array_start=1, array_end=None, array_stride=1):
     '''Run jobs in parallel - pass parallel_limit=1 to run array tasks linearly'''
-    logger = logging.getLogger('fsl_sub.plugins')
+    logger = _get_logger()
     if array_end is None:
         array_end = _end_job_number(len(jobs), array_start, array_stride)
     logger.info("Running jobs in parallel")
