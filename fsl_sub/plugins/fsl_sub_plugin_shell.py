@@ -95,7 +95,7 @@ def submit(
                 task_subjid = os.environ[taskid_var]
             except KeyError:
                 raise BadSubmission('FSLSUB_ARRAYTASKID_VAR points to a non-existant variable!')
-        if task_subjid is not None:
+        if task_subjid is not None or task_subjid == 'undefined':
             task_id = '.'.join((task_id, task_subjid))
         log_jid = '-'.join((task_id, str(jid)))
     else:
