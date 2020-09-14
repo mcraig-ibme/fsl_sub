@@ -806,6 +806,7 @@ def main(args=None):
     if options['debug']:
         logger.setLevel(logging.DEBUG)
         plugin_logger.setLevel(logging.DEBUG)
+        os.environ['FSLSUB_DEBUG'] = '1'
     if options['array_task'] and options['args']:
         cmd_parser.error(
             "Individual and array tasks are mutually exclusive."

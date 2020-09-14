@@ -223,6 +223,16 @@ def submit(
             used to run your task
     '''
     logger = logging.getLogger(__name__)
+    try:
+        debugging = os.environ['FSLSUB_DEBUG'] == '1'
+    except KeyError:
+        debugging = False
+    if debugging:
+        export_vars.append('FSLSUB_DEBUG=1')
+        plugin_logger = logging.getLogger('fsl_sub.plugins')
+        logger.setLevel(logging.DEBUG)
+        plugin_logger.setLevel(logging.DEBUG)
+
     logger.debug("Submit called with:")
     logger.debug(
         " ".join(
