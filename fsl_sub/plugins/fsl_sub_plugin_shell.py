@@ -67,12 +67,41 @@ def submit(
     '''Submits the job'''
     logger = logging.getLogger('fsl_sub.plugins')
     mconf = defaultdict(lambda: False, method_config('shell'))
-    pid = os.getpid()
+    jobid_var = None
+    taskid_var = None
+
+    jid = os.getpid()
+
+    logger.debug("Looking for parent job id(s)")
+    try:
+        jobid_var = os.environ['FSLSUB_JOBID_VAR']
+        taskid_var = os.environ['FSLSUB_ARRAYTASKID_VAR']
+    except KeyError:
+        pass
+
+    if jobid_var is not None:
+        task_id = None
+        task_subjid = None
+        try:
+            task_id = os.environ[jobid_var]
+        except KeyError:
+            raise BadSubmission("FSLSUB_JOBID_VAR points to a non-existant variable!")
+        if taskid_var is not None:
+            try:
+                task_subjid = os.environ[taskid_var]
+            except KeyError:
+                raise BadSubmission('FSLSUB_ARRAYTASKID_VAR points to a non-existant variable!')
+        if task_subjid is not None:
+            task_id = '.'.join((task_id, task_subjid))
+        log_jid = '-'.join((task_id, jid))
+    else:
+        log_jid = jid
+
     if logdir is None:
         logdir = os.getcwd()
     logfile_base = os.path.join(logdir, job_name)
-    stdout = "{0}.{1}{2}".format(logfile_base, 'o', pid)
-    stderr = "{0}.{1}{2}".format(logfile_base, 'e', pid)
+    stdout = "{0}.{1}{2}".format(logfile_base, 'o', log_jid)
+    stderr = "{0}.{1}{2}".format(logfile_base, 'e', log_jid)
 
     if not array_task or (array_task and array_specifier):
         if isinstance(command, str):
@@ -138,10 +167,10 @@ def submit(
                 if array_limit is not None:
                     array_args['parallel_limit'] = array_limit
 
-        _run_parallel(jobs, pid, child_env, stdout, stderr, **array_args)
+        _run_parallel(jobs, jid, child_env, stdout, stderr, **array_args)
     else:
-        _run_job(command, pid, child_env, stdout, stderr)
-    return pid
+        _run_job(command, jid, child_env, stdout, stderr)
+    return jid
 
 
 def _grouper(iterable, n, fillvalue=None):
