@@ -9,7 +9,9 @@ import subprocess as sp
 
 from fsl_sub.config import method_config
 from fsl_sub.exceptions import (BadSubmission, MissingConfiguration, )
-from fsl_sub.utils import parse_array_specifier
+from fsl_sub.utils import (
+    parse_array_specifier,
+)
 from collections import defaultdict
 from itertools import zip_longest
 
@@ -106,10 +108,6 @@ def submit(
     logfile_base = os.path.join(logdir, job_name)
     stdout = "{0}.{1}{2}".format(logfile_base, 'o', log_jid)
     stderr = "{0}.{1}{2}".format(logfile_base, 'e', log_jid)
-
-    if not array_task or (array_task and array_specifier):
-        if isinstance(command, str):
-            command = shlex.split(command)
 
     child_env = dict(os.environ)
     child_env['FSLSUB_JOBID_VAR'] = 'JOB_ID'
@@ -230,8 +228,6 @@ def _run_parallel(
         children = []
         for group_job, job in enumerate(job_group):
             if job is not None:
-                if type(job) is str:
-                    job = shlex.split(job)
                 sub_id = group * available_cores + group_job + 1
                 child_env = dict(parent_env)
 
