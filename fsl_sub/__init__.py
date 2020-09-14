@@ -262,7 +262,7 @@ def submit(
         )
     if config['method'] != 'shell':
         if already_queued():
-            config['method'] == 'shell'
+            config['method'] = 'shell'
             warnings.warn(
                 'Warning: job on queue attempted to submit more jobs -'
                 'running jobs using shell plugin instead.'
