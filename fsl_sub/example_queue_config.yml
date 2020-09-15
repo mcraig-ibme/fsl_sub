@@ -22,6 +22,9 @@ queues:
           - K
           - P
           - V
+    # Available parallel environments
+    paralle_envs:
+      - openmp
     # Should jobs be split over multiple slots when requires more RAM than available
     # in a single slot
     map_ram: true
