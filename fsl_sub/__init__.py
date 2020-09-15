@@ -212,7 +212,7 @@ def submit(
     coprocessor_class_strict - whether to choose only this class
             or all more capable
     coprocessor_multi - how many coprocessors you need (or
-            complex description) (string)
+            complex description) (int or string)
     queue - Explicit queue to submit to - use jobram/jobtime in preference to
             this
     usescript - queue config is defined in script
@@ -493,6 +493,10 @@ def submit(
 
     if coprocessor:
         if mconfig['queues']:
+            # If coprocessor resource is in Scheduling multiple GPUS...
+            #  PE as first port of call, do we need a separate way of specifying gpu qty
+            if isinstance(coprocessor_multi, int):
+                coprocessor_multi = str(coprocessor_multi)
             if coprocessor_multi != '1':
                 try:
                     if int(coprocessor_multi) > max_coprocessors(coprocessor):
@@ -504,6 +508,28 @@ def submit(
                 except ValueError:
                     # Complex coprocessor_multi passed - do not validate
                     pass
+                usepe = coprocessor_config(coprocessor)['uses_pe']
+                if usepe:
+                    try:
+                        if usepe not in config['queues'][queue]['parallel_envs']:
+                            raise KeyError()
+                    except KeyError:
+                        raise BadSubmission(
+                            "uses_pe set but selected queue {0} does not have PE {1} configured".format(
+                                queue, usepe
+                            ))
+                    parallel_env = usepe
+                    try:
+                        gpus_req = int(coprocessor_multi)
+                    except ValueError:
+                        raise BadSubmission(
+                            "Specified coprocessor_multi argument is a complex value but cluster "
+                            "configured with 'uses_pe' which requires a simple integer"
+                        )
+                    if gpus_req > threads:
+                        if gpus_req > config['queues'][queue]['max_slots']:
+                            raise BadSubmission("More GPUs than queue slots have been requested")
+                        threads = gpus_req
         if coprocessor_toolkit:
             logger.debug("Attempting to load coprocessor toolkit")
             logger.debug(":".join((coprocessor, coprocessor_toolkit)))

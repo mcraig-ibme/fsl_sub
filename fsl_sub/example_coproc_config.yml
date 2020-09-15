@@ -6,6 +6,12 @@ coproc_opts:
   cuda:
     # Which scheduler resource requests GPU facilities
     resource: gpu
+    # PE provides multiGPU support - Son of Grid Engine doesn't support GPUs
+    # natively so often clusters will be set up with a prolog that allocates
+    # GPUs as per the number of parallel environment requested slots. If
+    # this is the case for your cluster, change this to the name of the parallel
+    # environment. Leave as false on systems that support GPU scheduling (e.g. Univa)
+    uses_pe: False
     # Whether there are multiple coprocessor classes/types
     classes: True
     # This defines the short code for the types and the resource

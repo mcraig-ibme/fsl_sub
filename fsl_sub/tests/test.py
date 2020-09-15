@@ -82,6 +82,7 @@ coproc_opts:
     default_class: K
     include_more_capable: True
     uses_modules: True
+    uses_pe: False
     module_parent: cuda
     no_binding: True
 queues:
@@ -298,6 +299,7 @@ class ShellPluginSubmitTests(unittest.TestCase):
     return_value=['a', 'b', ])
 class SubmitTests(unittest.TestCase):
     def setUp(self):
+        self.base_config = yaml.safe_load(YAML_CONF)
         self.base_args = {
             'architecture': None,
             'array_hold': None,
@@ -490,9 +492,89 @@ class SubmitTests(unittest.TestCase):
                 **self.base_args
             )
         plugins['fsl_sub_plugin_sge'].submit.reset_mock()
-# This needs some tests writing:
 
-# submit with command = []
+    def test_usespe(
+        self, mock_prjl, mock_checkcmd, mock_loadplugins,
+            mock_confrc, mock_rc, mock_smrc):
+
+        test_conf = copy.deepcopy(self.base_config)
+
+        test_conf['coproc_opts']['cuda']['uses_pe'] = 'shmem'
+        mock_confrc.return_value = test_conf
+        mock_rc.return_value = test_conf
+        test_args = copy.deepcopy(self.base_args)
+        test_args['coprocessor'] = 'cuda'
+        test_args['coprocessor_multi'] = '2'
+        test_args['threads'] = 2
+        test_args['parallel_env'] = 'shmem'
+        test_args['queue'] = 'gpu.q'
+        plugins = {}
+
+        plugins['fsl_sub_plugin_sge'] = FakePlugin()
+        plugins['fsl_sub_plugin_sge'].submit = MagicMock(name='submit')
+        plugins['fsl_sub_plugin_sge'].qtest = MagicMock(name='qtest')
+        plugins['fsl_sub_plugin_sge'].qtest.return_value = '/usr/bin/qconf'
+        plugins['fsl_sub_plugin_sge'].queue_exists = MagicMock(
+            name='queue_exists')
+        plugins['fsl_sub_plugin_sge'].queue_exists.return_value = True
+        plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
+
+        mock_loadplugins.return_value = plugins
+        with self.subTest('MultiGPU with uses_pe'):
+            fsl_sub.submit(
+                ['mycommand', 'arg1', 'arg2', ],
+                coprocessor='cuda',
+                coprocessor_multi='2')
+
+            plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
+                ['mycommand', 'arg1', 'arg2', ],
+                **test_args
+            )
+        plugins['fsl_sub_plugin_sge'].submit.reset_mock()
+        with self.subTest('MultiGPU with uses_pe - missing PE'):
+            test_conf['coproc_opts']['cuda']['uses_pe'] = 'openmp'
+            mock_confrc.return_value = test_conf
+            mock_rc.return_value = test_conf
+
+            with self.assertRaises(BadSubmission) as eo:
+                fsl_sub.submit(
+                    ['mycommand', 'arg1', 'arg2', ],
+                    coprocessor='cuda',
+                    coprocessor_multi='2')
+
+            self.assertEqual(
+                str(eo.exception),
+                "uses_pe set but selected queue gpu.q does not have PE openmp configured")
+        with self.subTest('MultiGPU with uses_pe - too many slots'):
+            test_conf['coproc_opts']['cuda']['uses_pe'] = 'shmem'
+            test_conf['queues']['gpu.q']['max_slots'] = 2
+            mock_confrc.return_value = test_conf
+            mock_rc.return_value = test_conf
+
+            with self.assertRaises(BadSubmission) as eo:
+                fsl_sub.submit(
+                    ['mycommand', 'arg1', 'arg2', ],
+                    coprocessor='cuda',
+                    coprocessor_multi='4')
+
+            self.assertEqual(
+                str(eo.exception),
+                "More GPUs than queue slots have been requested")
+        with self.subTest('MultiGPU with uses_pe - complex multigpu'):
+            test_conf['coproc_opts']['cuda']['uses_pe'] = 'shmem'
+            mock_confrc.return_value = test_conf
+            mock_rc.return_value = test_conf
+
+            with self.assertRaises(BadSubmission) as eo:
+                fsl_sub.submit(
+                    ['mycommand', 'arg1', 'arg2', ],
+                    coprocessor='cuda',
+                    coprocessor_multi='1,2')
+
+            self.assertEqual(
+                str(eo.exception),
+                "Specified coprocessor_multi argument is a complex value but cluster configured with 'uses_pe'"
+                " which requires a simple integer")
 
 
 class GetQTests(unittest.TestCase):
