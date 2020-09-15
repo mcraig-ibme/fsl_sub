@@ -411,12 +411,18 @@ def submit(
                     "Array task definition file fault: " + str(e)
                 )
         elif validate_type == 'command':
-            try:
-                check_command(command[0])
-            except CommandError as e:
-                raise BadSubmission(
-                    "Command not usable: " + str(e)
-                )
+            if usescript is False:
+                try:
+                    check_command(command[0])
+                except CommandError as e:
+                    raise BadSubmission(
+                        "Command not usable: " + str(e)
+                    )
+            else:
+                if not os.path.exists(command[0]):
+                    raise BadSubmission(
+                        "Script file not found"
+                    )
         else:
             raise BadConfiguration(
                 "Unknown validation type: " + validate_type)
