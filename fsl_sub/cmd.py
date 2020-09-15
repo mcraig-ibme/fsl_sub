@@ -455,14 +455,17 @@ There are several batch queues configured on the cluster:
         help="Specify the maximum number of parallel job sub-tasks to run "
         "concurrently."
     )
+    advanced_g.add_argument(
+        '--keep_jobscript',
+        action="store_true",
+        help="Whether to create and save a job submission script that records "
+        "the submission and command arguments. This will produce a file "
+        "'wrapper_<jobid>.sh' (jobid is the process ID of fsl_sub if using the "
+        "built-in shell backend and the file will be stored in the current directory "
+        "or the log directory (if specified)). In the case of a queue backend this "
+        "file can be submitted with the -F option."
+    )
     if has_queues():
-        advanced_g.add_argument(
-            '--keep_jobscript',
-            action="store_true",
-            help="Whether to create and save a job submission script that records "
-            "the submission and command arguments. This is not supported for the basic "
-            "'shell' plugin so is ignored"
-        )
         advanced_g.add_argument(
             '--export',
             action='append',

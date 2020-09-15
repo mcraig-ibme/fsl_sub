@@ -2,16 +2,20 @@
 # Copyright (c) 2018, University of Oxford (Duncan Mortimer)
 
 # fsl_sub plugin for running directly on this computer
+import datetime
 import logging
 import os
 import shlex
 import subprocess as sp
+import sys
 
 from fsl_sub.config import method_config
 from fsl_sub.exceptions import (BadSubmission, MissingConfiguration, )
 from fsl_sub.utils import (
     parse_array_specifier,
+    writelines_nl,
 )
+from fsl_sub.version import VERSION
 from collections import defaultdict
 from itertools import zip_longest
 
@@ -69,6 +73,7 @@ def submit(
         array_limit=None,
         array_specifier=None,
         logdir=None,
+        keep_jobscript=None,
         **kwargs):
     '''Submits the job'''
     logger = _get_logger()
@@ -84,6 +89,9 @@ def submit(
         taskid_var = os.environ['FSLSUB_ARRAYTASKID_VAR']
     except KeyError:
         pass
+
+    if keep_jobscript is None:
+        keep_jobscript = mconf.get('keep_jobscript', False)
 
     if jobid_var is not None:
         task_id = None
@@ -119,6 +127,14 @@ def submit(
     child_env['FSLSUB_PARALLEL'] = '1'
     jobs = []
     array_args = {}
+    job_log = []
+    job_log.append(
+        "# Built by fsl_sub v.{0} and fsl_sub_plugin_shell v.{1}".format(
+            VERSION, plugin_version()
+        ))
+    job_log.append("# Command line: " + " ".join(sys.argv))
+    job_log.append("# Submission time (H:M:S DD/MM/YYYY): " + datetime.datetime.now().strftime("%H:%M:%S %d/%m/%Y"))
+    job_log.append('')
 
     if array_task:
         logger.debug("Array task requested")
@@ -148,6 +164,7 @@ def submit(
                 array_args['array_start'] = array_start
                 array_args['array_end'] = array_end
             jobs += njobs * [command]
+            job_log.extend(njobs * [' '.join(command)])
             if _disable_parallel(command[0]):
                 array_args['parallel_limit'] = 1
             else:
@@ -159,6 +176,7 @@ def submit(
                     command_lines = ll_tasks.readlines()
                 for cline in command_lines:
                     jobs.append(shlex.split(cline))
+                    job_log.append(cline)
             except Exception as e:
                 raise BadSubmission(
                     "Unable to read array task file "
@@ -171,7 +189,19 @@ def submit(
 
         _run_parallel(jobs, jid, child_env, stdout, stderr, **array_args)
     else:
+        job_log.append(' '.join(command))
         _run_job(command, jid, child_env, stdout, stderr)
+    if keep_jobscript:
+        log_name = os.path.join(
+            logdir,
+            '_'.join(('wrapper', str(jid))) + '.sh'
+        )
+        logger.debug("Requested preservation of job script - storing as " + log_name)
+        try:
+            with open(log_name, mode='w') as lf:
+                writelines_nl(lf, job_log)
+        except OSError as e:
+            logger.warn("Unable to preserve wrapper script:" + str(e))
     return jid
 
 
