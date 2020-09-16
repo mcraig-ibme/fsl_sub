@@ -536,6 +536,8 @@ def submit(
                         if gpus_req > config['queues'][queue]['max_slots']:
                             raise BadSubmission("More GPUs than queue slots have been requested")
                         threads = gpus_req
+                    control_threads(config['thread_control'], threads)
+
         if coprocessor_toolkit:
             logger.debug("Attempting to load coprocessor toolkit")
             logger.debug(":".join((coprocessor, coprocessor_toolkit)))
