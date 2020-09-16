@@ -385,6 +385,7 @@ def submit(
         job_args = [command, ]
         if name is None:
             name = os.path.basename(command)
+        command = command[0]
     else:
         job_type = 'array aware command'
         validate_type = 'command'

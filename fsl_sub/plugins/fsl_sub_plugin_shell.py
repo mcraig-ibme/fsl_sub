@@ -87,6 +87,14 @@ def submit(
 
     jid = os.getpid()
 
+    if command is None:
+        raise BadSubmission(
+            "Must provide command line or array task file name")
+    if not isinstance(command, list):
+        raise BadSubmission(
+            "Internal error: command argument must be a list"
+        )
+
     logger.debug("Looking for parent job id(s)")
     try:
         jobid_var = os.environ['FSLSUB_JOBID_VAR']
@@ -176,7 +184,7 @@ def submit(
                     array_args['parallel_limit'] = array_limit
         else:
             try:
-                with open(command, 'r') as ll_tasks:
+                with open(command[0], 'r') as ll_tasks:
                     command_lines = ll_tasks.readlines()
                 for cline in command_lines:
                     jobs.append(shlex.split(cline))
