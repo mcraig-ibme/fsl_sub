@@ -308,8 +308,9 @@ class SubmitTests(unittest.TestCase):
             'coprocessor_class_strict': False,
             'coprocessor_multi': '1',
             'export_vars': [
-                'FSLSUB_PARALLEL',
-                'OMP_NUM_THREADS=1', ],
+                'OMP_NUM_THREADS=1',
+                'FSLSUB_PARALLEL=1',
+            ],
             'job_name': 'mycommand',
             'parallel_env': None,
             'queue': 'a.qa,a.qb,a.qc',
@@ -501,14 +502,15 @@ class SubmitTests(unittest.TestCase):
         mock_confrc.return_value = test_conf
         mock_rc.return_value = test_conf
         test_args = copy.deepcopy(self.base_args)
+        print(test_args['export_vars'])
         test_args['coprocessor'] = 'cuda'
         test_args['coprocessor_multi'] = '2'
         test_args['threads'] = 2
         test_args['parallel_env'] = 'shmem'
         test_args['queue'] = 'gpu.q'
         test_args['export_vars'] = [
-            'FSLSUB_PARALLEL',
             'OMP_NUM_THREADS=2',
+            'FSLSUB_PARALLEL=2',
         ]
         plugins = {}
 

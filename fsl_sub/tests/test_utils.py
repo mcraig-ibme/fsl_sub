@@ -1812,7 +1812,7 @@ class TestUtils(unittest.TestCase):
             1)
         self.assertDictEqual(
             dict(fsl_sub.utils.os.environ),
-            {'THREADS': '1', 'MORETHREADS': '1'}
+            {'THREADS': '1', 'MORETHREADS': '1', 'FSLSUB_PARALLEL': '1', }
         )
         with self.subTest("Add to list"):
             test_list = []
@@ -1820,11 +1820,11 @@ class TestUtils(unittest.TestCase):
                 ['THREADS', 'MORETHREADS', ], 1, add_to_list=test_list)
             self.assertDictEqual(
                 dict(fsl_sub.utils.os.environ),
-                {'THREADS': '1', 'MORETHREADS': '1'}
+                {'THREADS': '1', 'MORETHREADS': '1', 'FSLSUB_PARALLEL': '1', }
             )
             self.assertListEqual(
                 test_list,
-                ['THREADS=1', "MORETHREADS=1", ]
+                ['THREADS=1', "MORETHREADS=1", "FSLSUB_PARALLEL=1", ]
             )
         with self.subTest("Mod list"):
             test_list = ['THREADS=4']
@@ -1832,11 +1832,11 @@ class TestUtils(unittest.TestCase):
                 ['THREADS', 'MORETHREADS', ], 1, add_to_list=test_list)
             self.assertDictEqual(
                 dict(fsl_sub.utils.os.environ),
-                {'THREADS': '1', 'MORETHREADS': '1'}
+                {'THREADS': '1', 'MORETHREADS': '1', 'FSLSUB_PARALLEL': '1', }
             )
             self.assertListEqual(
                 test_list,
-                ['THREADS=1', "MORETHREADS=1", ]
+                ['THREADS=1', "MORETHREADS=1", 'FSLSUB_PARALLEL=1']
             )
         with self.subTest("Update dict"):
             test_dict = {}
@@ -1844,13 +1844,15 @@ class TestUtils(unittest.TestCase):
                 ['THREADS', 'MORETHREADS', ], 1, env_dict=test_dict)
             self.assertDictEqual(
                 dict(fsl_sub.utils.os.environ),
-                {'THREADS': '1', 'MORETHREADS': '1'}
+                {'THREADS': '1', 'MORETHREADS': '1', 'FSLSUB_PARALLEL': '1', }
             )
             self.assertDictEqual(
                 test_dict,
                 {
                     'THREADS': str(1),
-                    'MORETHREADS': str(1), }
+                    'MORETHREADS': str(1),
+                    'FSLSUB_PARALLEL': '1',
+                }
             )
 
     @patch('fsl_sub.utils.shutil.which')

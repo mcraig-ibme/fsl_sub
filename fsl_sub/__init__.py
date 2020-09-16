@@ -462,12 +462,6 @@ def submit(
                 slots_required = 1
 
         threads = max(slots_required, threads)
-        # If a subsequent task calls fsl_sub too then we need to avoid
-        # further parallelisation. Store allowed number of threads in
-        # FSLSUB_PARALLEL...
-        # Clear previous FSLSUB_PARALLEL values...
-        if 'FSLSUB_PARALLEL' not in export_vars:
-            export_vars.append('FSLSUB_PARALLEL')
 
         control_threads(config['thread_control'], threads, add_to_list=export_vars)
 
@@ -552,10 +546,6 @@ def submit(
                 coprocessor_class, coprocessor_class_strict, coprocessor_multi,
                 usescript, architecture, requeueable]]))
 
-    # If not already set, set FSLSUB_PARALLEL so any sub-fsl_subs know how many
-    # threads the parent has been allocated
-    if 'FSLSUB_PARALLEL' not in os.environ.keys():
-        os.environ['FSLSUB_PARALLEL'] = str(threads)
     job_id = queue_submit(
         command,
         job_name=task_name,

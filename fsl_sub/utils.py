@@ -247,6 +247,9 @@ def control_threads(env_vars, threads, env_dict=None, add_to_list=None):
     threads.'''
     if isinstance(threads, int):
         st = str(threads)
+    if 'FSLSUB_PARALLEL' not in env_vars:
+        env_vars.append('FSLSUB_PARALLEL')
+
     for ev in env_vars:
         if env_dict is None:
             os.environ[ev] = st

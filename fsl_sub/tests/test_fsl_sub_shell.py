@@ -400,7 +400,7 @@ count:
                     test_environ,
                     clear=True):
                 fsl_sub.plugins.fsl_sub_plugin_shell.submit(
-                    command=job_file,
+                    command=[job_file],
                     job_name=jobname,
                     queue="my.q",
                     array_task=True,
@@ -450,7 +450,7 @@ count:
                     test_environ,
                     clear=True):
                 fsl_sub.plugins.fsl_sub_plugin_shell.submit(
-                    command=job_file,
+                    command=[job_file],
                     job_name=jobname,
                     queue="my.q",
                     array_task=True,
