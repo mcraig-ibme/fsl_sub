@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import shlex
-import subprocess
 import tempfile
 import unittest
 import fsl_sub.plugins.fsl_sub_plugin_shell
@@ -93,6 +92,7 @@ class TestUtils(unittest.TestCase):
 
 class TestShell(unittest.TestCase):
     def setUp(self):
+        self.pid = os.getpid()
         self.outdir = tempfile.TemporaryDirectory()
         self.job = os.path.join(self.outdir.name, 'jobfile')
         self.errorjob = os.path.join(self.outdir.name, 'errorfile')
@@ -106,11 +106,9 @@ class TestShell(unittest.TestCase):
         self.p_env['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
         self.p_env['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
         self.p_env['FSLSUB_ARRAYCOUNT_VAR'] = ''
-        self.orig_wfc = fsl_sub.plugins.fsl_sub_plugin_shell._wait_for_children
         with open(self.job, mode='w') as jobfile:
             jobfile.write(
                 '''#!/bin/bash
-
 echo "jobid:${!FSLSUB_JOBID_VAR}"
 echo "taskid:${!FSLSUB_ARRAYTASKID_VAR}"
 echo "start:${!FSLSUB_ARRAYSTARTID_VAR}"
@@ -122,7 +120,6 @@ echo "count:${!FSLSUB_ARRAYCOUNT_VAR}"
         with open(self.errorjob, mode='w') as jobfile:
             jobfile.write(
                 '''#!/bin/bash
-
 echo "jobid:${!FSLSUB_JOBID_VAR}" >&2
 echo "taskid:${!FSLSUB_ARRAYTASKID_VAR}" >&2
 echo "start:${!FSLSUB_ARRAYSTARTID_VAR}" >&2
@@ -186,13 +183,10 @@ count:
         jobs = [self.job, self.job, self.job, ]
 
         mock_gc.return_value = 4
-        wfc = fsl_sub.plugins.fsl_sub_plugin_shell._wait_for_children
-        with patch(
-                'fsl_sub.plugins.fsl_sub_plugin_shell._wait_for_children',
-                wraps=wfc) as mock_wfc:
-            fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel(
-                jobs, self.job_id, self.p_env, self.stdout, self.stderr
-            )
+        fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel(
+            jobs, self.job_id, self.p_env, self.stdout, self.stderr
+        )
+        job_list = []
         for subjob in (1, 2, 3):
             jobout = '.'.join((self.stdout, str(subjob)))
             joberr = '.'.join((self.stderr, str(subjob)))
@@ -206,6 +200,7 @@ count:
                 joboutput = jout.read()
             with open(joberr, 'r') as jerr:
                 joberror = jerr.read()
+            job_list.append([self.job, subjob, child_env, jobout, joberr])
             self.assertEqual(
                 joboutput,
                 '''jobid:{0}
@@ -216,7 +211,6 @@ step:{4}
 count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
-        self.assertEqual(mock_wfc.call_count, 1)
 
     @patch(
         'fsl_sub.plugins.fsl_sub_plugin_shell._get_cores',
@@ -225,17 +219,12 @@ count:
         mock_gc.return_value = 2
 
         jobs = [self.job, self.job, self.job, ]
-        wfc = fsl_sub.plugins.fsl_sub_plugin_shell._wait_for_children
-        with patch(
-                'fsl_sub.plugins.fsl_sub_plugin_shell._wait_for_children',
-                wraps=wfc) as mock_wfc:
 
-            fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel(
-                jobs, self.job_id, self.p_env, self.stdout, self.stderr
-            )
+        fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel(
+            jobs, self.job_id, self.p_env, self.stdout, self.stderr
+        )
 
-        jobs_details = []
-
+        job_list = []
         for subjob in (1, 2, 3):
             jobout = '.'.join((self.stdout, str(subjob)))
             joberr = '.'.join((self.stderr, str(subjob)))
@@ -245,16 +234,11 @@ count:
             child_env['SHELL_TASK_FIRST'] = str(1)
             child_env['SHELL_TASK_LAST'] = str(3)
             child_env['SHELL_TASK_STEPSIZE'] = str(1)
-            jobs_details.append(
-                (
-                    subprocess.CompletedProcess(args=jobs[subjob - 1], returncode=0, stdout=None, stderr=None),
-                    jobout, joberr
-                )
-            )
             with open(jobout, 'r') as jout:
                 joboutput = jout.read()
             with open(joberr, 'r') as jerr:
                 joberror = jerr.read()
+            job_list.append([self.job, subjob, child_env, jobout, joberr])
             self.assertEqual(
                 joboutput,
                 '''jobid:{0}
@@ -265,7 +249,6 @@ step:{4}
 count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
-        self.assertEqual(mock_wfc.call_count, 2)
 
     @patch(
         'fsl_sub.plugins.fsl_sub_plugin_shell._get_cores',
@@ -274,16 +257,12 @@ count:
         mock_gc.return_value = 4
         jobs = [self.job, self.job, self.job, ]
 
-        wfc = fsl_sub.plugins.fsl_sub_plugin_shell._wait_for_children
-        with patch(
-                'fsl_sub.plugins.fsl_sub_plugin_shell._wait_for_children',
-                wraps=wfc) as mock_wfc:
-            fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel(
-                jobs, self.job_id, self.p_env, self.stdout, self.stderr,
-                parallel_limit=2
-            )
+        fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel(
+            jobs, self.job_id, self.p_env, self.stdout, self.stderr,
+            parallel_limit=2
+        )
 
-        jobs_details = []
+        job_list = []
         for subjob in (1, 2, 3):
             jobout = '.'.join((self.stdout, str(subjob)))
             joberr = '.'.join((self.stderr, str(subjob)))
@@ -293,12 +272,7 @@ count:
             child_env['SHELL_TASK_FIRST'] = 1
             child_env['SHELL_TASK_LAST'] = 3
             child_env['SHELL_TASK_STEPSIZE'] = 1
-            jobs_details.append(
-                (
-                    subprocess.CompletedProcess(args=jobs[subjob - 1], returncode=0, stdout=None, stderr=None),
-                    jobout, joberr
-                )
-            )
+            job_list.append([self.job, subjob, child_env, jobout, joberr])
             with open(jobout, 'r') as jout:
                 joboutput = jout.read()
             with open(joberr, 'r') as jerr:
@@ -313,7 +287,6 @@ step:{4}
 count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
-        self.assertEqual(mock_wfc.call_count, 2)
 
     @patch(
         'fsl_sub.plugins.fsl_sub_plugin_shell._get_cores',
@@ -322,16 +295,12 @@ count:
         mock_gc.return_value = 4
         jobs = [self.job, self.job, self.job, ]
 
-        wfc = fsl_sub.plugins.fsl_sub_plugin_shell._wait_for_children
-        with patch(
-                'fsl_sub.plugins.fsl_sub_plugin_shell._wait_for_children',
-                wraps=wfc) as mock_wfc:
-            fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel(
-                jobs, self.job_id, self.p_env, self.stdout, self.stderr,
-                parallel_limit=2
-            )
+        fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel(
+            jobs, self.job_id, self.p_env, self.stdout, self.stderr,
+            parallel_limit=2
+        )
 
-        jobs_details = []
+        job_list = []
         for subjob in (1, 2, 3):
             jobout = '.'.join((self.stdout, str(subjob)))
             joberr = '.'.join((self.stderr, str(subjob)))
@@ -341,12 +310,7 @@ count:
             child_env['SHELL_TASK_FIRST'] = 1
             child_env['SHELL_TASK_LAST'] = 3
             child_env['SHELL_TASK_STEPSIZE'] = 1
-            jobs_details.append(
-                (
-                    subprocess.CompletedProcess(args=jobs[subjob - 1], returncode=0, stdout=None, stderr=None),
-                    jobout, joberr
-                )
-            )
+            job_list.append([self.job, subjob, child_env, jobout, joberr])
             with open(jobout, 'r') as jout:
                 joboutput = jout.read()
             with open(joberr, 'r') as jerr:
@@ -361,7 +325,6 @@ step:{4}
 count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
-        self.assertEqual(mock_wfc.call_count, 2)
 
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid', autospec=True)
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell._run_job', autospec=True)

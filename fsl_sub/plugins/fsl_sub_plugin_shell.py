@@ -4,20 +4,24 @@
 # fsl_sub plugin for running directly on this computer
 import datetime
 import logging
+from multiprocessing import get_context
 import os
 import shlex
 import subprocess as sp
 import sys
 
-from fsl_sub.config import method_config
+from fsl_sub.config import (
+    method_config,
+    read_config,
+)
 from fsl_sub.exceptions import (BadSubmission, MissingConfiguration, )
 from fsl_sub.utils import (
     parse_array_specifier,
     writelines_nl,
+    control_threads,
 )
 from fsl_sub.version import VERSION
 from collections import defaultdict
-from itertools import zip_longest
 
 
 def plugin_version():
@@ -187,29 +191,30 @@ def submit(
                 if array_limit is not None:
                     array_args['parallel_limit'] = array_limit
 
+        if keep_jobscript:
+            _write_joblog(job_log, jid, logdir)
         _run_parallel(jobs, jid, child_env, stdout, stderr, **array_args)
     else:
         job_log.append(' '.join(command))
+        if keep_jobscript:
+            _write_joblog(job_log, jid, logdir)
         _run_job(command, jid, child_env, stdout, stderr)
-    if keep_jobscript:
-        log_name = os.path.join(
-            logdir,
-            '_'.join(('wrapper', str(jid))) + '.sh'
-        )
-        logger.debug("Requested preservation of job script - storing as " + log_name)
-        try:
-            with open(log_name, mode='w') as lf:
-                writelines_nl(lf, job_log)
-        except OSError as e:
-            logger.warn("Unable to preserve wrapper script:" + str(e))
+
     return jid
 
 
-def _grouper(iterable, n, fillvalue=None):
-    "Collect data into fixed-length chunks or blocks"
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-    args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
+def _write_joblog(job_log, jid, logdir):
+    logger = _get_logger()
+    log_name = os.path.join(
+        logdir,
+        '_'.join(('wrapper', str(jid))) + '.sh'
+    )
+    logger.debug("Requested preservation of job script - storing as " + log_name)
+    try:
+        with open(log_name, mode='w') as lf:
+            writelines_nl(lf, job_log)
+    except OSError as e:
+        logger.warn("Unable to preserve wrapper script:" + str(e))
 
 
 def _run_job(job, job_id, child_env, stdout_file, stderr_file):
@@ -237,6 +242,42 @@ def _end_job_number(njobs, start, stride):
     return (njobs - 1) * stride + start
 
 
+def _mp_run(args):
+    job, parent_id, task_id, env, stdout_file, stderr_file = args
+    if not isinstance(task_id, str):
+        task_id = str(task_id)
+    if not isinstance(parent_id, str):
+        parent_id = str(parent_id)
+    try:
+        with open(stdout_file, mode='w') as stdout:
+            with open(stderr_file, mode='w') as stderr:
+                env['JOB_ID'] = parent_id
+                env['SHELL_TASK_ID'] = task_id
+                log = "Task {0} executed {1}".format(
+                    task_id,
+                    ' '.join(job))
+
+                output = sp.run(
+                    job,
+                    stdout=stdout,
+                    stderr=stderr,
+                    universal_newlines=True,
+                    env=env)
+
+        if output.returncode != 0:
+            with open(stderr_file, mode='r') as stderr:
+                return (1, "Task {0} failed executing: {1} ({2})".format(
+                    task_id,
+                    ' '.join(job),
+                    stderr.read()))
+        else:
+            return (0, log)
+    except (PermissionError, IOError, ) as e:
+        return "Error in subtask {0}, unable to open output file: ".format(task_id) + str(e)
+    except KeyboardInterrupt:
+        raise RuntimeError("Subtask {0} terminated".format(task_id))
+
+
 def _run_parallel(
         jobs, parent_id, parent_env, stdout_file, stderr_file,
         parallel_limit=None, array_start=1, array_end=None, array_stride=1):
@@ -246,73 +287,51 @@ def _run_parallel(
         array_end = _end_job_number(len(jobs), array_start, array_stride)
     logger.info("Running jobs in parallel")
     available_cores = _get_cores()
-
     if parallel_limit is not None and available_cores > parallel_limit:
         available_cores = parallel_limit
+    control_threads(read_config()['thread_control'], 1, parent_env)
 
     logger.debug("Have {0} cores available for parallelising over".format(available_cores))
 
-    errors = []
-    for group, job_group in enumerate(_grouper(jobs, available_cores)):
+    job_list = []
+    for id, job in enumerate(jobs):
+        task_id = id + 1
+        child_env = dict(parent_env)
+        if stdout_file != '/dev/null':
+            child_stdout = '.'.join((stdout_file, str(task_id)))
+        else:
+            child_stdout = stdout_file
 
-        children = []
-        for group_job, job in enumerate(job_group):
-            if job is not None:
-                sub_id = group * available_cores + group_job + 1
-                child_env = dict(parent_env)
+        if stderr_file != '/dev/null':
+            child_stderr = '.'.join((stderr_file, str(task_id)))
+        else:
+            child_stderr = stderr_file
+        child_env['JOB_ID'] = str(parent_id)
+        child_env['SHELL_TASK_ID'] = str(task_id)
+        child_env['SHELL_TASK_FIRST'] = str(array_start)
+        child_env['SHELL_TASK_LAST'] = str(array_end)
+        child_env['SHELL_TASK_STEPSIZE'] = str(array_stride)
+        child_env['SHELL_ARRAYCOUNT'] = ''
+        job_list.append([job, parent_id, task_id, child_env, child_stdout, child_stderr, ])
 
-                if stdout_file != '/dev/null':
-                    child_stdout = '.'.join((stdout_file, str(sub_id)))
+    job_errors = []
+    with get_context("spawn").Pool(available_cores) as pool:
+        logger.debug(str(job_list))
+        try:
+            for out in pool.imap(_mp_run, job_list):
+                if out[0]:
+                    job_errors.append(out[1])
                 else:
-                    child_stdout = stdout_file
+                    logger.info(out[1])
+        except RuntimeError as e:
+            raise BadSubmission from e
+        except KeyboardInterrupt:
+            raise BadSubmission("Terminated")
 
-                if stderr_file != '/dev/null':
-                    child_stderr = '.'.join((stderr_file, str(sub_id)))
-                else:
-                    child_stderr = stderr_file
-
-                with open(child_stdout, mode='w') as stdout:
-                    with open(child_stderr, mode='w') as stderr:
-                        child_env['JOB_ID'] = str(parent_id)
-                        child_env['SHELL_TASK_ID'] = str(sub_id)
-                        child_env['SHELL_TASK_FIRST'] = str(array_start)
-                        child_env['SHELL_TASK_LAST'] = str(array_end)
-                        child_env['SHELL_TASK_STEPSIZE'] = str(array_stride)
-                        child_env['SHELL_ARRAYCOUNT'] = ''
-                        logger.info(
-                            "executing: (" + str(sub_id) + ")" + str(job))
-
-                        children.append(
-                            (
-                                sp.Popen(
-                                    job,
-                                    stdout=stdout,
-                                    stderr=stderr,
-                                    universal_newlines=True,
-                                    env=child_env),
-                                child_stdout,
-                                child_stderr,
-                            )
-                        )
-
-        # Wait for children
-        errors.extend(_wait_for_children(children))
-
-    if errors:
-        raise BadSubmission('\n'.join(errors))
-
-
-def _wait_for_children(children):
-    errors = []
-    for child in children:
-        child[0].wait()
-        if child[0].returncode != 0:
-            try:
-                with open(child[2], mode='r') as stderr_f:
-                    errors.append(stderr_f.read())
-            except FileNotFoundError:
-                errors.append("Command {0} generated no output!".format(' '.join(child[0].args)))
-    return errors
+    if job_errors:
+        raise BadSubmission(
+            "Errors occured when running array task in shell plugin: "
+            + "\n".join(job_errors))
 
 
 def _cores():
