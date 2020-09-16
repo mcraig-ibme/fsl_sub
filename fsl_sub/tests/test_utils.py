@@ -1930,6 +1930,30 @@ class TestUtils(unittest.TestCase):
         fsl_sub.utils.check_command_file(test_file.name)
         os.remove(test_file.name)
 
+        with self.subTest('|| with empty line'):
+            with tempfile.NamedTemporaryFile(delete=False, mode='w') as test_file:
+                test_file.write("ls\nls\n\n")
+            os.chmod(test_file.name, stat.S_IRUSR)
+            with self.assertRaises(fsl_sub.utils.CommandError) as eo:
+                fsl_sub.utils.check_command_file(test_file.name)
+            self.assertEqual(
+                str(eo.exception),
+                "Array task file contains a blank line at line 3"
+            )
+        os.remove(test_file.name)
+
+        with self.subTest('|| with comment line line'):
+            with tempfile.NamedTemporaryFile(delete=False, mode='w') as test_file:
+                test_file.write("ls\n#\n\n")
+            os.chmod(test_file.name, stat.S_IRUSR)
+            with self.assertRaises(fsl_sub.utils.CommandError) as eo:
+                fsl_sub.utils.check_command_file(test_file.name)
+            self.assertEqual(
+                str(eo.exception),
+                "Array task file contains comment line (begins #) at line 2"
+            )
+        os.remove(test_file.name)
+
 
 class TestFileIsImage(unittest.TestCase):
     @patch('fsl_sub.utils.os.path.isfile', autospec=True)

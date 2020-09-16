@@ -224,6 +224,13 @@ def check_command_file(cmds):
     try:
         with open(cmds, 'r') as cmd_file:
             for lineno, line in enumerate(cmd_file.readlines()):
+                line = line.strip()
+                if line == '':
+                    raise CommandError(
+                        "Array task file contains a blank line at line " + str(lineno + 1))
+                if line.startswith('#'):
+                    raise CommandError(
+                        "Array task file contains comment line (begins #) at line " + str(lineno + 1))
                 cmd = line.split()[0]
                 if cmd == 'dummy':
                     # FEAT creates an array task file that contains

@@ -502,7 +502,6 @@ class SubmitTests(unittest.TestCase):
         mock_confrc.return_value = test_conf
         mock_rc.return_value = test_conf
         test_args = copy.deepcopy(self.base_args)
-        print(test_args['export_vars'])
         test_args['coprocessor'] = 'cuda'
         test_args['coprocessor_multi'] = '2'
         test_args['threads'] = 2
