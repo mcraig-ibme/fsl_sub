@@ -242,12 +242,15 @@ def check_command_file(cmds):
     return lineno + 1
 
 
-def control_threads(env_vars, threads):
+def control_threads(env_vars, threads, env_dict=None):
     '''Set the specified environment variables to the number of
     threads.'''
 
     for ev in env_vars:
-        os.environ[ev] = str(threads)
+        if env_dict is None:
+            os.environ[ev] = str(threads)
+        else:
+            env_dict[ev] = str(threads)
 
 
 def split_ram_by_slots(jram, jslots):
