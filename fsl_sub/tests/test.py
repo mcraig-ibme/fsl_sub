@@ -20,10 +20,6 @@ ram_units: G
 modulecmd: False
 thread_control:
   - OMP_NUM_THREADS
-  - MKL_NUM_THREADS
-  - MKL_DOMAIN_NUM_THREADS
-  - OPENBLAS_NUM_THREADS
-  - GOTO_NUM_THREADS
 preserve_modules: True
 export_vars: []
 method_opts:
@@ -311,7 +307,9 @@ class SubmitTests(unittest.TestCase):
             'coprocessor_class': None,
             'coprocessor_class_strict': False,
             'coprocessor_multi': '1',
-            'export_vars': ['FSLSUB_PARALLEL', ],
+            'export_vars': [
+                'FSLSUB_PARALLEL',
+                'OMP_NUM_THREADS=1', ],
             'job_name': 'mycommand',
             'parallel_env': None,
             'queue': 'a.qa,a.qb,a.qc',
@@ -508,6 +506,10 @@ class SubmitTests(unittest.TestCase):
         test_args['threads'] = 2
         test_args['parallel_env'] = 'shmem'
         test_args['queue'] = 'gpu.q'
+        test_args['export_vars'] = [
+            'FSLSUB_PARALLEL',
+            'OMP_NUM_THREADS=2',
+        ]
         plugins = {}
 
         plugins['fsl_sub_plugin_sge'] = FakePlugin()

@@ -1814,6 +1814,44 @@ class TestUtils(unittest.TestCase):
             dict(fsl_sub.utils.os.environ),
             {'THREADS': '1', 'MORETHREADS': '1'}
         )
+        with self.subTest("Add to list"):
+            test_list = []
+            fsl_sub.utils.control_threads(
+                ['THREADS', 'MORETHREADS', ], 1, add_to_list=test_list)
+            self.assertDictEqual(
+                dict(fsl_sub.utils.os.environ),
+                {'THREADS': '1', 'MORETHREADS': '1'}
+            )
+            self.assertListEqual(
+                test_list,
+                ['THREADS=1', "MORETHREADS=1", ]
+            )
+        with self.subTest("Mod list"):
+            test_list = ['THREADS=4']
+            fsl_sub.utils.control_threads(
+                ['THREADS', 'MORETHREADS', ], 1, add_to_list=test_list)
+            self.assertDictEqual(
+                dict(fsl_sub.utils.os.environ),
+                {'THREADS': '1', 'MORETHREADS': '1'}
+            )
+            self.assertListEqual(
+                test_list,
+                ['THREADS=1', "MORETHREADS=1", ]
+            )
+        with self.subTest("Update dict"):
+            test_dict = {}
+            fsl_sub.utils.control_threads(
+                ['THREADS', 'MORETHREADS', ], 1, env_dict=test_dict)
+            self.assertDictEqual(
+                dict(fsl_sub.utils.os.environ),
+                {'THREADS': '1', 'MORETHREADS': '1'}
+            )
+            self.assertDictEqual(
+                test_dict,
+                {
+                    'THREADS': str(1),
+                    'MORETHREADS': str(1), }
+            )
 
     @patch('fsl_sub.utils.shutil.which')
     def test_check_command(self, mock_which):

@@ -242,15 +242,24 @@ def check_command_file(cmds):
     return lineno + 1
 
 
-def control_threads(env_vars, threads, env_dict=None):
+def control_threads(env_vars, threads, env_dict=None, add_to_list=None):
     '''Set the specified environment variables to the number of
     threads.'''
-
+    if isinstance(threads, int):
+        st = str(threads)
     for ev in env_vars:
         if env_dict is None:
-            os.environ[ev] = str(threads)
+            os.environ[ev] = st
         else:
-            env_dict[ev] = str(threads)
+            env_dict[ev] = st
+
+        export_item = '='.join((ev, st))
+        if add_to_list is not None:
+            for index, var in enumerate(add_to_list):
+                if var.startswith(ev + '=') or var == ev:
+                    add_to_list.pop(index)
+
+            add_to_list.append(export_item)
 
 
 def split_ram_by_slots(jram, jslots):

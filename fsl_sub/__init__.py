@@ -486,7 +486,7 @@ def submit(
         if 'FSLSUB_PARALLEL' not in export_vars:
             export_vars.append('FSLSUB_PARALLEL')
 
-        control_threads(config['thread_control'], threads)
+        control_threads(config['thread_control'], threads, add_to_list=export_vars)
 
         if threads == 1 and parallel_env_requested is None:
             parallel_env = None
@@ -536,7 +536,7 @@ def submit(
                         if gpus_req > config['queues'][queue]['max_slots']:
                             raise BadSubmission("More GPUs than queue slots have been requested")
                         threads = gpus_req
-                    control_threads(config['thread_control'], threads)
+                    control_threads(config['thread_control'], threads, add_to_list=export_vars)
 
         if coprocessor_toolkit:
             logger.debug("Attempting to load coprocessor toolkit")
