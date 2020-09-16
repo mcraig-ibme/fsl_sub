@@ -248,6 +248,7 @@ def submit(
             ]
         )
     )
+
     PLUGINS = load_plugins()
 
     config = read_config()
@@ -296,6 +297,12 @@ def submit(
             "Failed to load plugin " + grid_module
             + " ({0})".format(str(e))
         )
+
+    if isinstance(command, str):
+        # command is a basic string
+        command = shlex.split(command)
+    elif not isinstance(command, list):
+        raise BadSubmission("Command should be a list or string")
 
     logger.debug("Loading configuration for " + config['method'])
     mconfig = method_config(config['method'])
@@ -363,45 +370,28 @@ def submit(
 
     validate_type = 'command'
     if array_task is False:
-        if isinstance(command, list):
-            # command is the command line to run as a list
-            job_type = 'single'
-        elif isinstance(command, str):
-            # command is a basic string
-            command = shlex.split(command)
-            job_type = 'single'
-        else:
-            raise BadSubmission("Command should be a list or string")
+        job_type = 'single'
         if (
                 array_hold is not None
                 or array_limit is not None
                 or array_specifier is not None):
             raise BadSubmission(
                 "Array controls not applicable to non-array tasks")
-        job_args = command
     elif array_specifier is None:
         job_type = 'array file'
         validate_type = 'array'
-        job_args = [command, ]
         if name is None:
-            name = os.path.basename(command)
-        command = command[0]
+            name = os.path.basename(command[0])
     else:
         job_type = 'array aware command'
         validate_type = 'command'
-        if isinstance(command, str):
-            # command is a basic string
-            command = shlex.split(command)
-        else:
-            raise BadSubmission("Command should be a list or string")
-        if validate_command:
-            try:
-                check_command(command[0])
-            except CommandError as e:
-                raise BadSubmission(
-                    "Problem with task command: " + str(e)
-                )
-        job_args = command
+
+    logger.info(
+        "METHOD={0} : TYPE={1} : args={2}".format(
+            config['method'],
+            job_type,
+            " ".join(command)
+        ))
 
     if validate_command:
         if validate_type == 'array':
@@ -427,12 +417,7 @@ def submit(
         else:
             raise BadConfiguration(
                 "Unknown validation type: " + validate_type)
-    logger.info(
-        "METHOD={0} : TYPE={1} : args={2}".format(
-            config['method'],
-            job_type,
-            " ".join(job_args)
-        ))
+
     if name is None:
         if isinstance(command, list):
             c_name = command[0]
