@@ -396,7 +396,7 @@ def submit(
     if validate_command:
         if validate_type == 'array':
             try:
-                check_command_file(command)
+                check_command_file(command[0])
             except CommandError as e:
                 raise BadSubmission(
                     "Array task definition file fault: " + str(e)
@@ -419,10 +419,7 @@ def submit(
                 "Unknown validation type: " + validate_type)
 
     if name is None:
-        if isinstance(command, list):
-            c_name = command[0]
-        else:
-            c_name = command.shlex.split()[0]
+        c_name = command[0]
         if '/' in c_name:
             c_name = os.path.basename(c_name)
         task_name = c_name
