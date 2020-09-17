@@ -14,7 +14,8 @@ from fsl_sub.config import (
     method_config,
     read_config,
 )
-from fsl_sub.exceptions import (BadSubmission, MissingConfiguration, )
+from fsl_sub.exceptions import (BadSubmission, MissingConfiguration, UnrecognisedModule, )
+from fsl_sub.shell_modules import (loaded_modules, load_module, )
 from fsl_sub.utils import (
     parse_array_specifier,
     writelines_nl,
@@ -78,6 +79,8 @@ def submit(
         array_specifier=None,
         logdir=None,
         keep_jobscript=None,
+        coprocessor=None,
+        coprocessor_toolkit=None,
         **kwargs):
     '''Submits the job'''
     logger = _get_logger()
@@ -137,6 +140,11 @@ def submit(
     child_env['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
     child_env['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
     child_env['FSLSUB_PARALLEL'] = '1'
+    if coprocessor is not None and coprocessor_toolkit is not None:
+        try:
+            load_module(coprocessor, coprocessor_toolkit)
+        except UnrecognisedModule:
+            raise BadSubmission("Unable to load module " + '/'.join(coprocessor, coprocessor_toolkit))
     jobs = []
     array_args = {}
     job_log = []
@@ -144,6 +152,8 @@ def submit(
         "# Built by fsl_sub v.{0} and fsl_sub_plugin_shell v.{1}".format(
             VERSION, plugin_version()
         ))
+    job_log.append("# Modules loaded: ")
+    job_log.append("\n".join(loaded_modules()))
     job_log.append("# Command line: " + " ".join(sys.argv))
     job_log.append("# Submission time (H:M:S DD/MM/YYYY): " + datetime.datetime.now().strftime("%H:%M:%S %d/%m/%Y"))
     job_log.append('')

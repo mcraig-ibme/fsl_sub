@@ -16,11 +16,11 @@ from fsl_sub.exceptions import (
     BadConfiguration,
     BadSubmission,
     CommandError,
-    LoadModuleError,
+    UnrecognisedModule,
 )
 from fsl_sub.coprocessors import (
-    coproc_load_module,
     max_coprocessors,
+    coproc_get_module,
 )
 from fsl_sub.config import (
     read_config,
@@ -522,15 +522,13 @@ def submit(
                     control_threads(config['thread_control'], threads, add_to_list=export_vars)
 
         if coprocessor_toolkit:
-            logger.debug("Attempting to load coprocessor toolkit")
+            logger.debug("Looking for coprocessor toolkit")
             logger.debug(":".join((coprocessor, coprocessor_toolkit)))
             try:
-                coproc_load_module(
-                    coprocessor_config(coprocessor),
-                    coprocessor_toolkit)
-            except LoadModuleError:
+                coproc_get_module(coprocessor, coprocessor_toolkit)
+            except UnrecognisedModule as e:
                 raise BadSubmission(
-                    "Unable to load requested coprocessor toolkit"
+                    "Unable to load coprocessor toolkit " + str(e)
                 )
     if uses_projects():
         q_project = get_project_env(project)
