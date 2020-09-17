@@ -311,7 +311,7 @@ def submit(
 
     logger.debug(
         "Adding export_vars from config to provided list "
-        + str(export_vars) + config.get('export_vars', []))
+        + str(export_vars) + str(config.get('export_vars', [])))
     [update_envvar_list(export_vars, a) for a in config.get('export_vars', [])]
 
     parallel_env_requested = parallel_env
