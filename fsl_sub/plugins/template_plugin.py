@@ -1,13 +1,8 @@
-# fsl_sub plugin for:
-#  * Slurm
-import datetime
+# fsl_sub plugin
 import logging
 import os
 import subprocess as sp
-import sys
-import tempfile
 from collections import defaultdict
-from shutil import which
 
 from fsl_sub.version import (VERSION, )
 from fsl_sub.exceptions import (
@@ -50,7 +45,7 @@ def plugin_version():
 
 def qtest():
     '''Command that confirms method is available'''
-    return qconf_cmd()
+    pass
 
 
 def queue_exists(qname, qtest=None):
@@ -75,6 +70,11 @@ def project_list():
 def build_queue_defs():
     '''Not currently implemented'''
     return ''
+
+
+def _qsub_cmd():
+    '''Returns the path to the submission command'''
+    pass
 
 
 def _get_logger():
@@ -167,7 +167,7 @@ def submit(
 
     # Set this to the name of the plugin, e.g. a in fsl_sub_plugin_a
     mconf = defaultdict(lambda: False, method_config(METHOD_NAME))
-    qsub = qsub_cmd()
+    qsub = _qsub_cmd()
     command_args = []
 
     modules = []
@@ -187,7 +187,6 @@ def submit(
         'FSLSUB_ARRAYCOUNT_VAR': 'CLUSTER_ARRAY_TASK_COUNT',
     }
 
-    gres = []
     if usescript:
         if len(command) > 1:
             raise BadSubmission(
@@ -203,7 +202,7 @@ def submit(
         # Check Parallel Environment is available
         if parallel_env:
             command_args.extend(
-                [#PARALLEL ENVIRONMENT ARGUMENT, str(threads),
+                [  # PARALLEL ENVIRONMENT ARGUMENT, str(threads),
                 ])
 
         for var, value in array_map.items():
@@ -212,9 +211,10 @@ def submit(
             update_envvar_list(my_export_vars, '='.join((var, value)))
         if mconf.get('copy_environment', False):
             # Add queue's argument for cloning current environment
+            pass
 
         if my_export_vars:
-            command_args.append(# Queue argument for exporting variables to job
+            command_args.append(  # Queue argument for exporting variables to job
             )
 
         if coprocessor is not None:
@@ -237,20 +237,25 @@ def submit(
 
         if logdir == '/dev/null':
             # Add arguments to point stdout and stderr to /dev/null
+            pass
         else:
             # Add arguments to define stdout and stderr log paths
+            pass
 
         # Processing of jobhold necessary for array_holds
         if jobhold:
             # Add argument for configuring a job jold
+            pass
         if array_task is not None:
             if mconf['array_limits'] and array_limit:
                 # Add argument to limit array task concurrent processes
+                pass
 
         if jobram:
             if ramsplit:
                 # Modify jobram if necessary...
                 # jobram = split_ram_by_slots(jobram, threads)
+                pass
             ram_units = read_config()['ram_units']
 
             # RAM is specified in megabytes
@@ -263,6 +268,7 @@ def submit(
                 raise BadConfiguration("ram_units not one of P, T, G, M, K")
             if mconf['notify_ram_usage']:
                 # Add argument to notify cluster of the RAM requirements of the job
+                pass
         if mconf['mail_support']:
             if mailto:
                 if not mail_on:
@@ -275,18 +281,18 @@ def submit(
             # Argument to specify job name
         )
 
-        command_args.append(# Argument to specify queue/partition
+        command_args.append(  # Argument to specify queue/partition
         )
 
-        command_args.append(# Any other arguments needed...
+        command_args.append(  # Any other arguments needed...
         )
 
         if requeueable:
-            command_args.append(# Argument that specifies requeueable
+            command_args.append(  # Argument that specifies requeueable
             )
 
         if project is not None:
-            command_args.append(# Argument to specify project
+            command_args.append(  # Argument to specify project
             )
 
         if array_task:
@@ -299,15 +305,15 @@ def submit(
                 ) = parse_array_specifier(array_specifier)
                 if not array_start:
                     raise BadSubmission("array_specifier doesn't make sense")
-                command_args.append(# Argument to describe an array task
+                command_args.append(  # Argument to describe an array task
                 )
             else:
                 with open(command[0], 'r') as cmd_f:
                     array_slots = len(cmd_f.readlines())
-                command_args.append(# Argument to describe an array task
+                command_args.append(  # Argument to describe an array task
                 )
 
-    logger.info(method_name + ": " + " ".join(
+    logger.info(METHOD_NAME + ": " + " ".join(
         [str(a) for a in command_args if a != qsub]))
 
     bash = bash_cmd()
@@ -335,7 +341,7 @@ def submit(
     if array_task and not array_specifier:
         extra_lines = [
             '',
-            'the_command=$(sed -n -e "${{VARIABLE INDICATING_ARRAY_TASK_ID}}p" {0})'.format(command), # Change this line
+            'the_command=$(sed -n -e "${{VARIABLE INDICATING_ARRAY_TASK_ID}}p" {0})'.format(command),  # Change this line
             '',
         ]
         command = ['exec', bash, '-c', '"$the_command"', ]
@@ -404,7 +410,7 @@ def submit(
 def _default_config_file():
     return os.path.join(
         os.path.realpath(os.path.dirname(__file__)),
-        'fsl_sub_' + method + '.yml')
+        'fsl_sub_' + METHOD_NAME + '.yml')
 
 
 def example_conf():
@@ -467,7 +473,7 @@ def job_status(job_id, sub_job_id=None):
         else:
             job_details = _finished_job(job_id, sub_job_id)
 
-    except UnknownJobId as e:
+    except UnknownJobId:
         raise
     except Exception as e:
         raise GridOutputError from e
@@ -476,11 +482,10 @@ def job_status(job_id, sub_job_id=None):
 
 
 def _running_job(job_id, sub_job_id=None):
-    # Get information on a running job
-    return job_info
+    '''Get information on a running job'''
+    pass
 
 
 def _finished_job(job_id, sub_job_id=None):
-    # Get information on a finished job
-    return job_info
-
+    '''Get information on a finished job'''
+    pass

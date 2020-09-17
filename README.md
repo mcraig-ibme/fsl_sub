@@ -420,3 +420,8 @@ Arguments:
 * ll_env=None
 
 This returns a tuple consisting of the queue and the number of slots required for the specified job parameters.
+
+## Writing Plugins
+
+Inside the plugins folder there is a template - template_plugin.py that can be modified to add support for different grid submission engines. This file should be renamed to fsl_sub_plugin_<method>.py and placed somewhere on the Python search path. Inside the plugin change METHOD_NAME to <method> and then modify the functions appropriately. The submit function carries out the job submission, and aims to either generate a command line with all the job arguments or to build a job submission script. The arguments should be added to the command_args list in the form of option flags and lists of options with arguments.
+Also provide a fsl_sub_<method>.yml file that provides the default configuration for the module.
