@@ -193,7 +193,19 @@ class TestCoprocessors(unittest.TestCase):
                 ['6.5', '7.0', '7.5', ]
             )
             mock_get_modules.assert_called_once_with('cuda')
-#  This isn't really a useful test!
+
+    @patch('fsl_sub.coprocessors.get_modules', autospec=True)
+    @patch(
+        'fsl_sub.coprocessors.coprocessor_config',
+        autospec=True,
+        return_value=test_config['coproc_opts']['cuda'])
+    def test_coproc_get_module(self, mock_cpc, mock_get_modules):
+        with self.subTest("CUDA toolkits"):
+            mock_get_modules.return_value = ['6.5', '7.0', '7.5', ]
+            self.assertEqual(
+                fsl_sub.coprocessors.coproc_get_module('cuda', '7.5'),
+                'cuda/7.5')
+            mock_get_modules.assert_called_once_with('cuda')
 
 
 if __name__ == '__main__':
