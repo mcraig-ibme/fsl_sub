@@ -2105,7 +2105,10 @@ class TestJobScript(unittest.TestCase):
         patch.stopall()
 
     @patch(
-        'fsl_sub_plugin_sge.sys.argv', ['fsl_sub', '-q', 'short.q', './mycommand', 'arg1', 'arg2', ]
+        'fsl_sub.utils.sys.argv', ['fsl_sub', '-q', 'short.q', './mycommand', 'arg1', 'arg2', ]
+    )
+    @patch(
+        'fsl_sub.utils.VERSION', '1.0.0'
     )
     def test_job_scriptbasic(self):
 
@@ -2128,7 +2131,7 @@ class TestJobScript(unittest.TestCase):
         self.assertListEqual(
             fsl_sub.utils.job_script(
                 ['./mycommand', 'arg1', 'arg2', ],
-                ['-q', 'short.q'],
+                [['-q', 'short.q']],
                 '#$',
                 ('sge', '2.0.0'),
                 [],
@@ -2140,7 +2143,7 @@ class TestJobScript(unittest.TestCase):
             self.assertListEqual(
                 fsl_sub.utils.job_script(
                     './mycommand arg1 arg2',
-                    ['-q', 'short.q'],
+                    [['-q', 'short.q']],
                     '#$',
                     ('sge', '2.0.0', ),
                     [],
@@ -2150,12 +2153,14 @@ class TestJobScript(unittest.TestCase):
             )
         with self.subTest("modules"):
             test_cmd = list(exp_head)
+            test_cmd.append('module load module1')
+            test_cmd.append('module load module2')
             test_cmd.extend(exp_cmd_mid)
             test_cmd.extend(['./mycommand arg1 arg2', ''])
             self.assertListEqual(
                 fsl_sub.utils.job_script(
                     './mycommand arg1 arg2',
-                    ['-q', 'short.q'],
+                    [['-q', 'short.q']],
                     '#$',
                     ('sge', '2.0.0', ),
                     ['module1', 'module2'],
