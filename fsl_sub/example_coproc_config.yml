@@ -59,5 +59,3 @@ coproc_opts:
     uses_modules: True
     # What is the name of the parent module for this co-processor?
     module_parent: cuda
-    # Does the SURLM cluster use constraints to specify GPU types?
-    slurm_constraints: True
