@@ -229,7 +229,7 @@ def submit(
     except KeyError:
         debugging = False
     if debugging:
-        export_vars.append('FSLSUB_DEBUG=1')
+        update_envvar_list(export_vars, 'FSLSUB_DEBUG=1')
         logger.setLevel(logging.DEBUG)
 
     logger.debug("Submit called with:")
