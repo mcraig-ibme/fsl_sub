@@ -100,6 +100,7 @@ def coproc_class(coproc_class, coproc_classes):
 
 
 def coproc_load_module(coproc, module_version):
+    coproc = coprocessor_config(coproc)
     if coproc['uses_modules']:
         modules_avail = get_modules(coproc['module_parent'])
         if modules_avail:
@@ -117,9 +118,11 @@ def coproc_get_module(coproc, module_version):
         modules_avail = get_modules(copro_conf['module_parent'])
         if modules_avail:
             if module_version not in modules_avail:
-                raise UnrecognisedModule(module_version)
+                raise UnrecognisedModule('/'.join((copro_conf['module_parent'], module_version)))
             else:
                 module_name = "/".join((copro_conf['module_parent'], module_version))
+        else:
+            raise UnrecognisedModule(copro_conf['module_parent'])
     return module_name
 
 
