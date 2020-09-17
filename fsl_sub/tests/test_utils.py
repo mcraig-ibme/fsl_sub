@@ -1855,6 +1855,25 @@ class TestUtils(unittest.TestCase):
                 }
             )
 
+    def test_update_envvar_list(self):
+        env_list = []
+        fsl_sub.utils.update_envvar_list(env_list, 'VAR')
+        self.assertListEqual(
+            env_list,
+            ['VAR'])
+        fsl_sub.utils.update_envvar_list(env_list, 'VAR=1')
+        self.assertListEqual(
+            env_list,
+            ['VAR=1'])
+        fsl_sub.utils.update_envvar_list(env_list, 'VAR=2')
+        self.assertListEqual(
+            env_list,
+            ['VAR=2'])
+        fsl_sub.utils.update_envvar_list(env_list, 'VAR2')
+        self.assertListEqual(
+            env_list,
+            ['VAR=2', "VAR2"])
+
     @patch('fsl_sub.utils.shutil.which')
     def test_check_command(self, mock_which):
         mock_which.return_value = None

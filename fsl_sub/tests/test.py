@@ -228,7 +228,7 @@ class ShellPluginSubmitTests(unittest.TestCase):
     def test_basic_functionality(self, mock_gqas, mock_rc, mock_gp):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
-            fsl_sub.cmd.main(['-q', 'vs.q', 'echo', 'hello'])
+            fsl_sub.cmdline.main(['-q', 'vs.q', 'echo', 'hello'])
             sys.stdout = sys.__stdout__
             self.assertEqual(text_trap.getvalue(), '111\n')
         with open(os.path.join(self.tempd.name, 'echo.o111'), mode='r') as ofile:
@@ -239,10 +239,10 @@ class ShellPluginSubmitTests(unittest.TestCase):
     @skipIf(sys.version_info.major <= 3 and sys.version_info.minor < 8, 'Requires python 3.8+')
     def test_set_fslsub_parallel(self, mock_gqas, mock_rc, mock_gp):
         with patch.dict('fsl_sub.os.environ', {}, clear=True) as mock_env:
-            with patch('fsl_sub.cmd.submit', return_value=111) as mock_submit:
+            with patch('fsl_sub.cmdline.submit', return_value=111) as mock_submit:
                 with io.StringIO() as text_trap:
                     sys.stdout = text_trap
-                    fsl_sub.cmd.main(['-n', '-q', 'vs.q', '-t', 'mytasks'])
+                    fsl_sub.cmdline.main(['-n', '-q', 'vs.q', '-t', 'mytasks'])
                     sys.stdout = sys.__stdout__
                     self.assertEqual(text_trap.getvalue(), '111\n')
         mock_submit.assert_called()
@@ -255,10 +255,10 @@ class ShellPluginSubmitTests(unittest.TestCase):
     @patch('fsl_sub.parallel.process_pe_def', autospec=True, return_value=('openmp', 2))
     def test_set_fslsub_parallel2(self, mock_ppd, mock_gqas, mock_rc, mock_gp):
         with patch.dict('fsl_sub.os.environ', {}, clear=True) as mock_env:
-            with patch('fsl_sub.cmd.submit', return_value=111) as mock_submit:
+            with patch('fsl_sub.cmdline.submit', return_value=111) as mock_submit:
                 with io.StringIO() as text_trap:
                     sys.stdout = text_trap
-                    fsl_sub.cmd.main(['-n', '-q', 'vs.q', '-s', 'openmp,2', '-t', 'mytasks', ])
+                    fsl_sub.cmdline.main(['-n', '-q', 'vs.q', '-s', 'openmp,2', '-t', 'mytasks', ])
                     sys.stdout = sys.__stdout__
                     self.assertEqual(text_trap.getvalue(), '111\n')
         mock_submit.assert_called()

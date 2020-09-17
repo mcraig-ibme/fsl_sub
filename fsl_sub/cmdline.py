@@ -472,10 +472,9 @@ There are several batch queues configured on the cluster:
             default=[],
             help="Job will inherit this environment variable. Repeat this option "
             "for as many variables as you require or configure your ~/.fsl_sub.yml "
-            "file:\nexport_envvars:\n  - MYENVVAR\n  - ANOTHERENVVAR\n"
-            "If you need to change the value of an environment variable then this may "
-            "be possible by providing:\n--export=VARNAME=NEWVALUE\nThis is cluster backend "
-            "dependent so may not be supported."
+            "file:\nexport_vars:\n  - MYENVVAR\n  - ANOTHERENVVAR\n"
+            "If you need to change the value of an environment variable then this is "
+            "achieved by providing:\n--export=VARNAME=NEWVALUE\n."
         )
         if uses_projects():
             advanced_g.add_argument(

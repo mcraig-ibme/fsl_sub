@@ -39,11 +39,11 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'fsl_sub=fsl_sub.cmd:main',
-            'fsl_sub_config=fsl_sub.cmd:example_config',
-            'fsl_sub_report=fsl_sub.cmd:report_cmd',
-            'fsl_sub_install_plugin=fsl_sub.cmd:install_plugin',
-            'fsl_sub_update=fsl_sub.cmd:update',
+            'fsl_sub=fsl_sub.cmdline:main',
+            'fsl_sub_config=fsl_sub.cmdline:example_config',
+            'fsl_sub_report=fsl_sub.cmdline:report_cmd',
+            'fsl_sub_install_plugin=fsl_sub.cmdline:install_plugin',
+            'fsl_sub_update=fsl_sub.cmdline:update',
         ]
     }
 )

@@ -265,11 +265,24 @@ def control_threads(env_vars, threads, env_dict=None, add_to_list=None):
 
         export_item = '='.join((ev, st))
         if add_to_list is not None:
-            for index, var in enumerate(add_to_list):
-                if var.startswith(ev + '=') or var == ev:
-                    add_to_list.pop(index)
+            update_envvar_list(add_to_list, export_item)
 
-            add_to_list.append(export_item)
+
+def update_envvar_list(envlist, variable):
+    '''Updates envlist (['VAR', 'VAR2=VALUE', ]) to include variable (variable string can contain =VALUE)
+    will ensure no duplicates or multiple setting of same variable to different values.'''
+    if len(envlist) == 0:
+        envlist.append(variable)
+        return
+    # Remove any =...
+    var = variable.split('=')[0]
+
+    for index, lvar in enumerate(envlist):
+        if '=' in lvar:
+            lvar = lvar.split('=')[0]
+        if lvar == var:
+            envlist.pop(index)
+    envlist.append(variable)
 
 
 def split_ram_by_slots(jram, jslots):

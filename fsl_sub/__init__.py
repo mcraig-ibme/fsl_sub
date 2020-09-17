@@ -39,6 +39,7 @@ from fsl_sub.utils import (
     check_command_file,
     control_threads,
     human_to_ram,
+    update_envvar_list,
 )
 from fsl_sub.version import VERSION
 
@@ -307,6 +308,11 @@ def submit(
     logger.debug("Loading configuration for " + config['method'])
     mconfig = method_config(config['method'])
     logger.debug("Method configuration is " + str(mconfig))
+
+    logger.debug(
+        "Adding export_vars from config to provided list "
+        + str(export_vars) + config.get('export_vars', []))
+    [update_envvar_list(export_vars, a) for a in config.get('export_vars', [])]
 
     parallel_env_requested = parallel_env
 

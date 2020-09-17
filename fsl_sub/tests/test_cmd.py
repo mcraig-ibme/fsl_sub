@@ -8,7 +8,7 @@ import socket
 import sys
 import unittest
 import yaml
-import fsl_sub.cmd
+import fsl_sub.cmdline
 from unittest.mock import patch
 
 YAML_CONF = '''---
@@ -397,7 +397,7 @@ class TestMisc(unittest.TestCase):
 
 
 @patch(
-    'fsl_sub.cmd.load_plugins',
+    'fsl_sub.cmdline.load_plugins',
     autospec=True,
     return_value={'fsl_sub_plugin_sge': FakePlugin()}
 )
@@ -406,7 +406,7 @@ class TestMisc(unittest.TestCase):
     autospec=True,
     return_value=yaml.safe_load(YAML_CONF))
 @patch(
-    'fsl_sub.cmd.read_config',
+    'fsl_sub.cmdline.read_config',
     autospec=True,
     return_value=yaml.safe_load(YAML_CONF))
 @patch(
@@ -414,11 +414,11 @@ class TestMisc(unittest.TestCase):
     autospec=True,
     return_value=yaml.safe_load(YAML_CONF))
 @patch(
-    'fsl_sub.cmd.submit',
+    'fsl_sub.cmdline.submit',
     autospec=True,
     return_value=123)
 @patch(
-    'fsl_sub.cmd.get_modules', autospec=True,
+    'fsl_sub.cmdline.get_modules', autospec=True,
     return_value=['7.5', '8.0', ])
 @patch(
     'fsl_sub.coprocessors.get_modules',
@@ -463,7 +463,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['--noramsplit', '1', '2', ])
+            fsl_sub.cmdline.main(['--noramsplit', '1', '2', ])
 
             sys.stdout = sys.__stdout__
 
@@ -482,7 +482,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['--parallelenv', 'shmem,2', '1', '2', ])
+            fsl_sub.cmdline.main(['--parallelenv', 'shmem,2', '1', '2', ])
 
             sys.stdout = sys.__stdout__
 
@@ -501,7 +501,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['-s', 'shmem,2', '1', '2', ])
+            fsl_sub.cmdline.main(['-s', 'shmem,2', '1', '2', ])
 
             sys.stdout = sys.__stdout__
 
@@ -521,7 +521,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['--mailoptions', 'n', '1', '2', ])
+            fsl_sub.cmdline.main(['--mailoptions', 'n', '1', '2', ])
 
             sys.stdout = sys.__stdout__
 
@@ -541,7 +541,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['--mailto', mailto, '1', '2', ])
+            fsl_sub.cmdline.main(['--mailto', mailto, '1', '2', ])
 
             sys.stdout = sys.__stdout__
 
@@ -559,7 +559,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['-M', mailto, '1', '2', ])
+            fsl_sub.cmdline.main(['-M', mailto, '1', '2', ])
 
             sys.stdout = sys.__stdout__
 
@@ -577,7 +577,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['--array_task', 'taskfile', ])
+            fsl_sub.cmdline.main(['--array_task', 'taskfile', ])
 
             sys.stdout = sys.__stdout__
 
@@ -595,7 +595,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['-t', 'taskfile', ])
+            fsl_sub.cmdline.main(['-t', 'taskfile', ])
 
             sys.stdout = sys.__stdout__
 
@@ -612,7 +612,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(
+            fsl_sub.cmdline.main(
                 ['--array_task', 'commandfile', '--array_limit', '2', ])
 
             sys.stdout = sys.__stdout__
@@ -632,7 +632,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['-x', '2', '--array_task', 'commandfile', ])
+            fsl_sub.cmdline.main(['-x', '2', '--array_task', 'commandfile', ])
 
             sys.stdout = sys.__stdout__
 
@@ -653,7 +653,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(
+            fsl_sub.cmdline.main(
                 ['--array_task', 'commandfile', '--array_hold', hold_id, ])
             sys.stdout = sys.__stdout__
 
@@ -674,7 +674,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(
+            fsl_sub.cmdline.main(
                 [
                     '--array_task', 'commandfile',
                     '--array_hold', hold_id, '--native_holds', ])
@@ -698,7 +698,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(
+            fsl_sub.cmdline.main(
                 ['--jobhold', hold_id, 'commandfile'])
 
             sys.stdout = sys.__stdout__
@@ -719,7 +719,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(
+            fsl_sub.cmdline.main(
                 ['--jobhold', hold_id, '--native_holds', 'commandfile', ])
             sys.stdout = sys.__stdout__
 
@@ -740,7 +740,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(
+            fsl_sub.cmdline.main(
                 ['--array_native', array_desc, 'command', ])
 
             sys.stdout = sys.__stdout__
@@ -761,7 +761,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main(['--coprocessor', 'cuda', '1', '2', ])
+            fsl_sub.cmdline.main(['--coprocessor', 'cuda', '1', '2', ])
 
             sys.stdout = sys.__stdout__
 
@@ -780,7 +780,7 @@ class TestMain(unittest.TestCase):
     def test_coprocessor_toolkit(self, *args):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
-            fsl_sub.cmd.main([
+            fsl_sub.cmdline.main([
                 '--coprocessor', 'cuda',
                 '--coprocessor_toolkit', '7.5',
                 '1', '2', ])
@@ -803,7 +803,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main([
+            fsl_sub.cmdline.main([
                 '--coprocessor', 'cuda',
                 '--coprocessor_class', 'K',
                 '1', '2', ])
@@ -826,7 +826,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main([
+            fsl_sub.cmdline.main([
                 '--coprocessor', 'cuda',
                 '--coprocessor_class', 'K',
                 '--coprocessor_class_strict',
@@ -851,7 +851,7 @@ class TestMain(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.main([
+            fsl_sub.cmdline.main([
                 '--coprocessor', 'cuda',
                 '--coprocessor_multi', '2',
                 '1', '2', ])
@@ -881,7 +881,7 @@ class TestMain(unittest.TestCase):
             with io.StringIO() as text_trap:
                 sys.stdout = text_trap
 
-                fsl_sub.cmd.main(['--project', 'Aproject', '1', '2', ])
+                fsl_sub.cmdline.main(['--project', 'Aproject', '1', '2', ])
 
                 sys.stdout = sys.__stdout__
 
@@ -910,7 +910,7 @@ class TestMain(unittest.TestCase):
                 with io.StringIO() as text_trap:
                     sys.stdout = text_trap
 
-                    fsl_sub.cmd.main(['1', '2', ])
+                    fsl_sub.cmdline.main(['1', '2', ])
 
                     sys.stdout = sys.__stdout__
 
@@ -933,7 +933,7 @@ class ErrorRaisingArgumentParser(argparse.ArgumentParser):
 class TestExampleConf(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.parser = fsl_sub.cmd.example_config_parser(
+        cls.parser = fsl_sub.cmdline.example_config_parser(
             parser_class=ErrorRaisingArgumentParser)
         none_config = os.path.join(
             os.path.dirname(__file__), '..',
@@ -961,9 +961,9 @@ class TestExampleConf(unittest.TestCase):
             'shell'
         )
 
-    @unittest.mock.patch('fsl_sub.cmd.sys.stdout', new_callable=io.StringIO)
+    @unittest.mock.patch('fsl_sub.cmdline.sys.stdout', new_callable=io.StringIO)
     def test_example_config(self, mock_stdout):
-        fsl_sub.cmd.example_config(['shell', ])
+        fsl_sub.cmdline.example_config(['shell', ])
         self.assertTrue(
             mock_stdout.getvalue().startswith('---\n')
         )
@@ -974,14 +974,14 @@ class TestExampleConf(unittest.TestCase):
 
 
 @patch(
-    'fsl_sub.cmd.find_fsldir', autospec=True,
+    'fsl_sub.cmdline.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
 )
 @patch(
-    'fsl_sub.cmd.conda_check_update', autospec=True
+    'fsl_sub.cmdline.conda_check_update', autospec=True
 )
 @patch(
-    'fsl_sub.cmd.available_plugin_packages', autospec=True,
+    'fsl_sub.cmdline.available_plugin_packages', autospec=True,
     return_value=['fsl_sub_plugin_sge', ]
 )
 class TestUpdate(unittest.TestCase):
@@ -996,7 +996,7 @@ class TestUpdate(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.update(args=['-c'])
+            fsl_sub.cmdline.update(args=['-c'])
             sys.stdout = sys.__stdout__
 
             self.assertEqual(
@@ -1011,7 +1011,7 @@ fsl_sub (1.0.0 -> 2.0.0)
         )
 
     @patch(
-        'fsl_sub.cmd.conda_update', autospec=True)
+        'fsl_sub.cmdline.conda_update', autospec=True)
     def test_update_noquestion(
             self, mock_up, mock_pp,
             mock_cup, mock_fsldir):
@@ -1026,7 +1026,7 @@ fsl_sub (1.0.0 -> 2.0.0)
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.update(args=['-y'])
+            fsl_sub.cmdline.update(args=['-y'])
             sys.stdout = sys.__stdout__
 
             self.assertEqual(
@@ -1042,9 +1042,9 @@ fsl_sub updated.
         )
 
     @patch(
-        'fsl_sub.cmd.conda_update', autospec=True)
+        'fsl_sub.cmdline.conda_update', autospec=True)
     @patch(
-        'fsl_sub.cmd.user_input', autospec=True
+        'fsl_sub.cmdline.user_input', autospec=True
     )
     def test_update_ask(
             self, mock_input, mock_up, mock_pp,
@@ -1061,7 +1061,7 @@ fsl_sub updated.
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.update(args=[])
+            fsl_sub.cmdline.update(args=[])
             sys.stdout = sys.__stdout__
 
             self.assertEqual(
@@ -1084,7 +1084,7 @@ fsl_sub updated.
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.update(args=[])
+            fsl_sub.cmdline.update(args=[])
             sys.stdout = sys.__stdout__
 
             self.assertEqual(
@@ -1108,7 +1108,7 @@ fsl_sub updated.
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
             with self.assertRaises(SystemExit) as cm:
-                fsl_sub.cmd.update(args=[])
+                fsl_sub.cmdline.update(args=[])
             sys.stdout = sys.__stdout__
 
             self.assertEqual(
@@ -1133,7 +1133,7 @@ fsl_sub (1.0.0 -> 2.0.0)
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
             with self.assertRaises(SystemExit) as cm:
-                fsl_sub.cmd.update(args=[])
+                fsl_sub.cmdline.update(args=[])
 
             sys.stdout = sys.__stdout__
 
@@ -1155,14 +1155,14 @@ fsl_sub (1.0.0 -> 2.0.0)
 
 
 @patch(
-    'fsl_sub.cmd.find_fsldir', autospec=True,
+    'fsl_sub.cmdline.find_fsldir', autospec=True,
     return_value='/usr/local/fsl'
 )
 @patch(
-    'fsl_sub.cmd.conda_find_packages', autospec=True
+    'fsl_sub.cmdline.conda_find_packages', autospec=True
 )
 @patch(
-    'fsl_sub.cmd.available_plugin_packages', autospec=True,
+    'fsl_sub.cmdline.available_plugin_packages', autospec=True,
     return_value=['fsl_sub_plugin_sge', ]
 )
 class TestInstall(unittest.TestCase):
@@ -1176,7 +1176,7 @@ class TestInstall(unittest.TestCase):
             sys.stdout = text_trap
 
             with self.assertRaises(SystemExit):
-                fsl_sub.cmd.install_plugin(args=['-l'])
+                fsl_sub.cmdline.install_plugin(args=['-l'])
             sys.stdout = sys.__stdout__
 
             self.assertEqual(
@@ -1191,7 +1191,7 @@ fsl_sub_plugin_sge
         )
 
     @patch(
-        'fsl_sub.cmd.conda_install', autospec=True)
+        'fsl_sub.cmdline.conda_install', autospec=True)
     def test_list_and_install(
             self, mock_ci, mock_pp,
             mock_fp, mock_fsldir):
@@ -1200,12 +1200,12 @@ fsl_sub_plugin_sge
         mock_ci.return_value = {
             'fsl_sub_plugin_sge': {'version': '1.0.0', }}
         # Trap stdout
-        with patch('fsl_sub.cmd.user_input', autospec=True) as ui:
+        with patch('fsl_sub.cmdline.user_input', autospec=True) as ui:
             ui.return_value = '1'
             with io.StringIO() as text_trap:
                 sys.stdout = text_trap
 
-                fsl_sub.cmd.install_plugin(args=[])
+                fsl_sub.cmdline.install_plugin(args=[])
                 sys.stdout = sys.__stdout__
 
                 self.assertEqual(
@@ -1234,7 +1234,7 @@ other files.
             ui.assert_called_once_with("Which backend? ")
 
     @patch(
-        'fsl_sub.cmd.conda_install', autospec=True)
+        'fsl_sub.cmdline.conda_install', autospec=True)
     def test_list_and_install_badchoice(
             self, mock_ci, mock_pp,
             mock_fp, mock_fsldir):
@@ -1243,13 +1243,13 @@ other files.
         mock_ci.return_value = {
             'fsl_sub_plugin_sge': {'version': '1.0.0', }}
         # Trap stdout
-        with patch('fsl_sub.cmd.user_input', autospec=True) as ui:
+        with patch('fsl_sub.cmdline.user_input', autospec=True) as ui:
             ui.return_value = '2'
             with io.StringIO() as text_trap:
                 sys.stdout = text_trap
 
                 with self.assertRaises(SystemExit) as se:
-                    fsl_sub.cmd.install_plugin(args=[])
+                    fsl_sub.cmdline.install_plugin(args=[])
                     self.assertEqual(
                         str(se.exception),
                         'Invalid plugin number')
@@ -1268,7 +1268,7 @@ other files.
             ui.assert_called_once_with("Which backend? ")
 
     @patch(
-        'fsl_sub.cmd.conda_install', autospec=True)
+        'fsl_sub.cmdline.conda_install', autospec=True)
     def test_install_direct(
             self, mock_ci, mock_pp,
             mock_fp, mock_fsldir):
@@ -1280,7 +1280,7 @@ other files.
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
 
-            fsl_sub.cmd.install_plugin(
+            fsl_sub.cmdline.install_plugin(
                 args=['-i', 'fsl_sub_plugin_sge'])
             sys.stdout = sys.__stdout__
 
@@ -1307,7 +1307,7 @@ other files.
         )
 
     @patch(
-        'fsl_sub.cmd.conda_install', autospec=True)
+        'fsl_sub.cmdline.conda_install', autospec=True)
     def test_install_direct_bad(
             self, mock_ci, mock_pp,
             mock_fp, mock_fsldir):
@@ -1320,7 +1320,7 @@ other files.
             sys.stdout = text_trap
 
             with self.assertRaises(SystemExit) as se:
-                fsl_sub.cmd.install_plugin(
+                fsl_sub.cmdline.install_plugin(
                     args=['-i', 'fsl_sub_plugin_slurm'])
                 self.assertEqual(
                     'Unrecognised plugin',
@@ -1337,7 +1337,7 @@ other files.
 
 
 # @patch(
-#     'fsl_sub.cmd.load_plugins',
+#     'fsl_sub.cmdline.load_plugins',
 #     autospec=True,
 #     return_value=FakePlugin()
 #     )
