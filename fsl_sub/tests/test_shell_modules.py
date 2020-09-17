@@ -112,25 +112,65 @@ class TestModuleSupport(unittest.TestCase):
             mock_module_add.return_value = {}
             self.assertFalse(
                 fsl_sub.shell_modules.load_module('amodule'))
-
-    @patch('fsl_sub.shell_modules.module_add', autospec=True)
-    @patch.dict(
-        'fsl_sub.shell_modules.os.environ',
-        {'VAR': 'VAL', 'VAR2': 'VAL2', 'EXISTING': 'VALUE', },
-        clear=True)
-    def test_unload_module(self, mock_module_add):
-        mock_module_add.return_value = {'VAR': 'VAL', 'VAR2': 'VAL2', }
-        with self.subTest('Test 1'):
+        with self.subTest("Add to loadedmodules"):
+            mock_module_add.return_value = {'LOADEDMODULES': 'bmodule/1.2.3', 'VAR': 'VAL', 'VAR2': 'VAL2', }
             self.assertTrue(
-                fsl_sub.shell_modules.unload_module('amodule'))
+                fsl_sub.shell_modules.load_module('amodule'))
             self.assertDictEqual(
                 dict(fsl_sub.shell_modules.os.environ),
-                {'EXISTING': 'VALUE', }
+                {'LOADEDMODULES': 'bmodule/1.2.3', 'VAR': 'VAL', 'VAR2': 'VAL2', }
             )
-        with self.subTest('Test 2'):
-            mock_module_add.return_value = {}
-            self.assertFalse(
-                fsl_sub.shell_modules.unload_module('amodule'))
+
+    @patch('fsl_sub.shell_modules.module_add', autospec=True)
+    def test_load_module2(self, mock_module_add):
+        with self.subTest("Add to loadedmodules 2"):
+            with patch.dict('fsl_sub.shell_modules.os.environ', {'LOADEDMODULES': 'amodule/2.3.4', }, clear=True):
+                mock_module_add.return_value = {'LOADEDMODULES': 'bmodule/1.2.3', 'VAR': 'VAL', 'VAR2': 'VAL2', }
+                self.assertTrue(
+                    fsl_sub.shell_modules.load_module('bmodule'))
+                self.assertDictEqual(
+                    dict(fsl_sub.shell_modules.os.environ),
+                    {'LOADEDMODULES': 'amodule/2.3.4:bmodule/1.2.3', 'VAR': 'VAL', 'VAR2': 'VAL2', }
+                )
+
+    @patch('fsl_sub.shell_modules.module_add', autospec=True)
+    def test_unload_module(self, mock_module_add):
+        with self.subTest("Unload modules 2"):
+            with patch.dict(
+                    'fsl_sub.shell_modules.os.environ', {
+                        'LOADEDMODULES': 'amodule/2.3.4:bmodule/1.2.3', 'VAR': 'VAL', 'VAR2': 'VAL2', },
+                    clear=True):
+                mock_module_add.return_value = {'LOADEDMODULES': 'bmodule/1.2.3', 'VAR': 'VAL', 'VAR2': 'VAL2', }
+                self.assertTrue(
+                    fsl_sub.shell_modules.unload_module('bmodule'))
+                self.assertDictEqual(
+                    dict(fsl_sub.shell_modules.os.environ),
+                    {'LOADEDMODULES': 'amodule/2.3.4', }
+                )
+        with self.subTest("Unload modules 3"):
+            with patch.dict(
+                    'fsl_sub.shell_modules.os.environ', {
+                        'LOADEDMODULES': 'amodule/2.3.4:bmodule/1.2.3', 'VAR': 'VAL', 'VAR2': 'VAL2', },
+                    clear=True):
+                mock_module_add.return_value = {'LOADEDMODULES': 'amodule/2.3.4', 'VAR': 'VAL', 'VAR2': 'VAL2', }
+                self.assertTrue(
+                    fsl_sub.shell_modules.unload_module('amodule'))
+                self.assertDictEqual(
+                    dict(fsl_sub.shell_modules.os.environ),
+                    {'LOADEDMODULES': 'bmodule/1.2.3', }
+                )
+        with self.subTest("Unload modules 4"):
+            with patch.dict(
+                    'fsl_sub.shell_modules.os.environ', {
+                        'LOADEDMODULES': 'bmodule/1.2.3:amodule/2.3.4:', 'VAR': 'VAL', 'VAR2': 'VAL2', },
+                    clear=True):
+                mock_module_add.return_value = {'LOADEDMODULES': 'amodule/2.3.4', 'VAR': 'VAL', 'VAR2': 'VAL2', }
+                self.assertTrue(
+                    fsl_sub.shell_modules.unload_module('amodule'))
+                self.assertDictEqual(
+                    dict(fsl_sub.shell_modules.os.environ),
+                    {'LOADEDMODULES': 'bmodule/1.2.3', }
+                )
 
     @patch.dict(
         'fsl_sub.shell_modules.os.environ',

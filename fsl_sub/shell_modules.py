@@ -59,9 +59,18 @@ def module_add(module_name):
 def load_module(module_name):
     '''Load a module into the environment of this python process.'''
     environment = module_add(module_name)
+    lmod = ''
     if environment:
         for k, v in environment.items():
-            os.environ[k] = v
+            if k != 'LOADEDMODULES':
+                os.environ[k] = v
+            else:
+                lmod = v
+        if lmod:
+            try:
+                os.environ['LOADEDMODULES'] = ':'.join((os.environ['LOADEDMODULES'], lmod))
+            except KeyError:
+                os.environ['LOADEDMODULES'] = lmod
         return True
     else:
         return False
@@ -71,9 +80,27 @@ def unload_module(module_name):
     '''Remove environment variables associated with module module_name
      from the environment of python process.'''
     environment = module_add(module_name)
+    dmod = ''
     if environment:
-        for k in environment:
-            del os.environ[k]
+        for k, v in environment.items():
+            if k != 'LOADEDMODULES':
+                del os.environ[k]
+            else:
+                dmod = v
+        try:
+            loaded_mods = os.environ['LOADEDMODULES'].split(':')
+        except KeyError:
+            loaded_mods = []
+        try:
+            loaded_mods.remove(dmod)
+        except ValueError:
+            pass
+        lmods = ':'.join(loaded_mods).strip(':')
+
+        try:
+            os.environ['LOADEDMODULES'] = lmods
+        except KeyError:
+            pass
         return True
     else:
         return False
