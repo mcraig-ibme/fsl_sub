@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import datetime
 import io
 import os
 import stat
@@ -2069,6 +2070,99 @@ class TestFixPerms(unittest.TestCase):
                 self.assertEqual(
                     perms.st_mode & 0o777,
                     0o644)
+
+
+class TestJobScript(unittest.TestCase):
+    def setUp(self):
+        self.now = datetime.datetime.now()
+        self.strftime = datetime.datetime.strftime
+        self.bash = '/bin/bash'
+        self.qsub = '/usr/bin/qsub'
+        self.patch_objects = {
+            'fsl_sub_plugin_sge.datetime': {'autospec': True, },
+            'fsl_sub_plugin_sge.bash_cmd': {'autospec': True, 'return_value': self.bash, },
+        }
+
+        self.patch_dict_objects = {}
+        self.patches = {}
+        for p, kwargs in self.patch_objects.items():
+            self.patches[p] = patch(p, **kwargs)
+        self.mocks = {}
+        for o, p in self.patches.items():
+            self.mocks[o] = p.start()
+
+        self.dict_patches = {}
+        for p, kwargs in self.patch_dict_objects.items():
+            self.dict_patches[p] = patch.dict(p, **kwargs)
+
+        for o, p in self.dict_patches.items():
+            self.mocks[o] = p.start()
+        self.mocks['fsl_sub_plugin_sge.datetime'].datetime.now.return_value = self.now
+        self.mocks['fsl_sub_plugin_sge.datetime'].datetime.strftime = self.strftime
+        self.addCleanup(patch.stopall)
+
+    def TearDown(self):
+        patch.stopall()
+
+    @patch(
+        'fsl_sub_plugin_sge.sys.argv', ['fsl_sub', '-q', 'short.q', './mycommand', 'arg1', 'arg2', ]
+    )
+    def test_job_scriptbasic(self):
+
+        exp_head = [
+            '#!' + self.bash,
+            '',
+            '#$ -q short.q',
+        ]
+        exp_cmd_start = list(exp_head)
+        exp_cmd_mid = [
+            '# Built by fsl_sub v.1.0.0 and fsl_sub_plugin_sge v.2.0.0',
+            '# Command line: fsl_sub -q short.q ./mycommand arg1 arg2',
+            '# Submission time (H:M:S DD/MM/YYYY): {0}'.format(self.now.strftime("%H:%M:%S %d/%m/%Y")),
+            '',
+        ]
+
+        test_cmd = list(exp_cmd_start)
+        test_cmd.extend(exp_cmd_mid)
+        test_cmd.extend(['./mycommand arg1 arg2', ''])
+        self.assertListEqual(
+            fsl_sub.utils.job_script(
+                ['./mycommand', 'arg1', 'arg2', ],
+                ['-q', 'short.q'],
+                '#$',
+                ('sge', '2.0.0'),
+                [],
+                []
+            ),
+            test_cmd
+        )
+        with self.subTest("command as string"):
+            self.assertListEqual(
+                fsl_sub.utils.job_script(
+                    './mycommand arg1 arg2',
+                    ['-q', 'short.q'],
+                    '#$',
+                    ('sge', '2.0.0', ),
+                    [],
+                    []
+                ),
+                test_cmd
+            )
+        with self.subTest("modules"):
+            test_cmd = list(exp_head)
+            test_cmd.extend(exp_cmd_mid)
+            test_cmd.extend(['./mycommand arg1 arg2', ''])
+            self.assertListEqual(
+                fsl_sub.utils.job_script(
+                    './mycommand arg1 arg2',
+                    ['-q', 'short.q'],
+                    '#$',
+                    ('sge', '2.0.0', ),
+                    ['module1', 'module2'],
+                    []
+                ),
+                test_cmd
+            )
 
 
 if __name__ == '__main__':

@@ -1,8 +1,10 @@
 # fsl_sub python module
-# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+# Copyright (c) 2018-2020, University of Oxford (Duncan Mortimer)
 
+import datetime
 import importlib
 import json
+import logging
 import math
 import os
 import pkgutil
@@ -10,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import yaml
 from functools import lru_cache
 from math import ceil
@@ -30,6 +33,7 @@ from fsl_sub.exceptions import (
 from fsl_sub.system import (
     system_stdout,
 )
+from fsl_sub.version import VERSION
 from shutil import which
 
 
@@ -754,6 +758,53 @@ def add_nl(s):
     if not s.endswith('\n'):
         s += '\n'
     return s
+
+
+def job_script(command, command_args, q_prefix, q_plugin, modules=[], extra_lines=[]):
+    '''Build a job script for 'command' with arguments 'command_args'.
+    q_prefix is prefix to add to queue command lines,
+    q_plugin is a tuple (plugin short name, plugin_version)
+    modules is a list of shell modules to load and extra_lines will be added between the
+    header and the command line'''
+
+    logger = logging.getLogger('fsl_sub.fsl_sub_plugin_' + q_plugin[0])
+    bash = bash_cmd()
+
+    job_def = ['#!' + bash, '', ]
+    for cmd in command_args:
+        if type(cmd) is list:
+            job_def.append(' '.join((q_prefix, ' '.join(cmd))))
+        else:
+            job_def.append(' '.join((q_prefix, str(cmd))))
+
+    logger.debug("Creating module load lines")
+    logger.debug("Module list is " + str(modules))
+    for module in modules:
+        job_def.append("module load " + module)
+
+    job_def.append(
+        "# Built by fsl_sub v.{0} and fsl_sub_plugin_{1} v.{2}".format(
+            VERSION, q_plugin[0], q_plugin[1]
+        ))
+    job_def.append("# Command line: " + " ".join(sys.argv))
+    job_def.append("# Submission time (H:M:S DD/MM/YYYY): " + datetime.datetime.now().strftime("%H:%M:%S %d/%m/%Y"))
+    job_def.append('')
+    job_def.extend(extra_lines)
+    if type(command) is list:
+        job_def.append(" ".join(command))
+    else:
+        job_def.append(command)
+    job_def.append('')
+    return job_def
+
+
+def write_wrapper(content):
+    with tempfile.NamedTemporaryFile(
+            mode='wt',
+            delete=False) as wrapper:
+        writelines_nl(wrapper, content)
+
+    return wrapper.name
 
 
 class YamlIndentDumper(yaml.SafeDumper):
