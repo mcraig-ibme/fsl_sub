@@ -807,6 +807,12 @@ def write_wrapper(content):
     return wrapper.name
 
 
+def find_default_queue(qconfig):
+    for q, definition in qconfig.items():
+        if 'default' in definition:
+            return q
+
+
 class YamlIndentDumper(yaml.SafeDumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)
