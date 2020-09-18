@@ -875,10 +875,8 @@ def main(args=None):
         exports = options['exports']
     except KeyError:
         exports = []
-    try:
-        keep_jobscript = options['keep_jobscript']
-    except KeyError:
-        keep_jobscript = False
+
+    keep_jobscript = options['keep_jobscript']
 
     try:
         job_id = submit(
