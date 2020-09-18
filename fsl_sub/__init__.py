@@ -459,14 +459,7 @@ def submit(
             if not queue_exists(queue):
                 raise BadSubmission("Unrecognised queue " + queue)
             logger.debug("Specific queue: " + queue)
-            if queue in config['queues']:
-                slots_required = calc_slots(
-                    jobram,
-                    config['queues'][queue]['slot_size'],
-                    threads)
-            else:
-                slots_required = 1
-
+            slots_required = _slots_required(queue, jobram, config['queues'], threads)
         threads = max(slots_required, threads)
 
         control_threads(config['thread_control'], threads, add_to_list=export_vars)
@@ -586,6 +579,21 @@ def submit(
         return (job_id,)
     else:
         return job_id
+
+
+def _slots_required(q_name, jobram, qconfig, threads):
+    logger = logging.getLogger(__name__)
+    if '@' in q_name:
+        logger.debug("q@host requested, removing @host from all queues")
+        q_name = ','.join([q.split('@')[0] for q in q_name.split(',')])
+    if q_name in qconfig:
+        return calc_slots(
+            jobram,
+            qconfig[q_name]['slot_size'],
+            threads)
+    else:
+        logger.debug("queue definition not found, defaulting to single slot")
+        return 1
 
 
 def calc_slots(job_ram, slot_size, job_threads):

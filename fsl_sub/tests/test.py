@@ -585,6 +585,44 @@ class GetQTests(unittest.TestCase):
     def setUpClass(cls):
         cls.conf_dict = yaml.safe_load(YAML_CONF)
 
+    def test__slots_required(self):
+        with self.subTest("Single q"):
+            self.assertEqual(
+                1,
+                fsl_sub._slots_required(
+                    'a.qa',
+                    8,
+                    self.conf_dict['queues'],
+                    2
+                ))
+        with self.subTest("q and host"):
+            self.assertEqual(
+                1,
+                fsl_sub._slots_required(
+                    'a.qa@host',
+                    8,
+                    self.conf_dict['queues'],
+                    2
+                ))
+        with self.subTest("Unconfigured q"):
+            self.assertEqual(
+                1,
+                fsl_sub._slots_required(
+                    'new.q',
+                    100,
+                    self.conf_dict['queues'],
+                    1
+                ))
+        with self.subTest("Multi q"):
+            self.assertEqual(
+                13,
+                fsl_sub._slots_required(
+                    'a.qa,a.qc',
+                    200,
+                    self.conf_dict['queues'],
+                    1
+                ))
+
     def test_getq_and_slots(self):
         with self.subTest('All a queues'):
             self.assertTupleEqual(
