@@ -31,6 +31,7 @@ setup(
     packages=find_packages(),
     license='FSL License',
     install_requires=['pyyaml'],
+    setup_requires=['pyyaml'],
     python_requires='~=3.5',
     package_data={
         'fsl_sub': ['default_config.yml', 'example_queue_config.yml', 'example_coproc_config.yml'],
