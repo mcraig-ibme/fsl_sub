@@ -2079,8 +2079,8 @@ class TestJobScript(unittest.TestCase):
         self.bash = '/bin/bash'
         self.qsub = '/usr/bin/qsub'
         self.patch_objects = {
-            'fsl_sub_plugin_sge.datetime': {'autospec': True, },
-            'fsl_sub_plugin_sge.bash_cmd': {'autospec': True, 'return_value': self.bash, },
+            'fsl_sub.utils.datetime': {'autospec': True, },
+            'fsl_sub.utils.bash_cmd': {'autospec': True, 'return_value': self.bash, },
         }
 
         self.patch_dict_objects = {}
@@ -2097,8 +2097,8 @@ class TestJobScript(unittest.TestCase):
 
         for o, p in self.dict_patches.items():
             self.mocks[o] = p.start()
-        self.mocks['fsl_sub_plugin_sge.datetime'].datetime.now.return_value = self.now
-        self.mocks['fsl_sub_plugin_sge.datetime'].datetime.strftime = self.strftime
+        self.mocks['fsl_sub.utils.datetime'].datetime.now.return_value = self.now
+        self.mocks['fsl_sub.utils.datetime'].datetime.strftime = self.strftime
         self.addCleanup(patch.stopall)
 
     def TearDown(self):
