@@ -760,13 +760,17 @@ def add_nl(s):
     return s
 
 
-def job_script(command, command_args, q_prefix, q_plugin, modules=[], extra_lines=[]):
+def job_script(command, command_args, q_prefix, q_plugin, modules=None, extra_lines=None):
     '''Build a job script for 'command' with arguments 'command_args'.
     q_prefix is prefix to add to queue command lines,
     q_plugin is a tuple (plugin short name, plugin_version)
     modules is a list of shell modules to load and extra_lines will be added between the
     header and the command line'''
 
+    if modules is None:
+        modules = []
+    if extra_lines is None:
+        extra_lines = []
     logger = logging.getLogger('fsl_sub.fsl_sub_plugin_' + q_plugin[0])
     bash = bash_cmd()
 

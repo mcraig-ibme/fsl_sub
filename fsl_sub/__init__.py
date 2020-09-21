@@ -167,7 +167,7 @@ def submit(
     native_holds=False,
     as_tuple=False,
     project=None,
-    export_vars=[],
+    export_vars=None,
     keep_jobscript=False
 ):
     '''Submit job(s) to a queue, returns the job id as an int (pass as_tuple=True
@@ -231,6 +231,14 @@ def submit(
     if debugging:
         update_envvar_list(export_vars, 'FSLSUB_DEBUG=1')
         logger.setLevel(logging.DEBUG)
+
+    # Can't just have export_vars=[] in function definition as the list is mutable so subsequent calls
+    # will return the updated list!
+    if export_vars is None:
+        export_vars = []
+    # Ensure FSLSUB's configuration file path is propagated to jobs
+    if 'FSLSUB_CONF' in os.environ.keys():
+        update_envvar_list(export_vars, '='.join(('FSLSUB_CONF', os.environ['FSLSUB_CONF'])))
 
     logger.debug("Submit called with:")
     logger.debug(

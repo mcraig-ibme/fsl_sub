@@ -109,7 +109,7 @@ def submit(
         architecture=None,
         requeueable=True,
         project=None,
-        export_vars=[],
+        export_vars=None,
         keep_jobscript=None):
     '''Submits the job to a SLURM cluster
     Requires:
@@ -164,6 +164,11 @@ def submit(
         raise BadSubmission(
             "Internal error: command argument must be a list"
         )
+
+    # Can't just have export_vars=[] in function definition as the list is mutable so subsequent calls
+    # will return the updated list!
+    if export_vars is None:
+        export_vars = []
 
     # Set this to the name of the plugin, e.g. a in fsl_sub_plugin_a
     mconf = defaultdict(lambda: False, method_config(METHOD_NAME))

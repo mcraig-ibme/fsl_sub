@@ -823,7 +823,7 @@ def main(args=None):
         except CommandError as e:
             cmd_parser.error(str(e))
 
-    if options['parallelenv']:
+    if options['parallelenv'] and config['method'] != 'shell':
         try:
             pe_name, threads = process_pe_def(
                 options['parallelenv'], config['queues'])

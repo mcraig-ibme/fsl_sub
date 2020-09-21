@@ -245,11 +245,11 @@ class ShellPluginSubmitTests(unittest.TestCase):
                     fsl_sub.cmdline.main(['-n', '-q', 'vs.q', '-t', 'mytasks'])
                     sys.stdout = sys.__stdout__
                     self.assertEqual(text_trap.getvalue(), '111\n')
+            try:
+                self.assertEqual('0', mock_env['FSLSUB_PARALLEL'])
+            except KeyError:
+                self.assertFail("FSLSUB_PARALLEL not set")
         mock_submit.assert_called()
-        try:
-            self.assertEqual('0', mock_env.getvalue()['FSLSUB_PARALLEL'])
-        except KeyError:
-            self.assertFail("FSLSUB_PARALLEL not set")
 
     @skipIf(sys.version_info.major <= 3 and sys.version_info.minor < 8, 'Requires python 3.8+')
     @patch('fsl_sub.parallel.process_pe_def', autospec=True, return_value=('openmp', 2))
@@ -261,13 +261,32 @@ class ShellPluginSubmitTests(unittest.TestCase):
                     fsl_sub.cmdline.main(['-n', '-q', 'vs.q', '-s', 'openmp,2', '-t', 'mytasks', ])
                     sys.stdout = sys.__stdout__
                     self.assertEqual(text_trap.getvalue(), '111\n')
+            try:
+                self.assertEqual('0', mock_env['FSLSUB_PARALLEL'])
+            except KeyError:
+                self.assertFail("FSLSUB_PARALLEL not set")
         mock_submit.assert_called()
-        try:
-            self.assertEqual('2', mock_env.getvalue()['FSLSUB_PARALLEL'])
-        except KeyError:
-            self.assertFail("FSLSUB_PARALLEL not set")
+
+    @skipIf(sys.version_info.major <= 3 and sys.version_info.minor < 8, 'Requires python 3.8+')
+    @patch('fsl_sub.parallel.process_pe_def', autospec=True, return_value=('openmp', 2))
+    def test_set_fslsub_parallel3(self, mock_ppd, mock_gqas, mock_rc, mock_gp):
+        with patch.dict('fsl_sub.os.environ', {'FSLSUB_PARALLEL': '4'}, clear=True) as mock_env:
+            with patch('fsl_sub.cmdline.submit', return_value=111) as mock_submit:
+                with io.StringIO() as text_trap:
+                    sys.stdout = text_trap
+                    fsl_sub.cmdline.main(['-n', '-q', 'vs.q', '-s', 'openmp,2', '-t', 'mytasks', ])
+                    sys.stdout = sys.__stdout__
+                    self.assertEqual(text_trap.getvalue(), '111\n')
+            try:
+                self.assertEqual('4', mock_env['FSLSUB_PARALLEL'])
+            except KeyError:
+                self.assertFail("FSLSUB_PARALLEL not set")
+        mock_submit.assert_called()
 
 
+@patch.dict(
+    'fsl_sub.os.environ', {}, clear=True
+)
 @patch(
     'fsl_sub.shell_modules.read_config',
     autospec=True,
@@ -434,6 +453,7 @@ class SubmitTests(unittest.TestCase):
         plugins['fsl_sub_plugin_sge'].queue_exists.return_value = True
         plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
         mock_loadplugins.return_value = plugins
+        plugins['fsl_sub_plugin_sge'].submit.reset_mock()
         with self.subTest('env not set - no memory specified'):
             fsl_sub.submit(['mycommand', ], project=None)
 
@@ -578,6 +598,35 @@ class SubmitTests(unittest.TestCase):
                 str(eo.exception),
                 "Specified coprocessor_multi argument is a complex value but cluster configured with 'uses_pe'"
                 " which requires a simple integer")
+
+    def test_fsl_sub_config(
+            self, mock_prjl, mock_checkcmd, mock_loadplugins,
+            mock_confrc, mock_rc, mock_smrc):
+        plugins = {}
+
+        plugins['fsl_sub_plugin_sge'] = FakePlugin()
+        plugins['fsl_sub_plugin_sge'].submit = MagicMock(name='submit')
+        plugins['fsl_sub_plugin_sge'].qtest = MagicMock(name='qtest')
+        plugins['fsl_sub_plugin_sge'].qtest.return_value = '/usr/bin/qconf'
+        plugins['fsl_sub_plugin_sge'].queue_exists = MagicMock(
+            name='queue_exists')
+        plugins['fsl_sub_plugin_sge'].queue_exists.return_value = True
+        plugins['fsl_sub_plugin_sge'].BadSubmission = BadSubmission
+
+        mock_loadplugins.return_value = plugins
+        with self.subTest('FSLSUB_CONF set'):
+            with patch.dict(
+                    'fsl_sub.os.environ',
+                    {'FSLSUB_CONF': '/usr/local/etc/fsl_sub.yml', },
+                    clear=True):
+                test_args = copy.deepcopy(self.base_args)
+                test_args['export_vars'].insert(0, 'FSLSUB_CONF=/usr/local/etc/fsl_sub.yml')
+                fsl_sub.submit(['mycommand', ], jobram=None)
+
+                plugins['fsl_sub_plugin_sge'].submit.assert_called_with(
+                    ['mycommand', ],
+                    **test_args
+                )
 
 
 class GetQTests(unittest.TestCase):
