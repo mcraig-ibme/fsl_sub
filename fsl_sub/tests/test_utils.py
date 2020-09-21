@@ -1874,6 +1874,16 @@ class TestUtils(unittest.TestCase):
         self.assertListEqual(
             env_list,
             ['VAR=2', "VAR2"])
+        fsl_sub.utils.update_envvar_list(env_list, 'VAR=1', overwrite=False)
+        self.assertListEqual(
+            env_list,
+            ['VAR=2', "VAR2"]
+        )
+        fsl_sub.utils.update_envvar_list(env_list, 'VAR=1', overwrite=True)
+        self.assertListEqual(
+            sorted(env_list),
+            sorted(['VAR=1', "VAR2"])
+        )
 
     @patch('fsl_sub.utils.shutil.which')
     def test_check_command(self, mock_which):

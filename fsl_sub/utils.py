@@ -272,21 +272,26 @@ def control_threads(env_vars, threads, env_dict=None, add_to_list=None):
             update_envvar_list(add_to_list, export_item)
 
 
-def update_envvar_list(envlist, variable):
+def update_envvar_list(envlist, variable, overwrite=True):
     '''Updates envlist (['VAR', 'VAR2=VALUE', ]) to include variable (variable string can contain =VALUE)
-    will ensure no duplicates or multiple setting of same variable to different values.'''
+    will ensure no duplicates or multiple setting of same variable to different values.
+    If overwrite is True will overwrite existing value in envlist, otherwise will only add missing variables.'''
     if len(envlist) == 0:
         envlist.append(variable)
         return
     # Remove any =...
     var = variable.split('=')[0]
 
+    found = False
     for index, lvar in enumerate(envlist):
         if '=' in lvar:
             lvar = lvar.split('=')[0]
         if lvar == var:
-            envlist.pop(index)
-    envlist.append(variable)
+            found = True
+            if overwrite:
+                envlist.pop(index)
+    if (found and overwrite) or not found:
+        envlist.append(variable)
 
 
 def split_ram_by_slots(jram, jslots):
