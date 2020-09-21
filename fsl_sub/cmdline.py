@@ -872,7 +872,7 @@ def main(args=None):
         project = None
 
     try:
-        exports = options['exports']
+        exports = options['export']
     except KeyError:
         exports = []
 
