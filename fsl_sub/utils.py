@@ -765,13 +765,15 @@ def add_nl(s):
     return s
 
 
-def job_script(command, command_args, q_prefix, q_plugin, modules=None, extra_lines=None):
+def job_script(command, command_args, q_prefix, q_plugin, modules=None, extra_lines=None, modules_paths=None):
     '''Build a job script for 'command' with arguments 'command_args'.
     q_prefix is prefix to add to queue command lines,
     q_plugin is a tuple (plugin short name, plugin_version)
     modules is a list of shell modules to load and extra_lines will be added between the
     header and the command line'''
 
+    if modules_paths is None:
+        modules_paths = []
     if modules is None:
         modules = []
     if extra_lines is None:
@@ -787,6 +789,11 @@ def job_script(command, command_args, q_prefix, q_plugin, modules=None, extra_li
             job_def.append(' '.join((q_prefix, str(cmd))))
 
     logger.debug("Creating module load lines")
+    logger.debug("Adding modules paths")
+    if modules_paths:
+        mpaths = list(modules_paths)
+        mpaths.append('$MODULEPATH')
+        job_def.append('MODULEPATH=' + ':'.join(mpaths))
     logger.debug("Module list is " + str(modules))
     for module in modules:
         job_def.append("module load " + module)

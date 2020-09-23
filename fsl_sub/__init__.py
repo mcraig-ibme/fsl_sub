@@ -531,6 +531,11 @@ def submit(
                 raise BadSubmission(
                     "Unable to load coprocessor toolkit " + str(e)
                 )
+    if mconfig.get('preserve_modules', False):
+        try:
+            update_envvar_list(export_vars, '='.join(('MODULEPATH', os.environ['MODULEPATH'])))
+        except KeyError:
+            pass
     if uses_projects():
         q_project = get_project_env(project)
         if q_project is not None and not project_exists(q_project):

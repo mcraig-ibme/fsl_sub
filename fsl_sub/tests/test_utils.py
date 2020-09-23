@@ -2179,6 +2179,27 @@ class TestJobScript(unittest.TestCase):
                 test_cmd
             )
 
+        with self.subTest("modules path"):
+            test_cmd = list(exp_head)
+            e_modp = ['/usr/local/shellmods', ]
+            test_cmd.append('MODULEPATH=' + ':'.join(e_modp) + ':$MODULEPATH')
+            test_cmd.append('module load module1')
+            test_cmd.append('module load module2')
+            test_cmd.extend(exp_cmd_mid)
+            test_cmd.extend(['./mycommand arg1 arg2', ''])
+            self.assertListEqual(
+                fsl_sub.utils.job_script(
+                    './mycommand arg1 arg2',
+                    [['-q', 'short.q']],
+                    '#$',
+                    ('sge', '2.0.0', ),
+                    ['module1', 'module2'],
+                    [],
+                    e_modp
+                ),
+                test_cmd
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
