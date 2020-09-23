@@ -236,9 +236,11 @@ def submit(
     # will return the updated list!
     if export_vars is None:
         export_vars = []
+    my_export_vars = list(export_vars)
+
     # Ensure FSLSUB's configuration file path is propagated to jobs
     if 'FSLSUB_CONF' in os.environ.keys():
-        update_envvar_list(export_vars, '='.join(('FSLSUB_CONF', os.environ['FSLSUB_CONF'])))
+        update_envvar_list(my_export_vars, '='.join(('FSLSUB_CONF', os.environ['FSLSUB_CONF'])))
 
     logger.debug("Submit called with:")
     logger.debug(
@@ -319,8 +321,8 @@ def submit(
 
     logger.debug(
         "Adding export_vars from config to provided list "
-        + str(export_vars) + str(config.get('export_vars', [])))
-    [update_envvar_list(export_vars, a, overwrite=False) for a in config.get('export_vars', [],)]
+        + str(my_export_vars) + str(config.get('export_vars', [])))
+    [update_envvar_list(my_export_vars, a, overwrite=False) for a in config.get('export_vars', [],)]
 
     parallel_env_requested = parallel_env
 
@@ -470,7 +472,7 @@ def submit(
             slots_required = _slots_required(queue, jobram, config['queues'], threads)
         threads = max(slots_required, threads)
 
-        control_threads(config['thread_control'], threads, add_to_list=export_vars)
+        control_threads(config['thread_control'], threads, add_to_list=my_export_vars)
 
         if threads == 1 and parallel_env_requested is None:
             parallel_env = None
@@ -520,7 +522,7 @@ def submit(
                         if gpus_req > config['queues'][queue]['max_slots']:
                             raise BadSubmission("More GPUs than queue slots have been requested")
                         threads = gpus_req
-                    control_threads(config['thread_control'], threads, add_to_list=export_vars)
+                    control_threads(config['thread_control'], threads, add_to_list=my_export_vars)
 
         if coprocessor_toolkit:
             logger.debug("Looking for coprocessor toolkit")
@@ -531,11 +533,6 @@ def submit(
                 raise BadSubmission(
                     "Unable to load coprocessor toolkit " + str(e)
                 )
-    if mconfig.get('preserve_modules', False):
-        try:
-            update_envvar_list(export_vars, '='.join(('MODULEPATH', os.environ['MODULEPATH'])))
-        except KeyError:
-            pass
     if uses_projects():
         q_project = get_project_env(project)
         if q_project is not None and not project_exists(q_project):
@@ -584,7 +581,7 @@ def submit(
         architecture=architecture,
         requeueable=requeueable,
         project=q_project,
-        export_vars=export_vars,
+        export_vars=my_export_vars,
         keep_jobscript=keep_jobscript
     )
 
