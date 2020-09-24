@@ -119,14 +119,22 @@ The top level of the configuration file defines the following:
 * modulecmd: Default False, False or path to _module_ program - If you use _shell modules_ to configure your shell environment and the _module_ program is not in your default search path, set this to the full path of the _module_ program/
 * thread_control: Default Null, Null or list of environment variables to set to the requested number of threads, e.g.:
 
-```yaml
-  thread_control:
-    - OMP_NUM_THREADS
-    - MKL_NUM_THREADS
-    - MKL_DOMAIN_NUM_THREADS
-    - OPENBLAS_NUM_THREADS
-    - GOTO_NUM_THREADS
-```
+    ```yaml
+    thread_control:
+        - OMP_NUM_THREADS
+        - MKL_NUM_THREADS
+        - MKL_DOMAIN_NUM_THREADS
+        - OPENBLAS_NUM_THREADS
+        - GOTO_NUM_THREADS
+    ```
+
+* silence_warnings: List of warnings to silence - name is the name given in () at the start of the
+  warning message, e.g.
+
+  ```yaml
+  silence_warnings:
+    - 'cuda'
+  ```
 
 ##### Method Options
 
@@ -155,7 +163,31 @@ The shell plugin will attempt to run up-to the same number of jobs as CPU cores 
 
 ##### Coprocessor Options
 
-The next section, _coproc\_opts_ defines options for coprocessor hardware. Information on how to configure this is provided in the plugin documentation.
+The next section, _coproc\_opts_ defines options for coprocessor hardware, e.g.
+
+```yaml
+coproc_opts:
+  cuda:
+    # The options here
+```
+
+*Any definition for CUDA capable hardware must be keyed on 'cuda' for FSL tools to automatically find the cuda queues and run the appropriate version, e.g.*
+
+The options available are plugin dependent, but would typically include the following options as a basic set:
+
+* resource: Grid resource that (GRES on Slurm), when requested, selects machines with the hardware present, often _gpu_.
+* include\_more_capable: True/False - whether to automatically request all coprocessors of this type that are more capable than the requested class.
+* uses\_modules: True/False - Is the coprocessor configured using a shell module?
+* module\_parent: If you use shell modules, what is the name of the parent module? e.g. _cuda_ if you have a module folder _cuda_ with module files within for the various CUDA versions.
+* no_binding: True/False - Where the grid software supports CPU core binding fsl\_sub will attempt to prevent tasks using more than the requested number of cores. This option allows you to override this setting when submitting coprocessor tasks as these machines often have signifcantly more CPU cores than GPU cores.
+* class\_types: This contains the definition of the GPU classes...
+  * class selector: This is the letter (or word) that is used to select this class of co-processor from the fsl\_sub commandline. In the case of CUDA GPUs it should be the letter designating the GPU family, e.g. K, P or V.
+    * resource: This is the name of the complex/constraint that will be used to select this GPU family
+    * doc: The description that appears in the fsl\_sub help text about this device
+    * capability: An integer defining the feature set of the device, your most basic device should be given the value 1 and more capable devices higher values, e.g. GTX = 1, Kelper = 2, Pascal = 3, Volta = 4.
+* default\_class: The _class selector_ for the class to assign jobs to where a class has not been specified in the fsl\_sub call.
+
+Further information on how to configure these options and any additional configuration required for the backend is provided in the plugin documentation.
 
 ##### Queue Options
 
@@ -267,6 +299,17 @@ The `fsl_sub` package is available for use directly within python scripts. Ensur
 ```python
 import fsl_sub
 ```
+
+### Querying Configuration
+
+If your software needs to determine whether a CUDA card/queue is available or whether you are running in a queued environment you can use the has_* methods in the utils submodule. To include these functions:
+
+```python
+from fsl_sub.utils import (has_queues, has_coprocessor)
+```
+
+* has_queues: This function takes no arguments and returns True or False depending on whether there are usable queues (current execution method supports queueing and there are configured queues).
+* has_coprocessor(coprocessor_name): Takes the name of a coprocessor configuration key and returns True or False depending on whether the system is configured for or supports this coprocessor. A correctly configured fsl_sub + cluster + CUDA devices should have a coprocessor definition of 'cuda' (users will be warned if this is not the case).
 
 ### report
 

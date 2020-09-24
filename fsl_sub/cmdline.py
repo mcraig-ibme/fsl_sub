@@ -20,6 +20,7 @@ from fsl_sub.config import (
     method_config,
     coprocessor_config,
     has_queues,
+    has_coprocessor,
     uses_projects,
 )
 from fsl_sub.config import example_config as e_conf
@@ -187,6 +188,10 @@ There are several batch queues configured on the cluster:
     copro_g = parser.add_argument_group(
         'Co-processors',
         'Options for requesting co-processors, e.g. GPUs')
+    query_g = parser.add_argument_group(
+        'Query configuration',
+        'Options for checking on fsl_sub capabilities'
+    )
     if 'architecture' in mconf and mconf['architecture']:
         advanced_g.add_argument(
             '-a', '--arch',
@@ -326,6 +331,7 @@ There are several batch queues configured on the cluster:
                 username=getpass.getuser(),
                 hostname=socket.gethostname()
             ),
+            metavar="EMAIL_ADDRESS",
             help="Who to email."
         )
     else:
@@ -404,6 +410,7 @@ There are several batch queues configured on the cluster:
         '-R', '--jobram',
         default=None,
         type=int,
+        metavar=config['ram_units'] + 'B',
         help="Max total RAM required for job (integer in "
         + config['ram_units'] + "B). "
         "This is very important if your job requires more "
@@ -414,6 +421,7 @@ There are several batch queues configured on the cluster:
         advanced_g.add_argument(
             '-s', '--parallelenv',
             default=None,
+            metavar="PARALLELENV,THREADS",
             help="Takes a comma-separated argument <pename>,<threads>."
             "Submit a multi-threaded (or resource limited) task - requires a "
             "parallel environment (<pename>) to be configured on the "
@@ -427,6 +435,7 @@ There are several batch queues configured on the cluster:
         advanced_g.add_argument(
             '-s', '--parallelenv',
             default=None,
+            metavar="PARALLELENV,THREADS",
             help="No parallel environments configured"
         )
     array_g.add_argument(
@@ -452,6 +461,7 @@ There are several batch queues configured on the cluster:
         '-x', '--array_limit',
         default=None,
         type=int,
+        metavar="NUMBER",
         help="Specify the maximum number of parallel job sub-tasks to run "
         "concurrently."
     )
@@ -464,6 +474,20 @@ There are several batch queues configured on the cluster:
         "built-in shell backend and the file will be stored in the current directory "
         "or the log directory (if specified)). In the case of a queue backend this "
         "file can be submitted with the -F option."
+    )
+    query_g.add_argument(
+        '--has_coprocessor',
+        default=None,
+        metavar='COPROCESSOR_NAME',
+        help="fsl_sub returns with exit code of 0 if specified coprocessor is configured. "
+        "Exits with a return code of 1 if the coprocessor is not configured/availble. "
+    )
+    query_g.add_argument(
+        '--has_queues',
+        action="store_true",
+        help="fsl_sub returns with exit code of 0 if there is a compute cluster with queues "
+        "configured. "
+        "Exits with a return code of 1 if we are using the shell plugin. "
     )
     if has_queues():
         advanced_g.add_argument(
@@ -522,10 +546,11 @@ There are several batch queues configured on the cluster:
         '-T', '--jobtime',
         default=None,
         type=int,
+        metavar="MINUTES",
         help="Estimated job length in minutes, used to automatically choose "
         "the queue name."
     )
-    advanced_g.add_argument(
+    query_g.add_argument(
         '--show_config',
         action="store_true",
         help="Display the configuration currently in force"
@@ -787,6 +812,22 @@ def main(args=None):
     if options['show_config']:
         print(yaml.dump(config, Dumper=YamlIndentDumper, default_flow_style=False))
         sys.exit(0)
+    if options['has_coprocessor'] is not None:
+        has_copro = has_coprocessor(options['has_coprocessor'])
+        if has_copro:
+            print("Yes")
+            sys.exit(0)
+        else:
+            print("No")
+            sys.exit(1)
+    if options['has_queues']:
+        has_qs = has_queues()
+        if has_qs:
+            print("Yes")
+            sys.exit(0)
+        else:
+            print("No")
+            sys.exit(1)
     if not cp_info['available']:
         options['coprocessor'] = None
         options['coprocessor_class'] = None

@@ -51,7 +51,6 @@ def qtest():
 def queue_exists(qname, qtest=None):
     '''Does qname exist'''
     # Return True if queue exists
-
     return False
 
 

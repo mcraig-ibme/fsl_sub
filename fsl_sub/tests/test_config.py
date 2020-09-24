@@ -487,6 +487,89 @@ adict:
                 'method_opts': {'method': {'projects': True, }, }, }
             self.assertTrue(fsl_sub.config.uses_projects())
 
+    @patch('fsl_sub.config.read_config', autospec=True)
+    def test_has_queues(self, mock_rc):
+        with self.subTest("No queues"):
+            mock_rc.return_value = {
+                'method': 'shell',
+                'method_opts': {
+                    'shell': {'queues': False, },
+                },
+                'queues': {}
+            }
+            self.assertFalse(fsl_sub.config.has_queues())
+            self.assertFalse(fsl_sub.config.has_queues('shell'))
+            self.assertRaises(
+                fsl_sub.config.BadConfiguration,
+                fsl_sub.config.has_queues,
+                'nonsense'
+            )
+        with self.subTest("Has queues/not configured"):
+            mock_rc.return_value = {
+                'method': 'shell',
+                'method_opts': {
+                    'shell': {'queues': True, },
+                },
+                'queues': {}
+            }
+            self.assertFalse(fsl_sub.config.has_queues())
+            self.assertFalse(fsl_sub.config.has_queues('shell'))
+        with self.subTest("Has queues and configured"):
+            mock_rc.return_value = {
+                'method': 'shell',
+                'method_opts': {
+                    'shell': {'queues': True, },
+                },
+                'queues': {
+                    'queue1': {},
+                },
+            }
+            self.assertTrue(fsl_sub.config.has_queues())
+            self.assertTrue(fsl_sub.config.has_queues('shell'))
+
+    @patch('fsl_sub.config.get_plugin_already_queued', autospec=True)
+    @patch('fsl_sub.config.read_config', autospec=True)
+    def test_has_coprocessor(self, mock_rc, mock_gpaq):
+        with self.subTest("No coprocessor"):
+            mock_gpaq.return_value = False
+            mock_rc.return_value = {
+                'method': 'something',
+                'coproc_opts': {},
+            }
+            self.assertFalse(fsl_sub.config.has_coprocessor('cuda'))
+        with self.subTest("Has coprocessor definition"):
+            mock_gpaq.return_value = False
+            mock_rc.return_value = {
+                'method': 'something',
+                'coproc_opts': {'cuda': {}, },
+            }
+            self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
+
+        with self.subTest("Already queued + CUDA"):
+            mock_gpaq.return_value = True
+            with patch('fsl_sub.config.which', autospec=True, return_value="apath"):
+                self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
+        with self.subTest("Already queued + CUDA"):
+            mock_gpaq.return_value = True
+            with patch('fsl_sub.config.which', autospec=True, return_value="apath"):
+                self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
+        with self.subTest("Shell method + CUDA"):
+            mock_gpaq.return_value = False
+            mock_rc.return_value = {
+                'method': 'shell',
+                'coproc_opts': {'cuda': {}, },
+            }
+            with patch('fsl_sub.config.which', autospec=True, return_value="apath"):
+                self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
+        with self.subTest("Shell method - CUDA"):
+            mock_gpaq.return_value = False
+            mock_rc.return_value = {
+                'method': 'shell',
+                'coproc_opts': {'cuda': {}, },
+            }
+            with patch('fsl_sub.config.which', autospec=True, return_value=False):
+                self.assertFalse(fsl_sub.config.has_coprocessor('cuda'))
+
 
 if __name__ == '__main__':
     unittest.main()

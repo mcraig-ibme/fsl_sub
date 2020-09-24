@@ -22,6 +22,8 @@ thread_control:
   - 'MKL_DOMAIN_NUM_THREADS'
   - 'OPENBLAS_NUM_THREADS'
   - 'GOTO_NUM_THREADS'
+silence_warnings:
+  - 'cuda'
 method_opts: {}
 coproc_opts: {}
 queues: {}

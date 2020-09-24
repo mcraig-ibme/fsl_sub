@@ -3,12 +3,15 @@
 
 import os
 import os.path
+from shutil import which
+import warnings
 import yaml
 
 from fsl_sub.exceptions import (BadConfiguration, MissingConfiguration, )
 from fsl_sub.utils import (
     get_plugin_example_conf,
     get_plugin_queue_defs,
+    get_plugin_already_queued,
     available_plugins,
     add_nl
 )
@@ -107,6 +110,12 @@ def read_config():
     except MissingConfiguration:
         config_dict = {}
     this_config = _merge_dict(default_config, config_dict)
+    if config_dict['coproc_opts']:
+        if 'cuda' not in config_dict['coproc_opts'].keys():
+            if 'cuda' not in config_dict['silence_warnings']:
+                warnings.warn(
+                    '(cuda) Coprocessors configured but no "cuda" coprocessor found. '
+                    'FSL tools will not be able to autoselect CUDA versions of software.')
     return this_config
 
 
@@ -195,10 +204,27 @@ def example_config(method=None):
 
 
 def has_queues(method=None):
-    '''Returns True if method has queues'''
+    '''Returns True if method has queues and there are queues defined'''
+    config = read_config()
     if method is None:
-        method = read_config()['method']
-    return method_config(method)['queues']
+        method = config['method']
+    mconf = method_config(method)
+    return mconf['queues'] and config['queues']
+
+
+def has_coprocessor(coproc):
+    '''Is the specified coprocessor available on this system?'''
+    config = read_config()
+    method = config['method']
+    if get_plugin_already_queued(method):
+        method = 'shell'
+    if method == 'shell':
+        if coproc == 'cuda':
+            return which('nvidia-smi')
+        else:
+            return False
+
+    return coproc in config['coproc_opts'].keys()
 
 
 def uses_projects(method=None):
