@@ -500,7 +500,7 @@ def submit(
                 except ValueError:
                     # Complex coprocessor_multi passed - do not validate
                     pass
-                usepe = coprocessor_config(coprocessor)['uses_pe']
+                usepe = coprocessor_config(coprocessor).get('uses_pe', False)
                 if usepe:
                     try:
                         if usepe not in config['queues'][queue]['parallel_envs']:
