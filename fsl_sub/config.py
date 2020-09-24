@@ -112,7 +112,7 @@ def read_config():
     this_config = _merge_dict(default_config, config_dict)
     if config_dict['coproc_opts']:
         if 'cuda' not in config_dict['coproc_opts'].keys():
-            if 'cuda' not in config_dict['silence_warnings']:
+            if 'cuda' not in config_dict.get('silence_warnings', []):
                 warnings.warn(
                     '(cuda) Coprocessors configured but no "cuda" coprocessor found. '
                     'FSL tools will not be able to autoselect CUDA versions of software.')
