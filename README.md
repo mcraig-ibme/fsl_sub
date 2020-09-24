@@ -272,7 +272,7 @@ This command outputs an example `fsl_sub` configuration file for the cluster bac
 
 This command abstracts the cluster reporting tools, providing a common output no matter what the cluster backend.
 
-#### Usage
+#### fsl_sub_report Usage
 
 ```bash
 fsl_sub_report [job_id] {--subjob_id [sub_id]} {--parsable}
@@ -284,7 +284,7 @@ Reports on job `job_id`, optionally on subtask `sub_id`. `--parsable` outputs ma
 
 This command lists available plugins (as known to the central FSL software repository) and helps to install these into an FSL installation.
 
-#### Usage
+#### fsl_sub_install_plugin Usage
 
 ```bash
 fsl_sub_install_plugin [--list|--install {plugin}]
@@ -464,7 +464,12 @@ Arguments:
 
 This returns a tuple consisting of the queue and the number of slots required for the specified job parameters.
 
+### Killing jobs
+
+You can request that a job is killed using the fsl_sub.delete_job function which takes the job ID (including task ID) and calls the appropriate cluster job deletion command.
+This returns a tuple, text output from the delete command and the return code from the command. There is an equivalent shell command fsl\_sub --delete\_job \<jobID>
+
 ## Writing Plugins
 
-Inside the plugins folder there is a template - template_plugin.py that can be modified to add support for different grid submission engines. This file should be renamed to fsl_sub_plugin_<method>.py and placed somewhere on the Python search path. Inside the plugin change METHOD_NAME to <method> and then modify the functions appropriately. The submit function carries out the job submission, and aims to either generate a command line with all the job arguments or to build a job submission script. The arguments should be added to the command_args list in the form of option flags and lists of options with arguments.
-Also provide a fsl_sub_<method>.yml file that provides the default configuration for the module.
+Inside the plugins folder there is a template - template_plugin.py that can be modified to add support for different grid submission engines. This file should be renamed to fsl_sub_plugin_\<method>.py and placed somewhere on the Python search path. Inside the plugin change METHOD_NAME to \<method> and then modify the functions appropriately. The submit function carries out the job submission, and aims to either generate a command line with all the job arguments or to build a job submission script. The arguments should be added to the command_args list in the form of option flags and lists of options with arguments.
+Also provide a fsl_sub_\<method>.yml file that provides the default configuration for the module.

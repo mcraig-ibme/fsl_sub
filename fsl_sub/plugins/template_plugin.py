@@ -80,6 +80,11 @@ def _get_logger():
     return logging.getLogger('fsl_sub.' + __name__)
 
 
+def qdel(job_id):
+    '''Returns (output, return code) for running the appropriate
+    job deletion command'''
+    pass
+
 def submit(
         command,
         job_name,

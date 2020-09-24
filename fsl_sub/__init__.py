@@ -37,6 +37,7 @@ from fsl_sub.utils import (
     load_plugins,
     check_command,
     check_command_file,
+    get_plugin_qdel,
     control_threads,
     human_to_ram,
     update_envvar_list,
@@ -701,3 +702,26 @@ def getq_and_slots(
     except IndexError:
         raise BadSubmission("No matching queues found")
     return q_tuple
+
+
+def delete_job(job_id):
+    '''Function that attemps to kill a job (either cluster or shell)'''
+    PLUGINS = load_plugins()
+
+    config = read_config()
+
+    grid_module = 'fsl_sub_plugin_' + config['method']
+    if grid_module not in PLUGINS:
+        raise BadConfiguration(
+            "{} not a supported method".format(config['method']))
+
+    try:
+        already_queued = PLUGINS[grid_module].already_queued
+    except AttributeError as e:
+        raise BadConfiguration(
+            "Failed to load plugin " + grid_module
+            + " ({0})".format(str(e))
+        )
+    if already_queued():
+        config['method'] = 'shell'
+    return get_plugin_qdel(config['method'])(job_id)

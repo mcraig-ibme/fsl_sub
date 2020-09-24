@@ -128,6 +128,19 @@ def get_plugin_already_queued(plugin_name):
         return False
 
 
+def get_plugin_qdel(plugin_name):
+    PLUGINS = load_plugins()
+    grid_module = 'fsl_sub_plugin_' + plugin_name
+
+    if grid_module not in PLUGINS:
+        raise CommandError("Plugin {} not found". format(plugin_name))
+
+    try:
+        return PLUGINS[grid_module].qdel
+    except AttributeError as e:
+        raise CommandError from e
+
+
 def minutes_to_human(minutes):
     if minutes < 60:
         result = "{}m".format(minutes)

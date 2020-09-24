@@ -14,6 +14,7 @@ import yaml
 from fsl_sub import (
     submit,
     report,
+    delete_job,
 )
 from fsl_sub.config import (
     read_config,
@@ -405,6 +406,12 @@ There are several batch queues configured on the cluster:
         action='append',
         help="Pass a resource request or constraint string through to the job "
         "scheduler. See your scheduler's instructions for details."
+    )
+    advanced_g.add_argument(
+        '--delete_job',
+        default=None,
+        type=int,
+        help="Deletes a queued/running job."
     )
     basic_g.add_argument(
         '-R', '--jobram',
@@ -828,6 +835,13 @@ def main(args=None):
         else:
             print("No")
             sys.exit(1)
+    if options['delete_job'] is not None:
+        output, failed = delete_job(options['delete_job'])
+        if failed:
+            print(output, file=sys.stderr)
+        else:
+            print(output)
+        sys.exit(failed)
     if not cp_info['available']:
         options['coprocessor'] = None
         options['coprocessor_class'] = None

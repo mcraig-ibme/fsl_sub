@@ -9,6 +9,7 @@ import os
 import shlex
 import subprocess as sp
 import sys
+import warnings
 
 from fsl_sub.config import (
     method_config,
@@ -42,6 +43,12 @@ def queue_exists(qname, qtest=qtest()):
 def already_queued():
     '''Is this a running in a submitted job?'''
     return False
+
+
+def qdel(job_id):
+    '''Not supported for shell running'''
+    warnings.warn("Not supported - use kill -HUP " + str(job_id))
+    return ("", 0)
 
 
 def build_queue_defs():

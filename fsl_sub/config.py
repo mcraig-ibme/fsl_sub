@@ -110,7 +110,7 @@ def read_config():
     except MissingConfiguration:
         config_dict = {}
     this_config = _merge_dict(default_config, config_dict)
-    if config_dict['coproc_opts']:
+    if config_dict.get('coproc_opts', {}):
         if 'cuda' not in config_dict['coproc_opts'].keys():
             if 'cuda' not in config_dict.get('silence_warnings', []):
                 warnings.warn(
