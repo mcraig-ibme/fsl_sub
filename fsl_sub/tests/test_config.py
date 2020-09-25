@@ -3,6 +3,7 @@ import unittest
 import fsl_sub.config
 import os
 import shutil
+import subprocess
 import tempfile
 
 from unittest.mock import patch
@@ -529,46 +530,105 @@ adict:
 
     @patch('fsl_sub.config.get_plugin_already_queued', autospec=True)
     @patch('fsl_sub.config.read_config', autospec=True)
-    def test_has_coprocessor(self, mock_rc, mock_gpaq):
+    @patch('fsl_sub.config.sp.run', autospec=True)
+    @patch('fsl_sub.config.which', autospec=True)
+    def test_has_coprocessor(self, mock_which, mock_spr, mock_rc, mock_gpaq):
         with self.subTest("No coprocessor"):
             mock_gpaq.return_value = False
             mock_rc.return_value = {
                 'method': 'something',
+                'queues': {'aq': {}, },
                 'coproc_opts': {},
             }
             self.assertFalse(fsl_sub.config.has_coprocessor('cuda'))
-        with self.subTest("Has coprocessor definition"):
+        with self.subTest("Has coprocessor definition - no queue"):
+            mock_spr.reset_mock()
+            mock_which.reset_mock()
             mock_gpaq.return_value = False
+            mock_spr.return_value = subprocess.CompletedProcess(
+                ['/usr/bin/nvidia-smi'], returncode=0
+            )
+            mock_which.return_value = '/usr/bin/nvidia-smi'
             mock_rc.return_value = {
                 'method': 'something',
-                'coproc_opts': {'cuda': {}, },
+                'queues': {'aq': {}, },
+                'coproc_opts': {'cuda': {'presence_test': 'nvidia-smi', }, },
+            }
+            self.assertFalse(fsl_sub.config.has_coprocessor('cuda'))
+        with self.subTest("Has coprocessor definition - with queue"):
+            mock_spr.reset_mock()
+            mock_which.reset_mock()
+            mock_gpaq.return_value = False
+            mock_spr.return_value = subprocess.CompletedProcess(
+                ['/usr/bin/nvidia-smi'], returncode=0
+            )
+            mock_which.return_value = '/usr/bin/nvidia-smi'
+            mock_rc.return_value = {
+                'method': 'something',
+                'queues': {'aq': {'copros': {'cuda': {}, }, }, },
+                'coproc_opts': {'cuda': {'presence_test': 'nvidia-smi', }, },
             }
             self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
-
         with self.subTest("Already queued + CUDA"):
+            mock_spr.reset_mock()
+            mock_which.reset_mock()
             mock_gpaq.return_value = True
-            with patch('fsl_sub.config.which', autospec=True, return_value="apath"):
-                self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
-        with self.subTest("Already queued + CUDA"):
-            mock_gpaq.return_value = True
-            with patch('fsl_sub.config.which', autospec=True, return_value="apath"):
-                self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
+            self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
+            mock_which.assert_called_once_with(
+                'nvidia-smi'
+            )
+            mock_spr.assert_called_once_with(
+                ['/usr/bin/nvidia-smi']
+            )
         with self.subTest("Shell method + CUDA"):
+            mock_spr.reset_mock()
+            mock_which.reset_mock()
             mock_gpaq.return_value = False
             mock_rc.return_value = {
                 'method': 'shell',
-                'coproc_opts': {'cuda': {}, },
+                'queues': {},
+                'coproc_opts': {'cuda': {'presence_test': 'nvidia-smi'}, },
             }
-            with patch('fsl_sub.config.which', autospec=True, return_value="apath"):
-                self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
-        with self.subTest("Shell method - CUDA"):
+            self.assertTrue(fsl_sub.config.has_coprocessor('cuda'))
+            mock_which.assert_called_once_with(
+                'nvidia-smi'
+            )
+            mock_spr.assert_called_once_with(
+                ['/usr/bin/nvidia-smi']
+            )
+        with self.subTest("Shell method - CUDA devices not found"):
+            mock_spr.reset_mock()
+            mock_which.reset_mock()
             mock_gpaq.return_value = False
             mock_rc.return_value = {
                 'method': 'shell',
-                'coproc_opts': {'cuda': {}, },
+                'queues': {},
+                'coproc_opts': {'cuda': {'presence_test': 'nvidia-smi'}, },
             }
-            with patch('fsl_sub.config.which', autospec=True, return_value=False):
-                self.assertFalse(fsl_sub.config.has_coprocessor('cuda'))
+            mock_spr.return_value = subprocess.CompletedProcess(
+                ['/usr/bin/nvidia-smi'], returncode=6
+            )
+            self.assertFalse(fsl_sub.config.has_coprocessor('cuda'))
+            mock_spr.assert_called_once_with(
+                ['/usr/bin/nvidia-smi']
+            )
+            mock_which.assert_called_once_with(
+                'nvidia-smi'
+            )
+        with self.subTest("Shell method - no SMI"):
+            mock_spr.reset_mock()
+            mock_which.reset_mock()
+            mock_gpaq.return_value = False
+            mock_rc.return_value = {
+                'method': 'shell',
+                'queues': {},
+                'coproc_opts': {'cuda': {'presence_test': 'nvidia-smi'}, },
+            }
+            mock_which.return_value = None
+            self.assertFalse(fsl_sub.config.has_coprocessor('cuda'))
+            mock_which.assert_called_once_with(
+                'nvidia-smi'
+            )
 
 
 if __name__ == '__main__':

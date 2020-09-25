@@ -186,6 +186,7 @@ The options available are plugin dependent, but would typically include the foll
     * doc: The description that appears in the fsl\_sub help text about this device
     * capability: An integer defining the feature set of the device, your most basic device should be given the value 1 and more capable devices higher values, e.g. GTX = 1, Kelper = 2, Pascal = 3, Volta = 4.
 * default\_class: The _class selector_ for the class to assign jobs to where a class has not been specified in the fsl\_sub call.
+* presence\_test: The name of a program that can be used to look for this coprocessor type, for example nvidia-smi for CUDA devices. Program needs to return non-zero exit status if there are no available coprocessors.
 
 Further information on how to configure these options and any additional configuration required for the backend is provided in the plugin documentation.
 

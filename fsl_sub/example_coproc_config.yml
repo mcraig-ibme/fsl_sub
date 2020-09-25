@@ -59,3 +59,6 @@ coproc_opts:
     uses_modules: True
     # What is the name of the parent module for this co-processor?
     module_parent: cuda
+    # Name of a script/binary (full path if unlikely to be in user's PATH) which can be
+    # run to determine if GPUs are available
+    presence_test: nvidia-smi

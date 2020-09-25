@@ -4,6 +4,7 @@
 import os
 import os.path
 from shutil import which
+import subprocess as sp
 import warnings
 import yaml
 
@@ -216,15 +217,30 @@ def has_coprocessor(coproc):
     '''Is the specified coprocessor available on this system?'''
     config = read_config()
     method = config['method']
+    queues = config.get('queues', {})
+    coprocs = config.get('coproc_opts', {})
     if get_plugin_already_queued(method):
         method = 'shell'
     if method == 'shell':
-        if coproc == 'cuda':
-            return which('nvidia-smi')
+        co_conf = coprocs.get(coproc, None)
+        if co_conf is not None:
+            tester = which(co_conf['presence_test'])
+            if tester is None:
+                return False
+            else:
+                output = sp.run(
+                    [tester, ]
+                )
+                if output.returncode != 0:
+                    return False
+            return True
         else:
+            # Unsupported coprocessor
             return False
-
-    return coproc in config['coproc_opts'].keys()
+    if queues:
+        return any([(coproc in a.get('copros', {}).keys()) for qname, a in queues.items()])
+    else:
+        raise BadConfiguration("Grid backend specified but no queues configured")
 
 
 def uses_projects(method=None):
