@@ -1,1 +1,4 @@
+title: FSL Cluster Submission - fsl_sub
+email: duncan.mortimer@ndcn.ox.ac.uk
+description: "Instructions for installing and configuring the FSL tool fsl_sub which allows simple, agnostic, compute cluster submission and monitoring of jobs"
 baseurl: "/fsl_sub"
