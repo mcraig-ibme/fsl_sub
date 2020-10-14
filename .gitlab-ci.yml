@@ -9,3 +9,5 @@ pages:
   artifacts:
     paths:
       - public
+kramdown:
+  parse_block_html: true
