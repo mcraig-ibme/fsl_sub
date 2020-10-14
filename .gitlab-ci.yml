@@ -1,8 +1,8 @@
-image: ruby:2.7
+image: jekyll/jekyll
 pages:
   script:
-    - gem install bundler
-    - bundle install
+  #  - gem install bundler
+  #  - bundle install
     - bundle exec jekyll build -d public
   tags:
     - docker
