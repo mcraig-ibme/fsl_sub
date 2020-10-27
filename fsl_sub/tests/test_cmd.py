@@ -924,6 +924,56 @@ class TestMain(unittest.TestCase):
                     **test_args
                 )
 
+    def test_comma_sep_export(self, *args):
+        args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        with patch(
+            'fsl_sub.projects.read_config',
+                autospec=True,
+                return_value=yaml.safe_load(YAML_CONF_PROJECTS)):
+            with io.StringIO() as text_trap:
+                sys.stdout = text_trap
+
+                fsl_sub.cmdline.main(['--export=avar=b,c,d', 'command', ])
+
+                sys.stdout = sys.__stdout__
+
+                self.assertEqual(
+                    text_trap.getvalue(),
+                    '123\n')
+            test_args = copy.deepcopy(self.base_args)
+            test_args['export_vars'] = ['avar=b,c,d']
+            args[2].assert_called_with(
+                ['command', ],
+                **test_args
+            )
+
+    def test_comma_sep_exports(self, *args):
+        args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        with patch(
+            'fsl_sub.projects.read_config',
+                autospec=True,
+                return_value=yaml.safe_load(YAML_CONF_PROJECTS)):
+            with io.StringIO() as text_trap:
+                sys.stdout = text_trap
+
+                fsl_sub.cmdline.main(['--export=avar=b,c,d', '--export=bvar=c', 'command', ])
+
+                sys.stdout = sys.__stdout__
+
+                self.assertEqual(
+                    text_trap.getvalue(),
+                    '123\n')
+            test_args = copy.deepcopy(self.base_args)
+            test_args['export_vars'] = ['avar=b,c,d', 'bvar=c', ]
+            args[2].assert_called_with(
+                ['command', ],
+                **test_args
+            )
+
 
 class ErrorRaisingArgumentParser(argparse.ArgumentParser):
     def error(self, message):
