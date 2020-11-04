@@ -65,18 +65,23 @@ def _internal_config_file(filename):
 
 def load_default_config():
     dc_file = _internal_config_file("default_config.yml")
-    try:
-        with open(dc_file, 'r') as yaml_source:
-            default_config = yaml.safe_load(yaml_source)
-    except yaml.YAMLError as e:
-        raise BadConfiguration(
-            "Unable to understand default configuration: " + str(e))
-    except FileNotFoundError:
-        raise MissingConfiguration(
-            "Unable to find default configuration file: " + dc_file)
-    except PermissionError:
-        raise MissingConfiguration(
-            "Unable to open default configuration file: " + dc_file)
+    dcc_file = _internal_config_file("default_coproc_config.yml")
+    default_config = {}
+    for d_conf_f in (dc_file, dcc_file, ):
+        try:
+            with open(d_conf_f, 'r') as yaml_source:
+                default_config = _merge_dict(
+                    default_config, yaml.safe_load(yaml_source))
+        except yaml.YAMLError as e:
+            raise BadConfiguration(
+                "Unable to understand default configuration: " + str(e))
+        except FileNotFoundError:
+            raise MissingConfiguration(
+                "Unable to find default configuration file: " + d_conf_f)
+        except PermissionError:
+            raise MissingConfiguration(
+                "Unable to open default configuration file: " + d_conf_f)
+
     for plugin in available_plugins():
         try:
             p_dc = yaml.safe_load(get_plugin_example_conf(plugin))
@@ -157,6 +162,7 @@ def example_config(method=None):
 
     # Example config files
     dc_file = _internal_config_file("default_config.yml")
+    dcc_file = _internal_config_file("default_coproc_config.yml")
     qc_file = _internal_config_file("example_queue_config.yml")
     cc_file = _internal_config_file("example_coproc_config.yml")
 
@@ -186,9 +192,6 @@ def example_config(method=None):
         e_conf = add_nl(e_conf)
 
     if method is not None:
-        # Add the example co-processor config
-        e_conf += _read_config_file(cc_file).replace('---\n', '')
-        e_conf = add_nl(e_conf)
         # Try to detect queues
         queue_defs = get_plugin_queue_defs(method)
         if queue_defs:
@@ -199,8 +202,14 @@ def example_config(method=None):
             e_conf += _read_config_file(qc_file).replace('---\n', '')
 
         e_conf = e_conf.replace('queues: {}\n', '')
-        e_conf = e_conf.replace('coproc_opts: {}\n', '')
         e_conf = add_nl(e_conf)
+        # Add the example co-processor config
+        e_conf += _read_config_file(cc_file).replace('---\n', '')
+        e_conf = add_nl(e_conf)
+        e_conf = e_conf.replace('coproc_opts: {}\n', '')
+    else:
+        ecp_conf = _read_config_file(dcc_file)
+        e_conf += ecp_conf
     return e_conf
 
 

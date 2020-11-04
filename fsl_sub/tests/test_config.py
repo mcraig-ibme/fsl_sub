@@ -134,6 +134,11 @@ coproc_opts:
   bitblit:
     resource: bits
 '''
+        def_coproc_config = '''---
+coproc_opts:
+  bitblit:
+    resource: somethingelse
+'''
         queue_config = '''---
 queues:
   short.q:
@@ -160,8 +165,8 @@ method_opts:
                     'queues: {}\n', '').replace(
                         'coproc_opts: {}\n', '')
             + merged_method_config
-            + coproc_config.replace('---\n', '\n')
-            + queue_config.replace('---\n', '')
+            + queue_config.replace('---\n', '\n')
+            + coproc_config.replace('---\n', '')
         )
         mock_gpqd.return_value = ''
         with self.subTest('Single quoted method'):
@@ -174,12 +179,17 @@ method_opts:
                     with tempfile.NamedTemporaryFile(mode='w') as ntf_cq:
                         ntf_cq.write(queue_config)
                         ntf_cq.flush()
-                        mock_dcf.side_effect = (ntf.name, ntf_cq.name, ntf_cp.name, )
-                        mock_gpe.side_effect = method_config
-                        e_conf = fsl_sub.config.example_config(method='sge')
-                        self.assertEqual(e_conf, expected_output)
-                        mock_dcf.reset_mock(return_value=True, side_effect=True)
-                        mock_gpe.reset_mock(return_value=True, side_effect=True)
+                        with tempfile.NamedTemporaryFile(mode='w') as ntf_dcp:
+                            ntf_dcp.write(def_coproc_config)
+                            ntf_dcp.flush()
+                            mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
+                            mock_gpe.side_effect = method_config
+                            import pdb; pdb.set_trace()
+
+                            e_conf = fsl_sub.config.example_config(method='sge')
+                            self.assertEqual(e_conf, expected_output)
+                            mock_dcf.reset_mock(return_value=True, side_effect=True)
+                            mock_gpe.reset_mock(return_value=True, side_effect=True)
 
         with self.subTest('Double quoted method'):
             with tempfile.NamedTemporaryFile(mode='w') as ntf:
@@ -191,11 +201,15 @@ method_opts:
                     with tempfile.NamedTemporaryFile(mode='w') as ntf_cq:
                         ntf_cq.write(queue_config)
                         ntf_cq.flush()
-                        mock_dcf.side_effect = (ntf.name, ntf_cq.name, ntf_cp.name, )
-                        mock_gpe.side_effect = method_config
-                        self.assertEqual(e_conf, expected_output)
-                        mock_dcf.reset_mock(return_value=True, side_effect=True)
-                        mock_gpe.reset_mock(return_value=True, side_effect=True)
+                        with tempfile.NamedTemporaryFile(mode='w') as ntf_dcp:
+                            ntf_dcp.write(def_coproc_config)
+                            ntf_dcp.flush()
+                            mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
+                            mock_gpe.side_effect = method_config
+                            e_conf = fsl_sub.config.example_config(method='sge')
+                            self.assertEqual(e_conf, expected_output)
+                            mock_dcf.reset_mock(return_value=True, side_effect=True)
+                            mock_gpe.reset_mock(return_value=True, side_effect=True)
 
         with self.subTest('unquoted quoted method'):
             with tempfile.NamedTemporaryFile(mode='w') as ntf:
@@ -207,11 +221,15 @@ method_opts:
                     with tempfile.NamedTemporaryFile(mode='w') as ntf_cq:
                         ntf_cq.write(queue_config)
                         ntf_cq.flush()
-                        mock_dcf.side_effect = (ntf.name, ntf_cq.name, ntf_cp.name, )
-                        mock_gpe.side_effect = method_config
-                        self.assertEqual(e_conf, expected_output)
-                        mock_dcf.reset_mock(return_value=True, side_effect=True)
-                        mock_gpe.reset_mock(return_value=True, side_effect=True)
+                        with tempfile.NamedTemporaryFile(mode='w') as ntf_dcp:
+                            ntf_dcp.write(def_coproc_config)
+                            ntf_dcp.flush()
+                            mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
+                            mock_gpe.side_effect = method_config
+                            e_conf = fsl_sub.config.example_config(method='sge')
+                            self.assertEqual(e_conf, expected_output)
+                            mock_dcf.reset_mock(return_value=True, side_effect=True)
+                            mock_gpe.reset_mock(return_value=True, side_effect=True)
 
         with self.subTest('Queue capture'):
             q_def = '  a.q:\n    time: 1\n'
@@ -221,10 +239,10 @@ method_opts:
                     'method_opts: {}\n', '').replace(
                         'queues: {}\n', '').replace(
                             'coproc_opts: {}\n', '')
-                + merged_method_config
-                + coproc_config.replace('---\n', '\n')
+                + merged_method_config + '\n'
                 + 'queues:\n'
                 + q_def
+                + coproc_config.replace('---\n', '')
             )
             mock_gpqd.return_value = q_def
             with tempfile.NamedTemporaryFile(mode='w') as ntf:
@@ -236,12 +254,15 @@ method_opts:
                     with tempfile.NamedTemporaryFile(mode='w') as ntf_cq:
                         ntf_cq.write(queue_config)
                         ntf_cq.flush()
-                        mock_dcf.side_effect = (ntf.name, ntf_cq.name, ntf_cp.name, )
-                        mock_gpe.side_effect = method_config
-                        e_conf = fsl_sub.config.example_config(method='sge')
-                        self.assertEqual(e_conf, qc_expected_output)
-                        mock_dcf.reset_mock(return_value=True, side_effect=True)
-                        mock_gpe.reset_mock(return_value=True, side_effect=True)
+                        with tempfile.NamedTemporaryFile(mode='w') as ntf_dcp:
+                            ntf_dcp.write(def_coproc_config)
+                            ntf_dcp.flush()
+                            mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
+                            mock_gpe.side_effect = method_config
+                            e_conf = fsl_sub.config.example_config(method='sge')
+                            self.assertEqual(e_conf, qc_expected_output)
+                            mock_dcf.reset_mock(return_value=True, side_effect=True)
+                            mock_gpe.reset_mock(return_value=True, side_effect=True)
 
     @patch(
         'fsl_sub.config.load_default_config',

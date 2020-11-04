@@ -1,0 +1,6 @@
+coproc_opts:
+  # Dictionary of coprocessor definitions
+  cuda:
+    # Name of a script/binary (full path if unlikely to be in user's PATH) which can be
+    # run to determine if GPUs are available
+    presence_test: nvidia-smi
