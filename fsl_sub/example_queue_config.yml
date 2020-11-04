@@ -3,7 +3,7 @@
 queues:
   # Queue name
   gpu.q:
-    # Maximum job rum time
+    # Maximum job rum time (minutes)
     time: 18000
     # Maximum memory per job (GB)
     max_size: 250
