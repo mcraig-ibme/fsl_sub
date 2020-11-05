@@ -192,6 +192,8 @@ def example_config(method=None):
         e_conf = add_nl(e_conf)
 
     dcp_conf = _read_config_file(dcc_file)
+    if 'coproc_opts:\n  cuda:\n' in e_conf:
+        dcp_conf = dcp_conf.replace('coproc_opts:\n  cuda:\n', '')
     e_conf += dcp_conf.replace('---\n', '')
     e_conf = add_nl(e_conf)
 
