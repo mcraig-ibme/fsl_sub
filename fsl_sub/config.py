@@ -191,7 +191,18 @@ def example_config(method=None):
         e_conf = e_conf + plugin_conf
         e_conf = add_nl(e_conf)
 
+    dcp_conf = _read_config_file(dcc_file)
+    e_conf += dcp_conf.replace('---\n', '')
+    e_conf = add_nl(e_conf)
+
     if method is not None:
+        # Add the example co-processor config
+        ecp = _read_config_file(cc_file).replace('---\n', '')
+        if 'coproc_opts:\n  cuda:\n' in e_conf:
+            ecp = ecp.replace('coproc_opts:\n  cuda:\n', '')
+        e_conf += ecp
+        e_conf = add_nl(e_conf)
+        e_conf = e_conf.replace('coproc_opts: {}\n', '')
         # Try to detect queues
         queue_defs = get_plugin_queue_defs(method)
         if queue_defs:
@@ -200,16 +211,8 @@ def example_config(method=None):
         else:
             # Add the example queue config
             e_conf += _read_config_file(qc_file).replace('---\n', '')
-
         e_conf = e_conf.replace('queues: {}\n', '')
         e_conf = add_nl(e_conf)
-        # Add the example co-processor config
-        e_conf += _read_config_file(cc_file).replace('---\n', '')
-        e_conf = add_nl(e_conf)
-        e_conf = e_conf.replace('coproc_opts: {}\n', '')
-    else:
-        ecp_conf = _read_config_file(dcc_file)
-        e_conf += ecp_conf
     return e_conf
 
 

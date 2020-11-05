@@ -121,6 +121,8 @@ class TestConfig(unittest.TestCase):
     @patch('fsl_sub.config._internal_config_file')
     @patch('fsl_sub.config.get_plugin_queue_defs', return_value='')
     def test_example_conf(self, mock_gpqd, mock_dcf, mock_gpe):
+        base_cpopt = '''baseopt: bits
+'''
         base_config = '''ram_units: 'G'
 modulecmd: False
 thread_control:
@@ -131,14 +133,13 @@ coproc_opts: {}
 '''
         coproc_config = '''---
 coproc_opts:
-  bitblit:
-    resource: bits
+  cuda:
+    resource: somethingelse
 '''
         def_coproc_config = '''---
 coproc_opts:
-  bitblit:
-    resource: somethingelse
-'''
+  cuda:
+    ''' + base_cpopt
         queue_config = '''---
 queues:
   short.q:
@@ -164,9 +165,9 @@ method_opts:
                 'method_opts: {}\n', '').replace(
                     'queues: {}\n', '').replace(
                         'coproc_opts: {}\n', '')
-            + merged_method_config
-            + queue_config.replace('---\n', '\n')
-            + coproc_config.replace('---\n', '')
+            + merged_method_config + '\n'
+            + coproc_config.replace('---\n', '').replace('cuda:\n', 'cuda:\n    ' + base_cpopt)
+            + queue_config.replace('---\n', '')
         )
         mock_gpqd.return_value = ''
         with self.subTest('Single quoted method'):
@@ -184,8 +185,6 @@ method_opts:
                             ntf_dcp.flush()
                             mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
                             mock_gpe.side_effect = method_config
-                            import pdb; pdb.set_trace()
-
                             e_conf = fsl_sub.config.example_config(method='sge')
                             self.assertEqual(e_conf, expected_output)
                             mock_dcf.reset_mock(return_value=True, side_effect=True)
@@ -240,9 +239,9 @@ method_opts:
                         'queues: {}\n', '').replace(
                             'coproc_opts: {}\n', '')
                 + merged_method_config + '\n'
+                + coproc_config.replace('---\n', '').replace('cuda:\n', 'cuda:\n    ' + base_cpopt)
                 + 'queues:\n'
                 + q_def
-                + coproc_config.replace('---\n', '')
             )
             mock_gpqd.return_value = q_def
             with tempfile.NamedTemporaryFile(mode='w') as ntf:
