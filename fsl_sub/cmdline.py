@@ -172,13 +172,13 @@ There are several batch queues configured on the cluster:
         'Simple Tasks',
         'Options for submitting individual tasks.'
     )
-    array_g = parser.add_argument_group(
-        'Array Tasks',
-        'Options for submitting and controlling array tasks.'
-    )
     basic_g = parser.add_argument_group(
         'Basic options',
         'Options that specify individual and array tasks.'
+    )
+    array_g = parser.add_argument_group(
+        'Array Tasks',
+        'Options for submitting and controlling array tasks.'
     )
     advanced_g = parser.add_argument_group(
         'Advanced',
@@ -663,7 +663,9 @@ def example_config(args=None):
     logger.addHandler(lhdr)
     example_parser = example_config_parser()
     options = example_parser.parse_args(args=args)
-    print(e_conf(options.plugin))
+
+    yaml_config = e_conf(options.plugin)
+    yaml.dump(yaml_config, sys.stdout)
 
 
 def report_cmd(args=None):
