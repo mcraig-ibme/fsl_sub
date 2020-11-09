@@ -60,15 +60,25 @@ def _disable_parallel(job):
 
     matches = mconf['parallel_disable_matches']
 
+    job_dir = os.path.dirname(job)
+    if job_dir == '.':
+        job_dir = ''
+    job_cmd = os.path.basename(job)
     if matches:
         for m in matches:
-            if '/' not in m:
-                job = os.path.basename(job)
-            if m.startswith('*') and job != m.strip('*') and job.endswith(m.strip('*')):
+            m_dir = os.path.dirname(m)
+            m_cmd = os.path.basename(m)
+            m_cmd_no_wc = m_cmd.strip('*')
+
+            if m_dir and job_dir != m_dir:
+                return False
+            if job_dir and m_dir and job_dir != m_dir:
+                return False
+            if m_cmd.startswith('*') and job_cmd != m_cmd_no_wc and job_cmd.endswith(m_cmd_no_wc):
                 return True
-            if m.endswith('*') and job != m.strip('*') and job.startswith(m.strip('*')):
+            if m_cmd.endswith('*') and job_cmd != m_cmd_no_wc and job_cmd.startswith(m_cmd_no_wc):
                 return True
-            if job == m:
+            if job_cmd == m_cmd:
                 return True
     return False
 

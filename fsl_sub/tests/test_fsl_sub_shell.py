@@ -68,6 +68,20 @@ class TestUtils(unittest.TestCase):
                 self.assertTrue(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('/usr/local/bin/mycommand'))
                 self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('mycommand2'))
                 self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('amycommand'))
+            with self.subTest("Absolute wildcards - start"):
+                mock_mc.return_value = {'parallel_disable_matches': ['/usr/local/bin/*_mycommand', ]}
+                self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('mycommand'))
+                self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('./mycommand'))
+                self.assertTrue(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('/usr/local/bin/bad_mycommand'))
+                self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('mycommand2'))
+                self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('amycommand'))
+            with self.subTest("Absolute wildcards - end"):
+                mock_mc.return_value = {'parallel_disable_matches': ['/usr/local/bin/mycommand_*', ]}
+                self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('mycommand'))
+                self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('./mycommand'))
+                self.assertTrue(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('/usr/local/bin/mycommand_bad'))
+                self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('mycommand2'))
+                self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('amycommand'))
             with self.subTest("Starts"):
                 mock_mc.return_value = {'parallel_disable_matches': ['mycommand_*', ]}
                 self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('mycommand'))
