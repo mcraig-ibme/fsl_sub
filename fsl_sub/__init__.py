@@ -165,7 +165,6 @@ def submit(
     usescript=False,
     architecture=None,
     requeueable=True,
-    native_holds=False,
     as_tuple=False,
     project=None,
     export_vars=None,
@@ -206,7 +205,6 @@ def submit(
     mail_on - mail user on 'a'bort or reschedule, 'b'egin, 'e'nd,
             's'uspended, 'n'o mail
     mailto - email address to receive job info
-    native_holds - whether to process the jobhold or array_hold input
     logdir - directory to put log files in
     coprocessor - name of coprocessor required
     coprocessor_toolkit - coprocessor toolkit version
@@ -254,7 +252,7 @@ def submit(
                     validate_command, mail_on, mailto, logdir,
                     coprocessor, coprocessor_toolkit, coprocessor_class,
                     coprocessor_class_strict, coprocessor_multi,
-                    usescript, architecture, requeueable, native_holds,
+                    usescript, architecture, requeueable,
                     as_tuple, project,
                 ]
             ]
@@ -375,15 +373,10 @@ def submit(
         if not isinstance(jobhold, (str, int, list, tuple)):
             raise BadSubmission(
                 "jobhold must be a string, int, list or tuple")
-        if not native_holds:
-            if isinstance(jobhold, str):
-                jobhold = jobhold.split(',')
     if array_hold is not None:
         if not isinstance(array_hold, (str, int, list, tuple)):
             raise BadSubmission(
                 "array_hold must be a string, int, list or tuple")
-        if not native_holds:
-            array_hold = array_hold.split(',')
 
     validate_type = 'command'
     if array_task is False:
