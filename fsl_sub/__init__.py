@@ -346,7 +346,7 @@ def submit(
         try:
             mem_requested = human_to_ram(
                 os.environ['FSLSUB_MEMORY_REQUIRED'],
-                config['ram_units'],
+                fsl_sub.consts.RAMUNITS,
                 as_int=True)
         except KeyError:
             pass
