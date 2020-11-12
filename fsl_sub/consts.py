@@ -3,7 +3,7 @@
 QUEUED = 0
 RUNNING = 1
 FINISHED = 2
-FAILEDNQUEUED = 3
+FAILED = 3
 HELD = 4
 REQUEUED = 5
 RESTARTED = 6
@@ -14,7 +14,7 @@ REPORTING = [
     'Queued',
     'Running',
     'Finished',
-    'Failed but requeued',
+    'Failed',
     'Held',
     'Requeued',
     'Restarted',
