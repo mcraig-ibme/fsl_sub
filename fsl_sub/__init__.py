@@ -190,7 +190,7 @@ def submit(
     job_name - Symbolic name for task (defaults to first component of command)
     array_task - is the command is an array task (defaults to False)
     jobhold - id(s) of jobs to hold for (string or list)
-    array_hold - complex hold string
+    array_hold - complex hold string, integer or list
     array_limit - limit concurrently scheduled array
             tasks to specified number
     array_specifier - n[-m[:s]] n subtasks or starts at n, ends at m with
