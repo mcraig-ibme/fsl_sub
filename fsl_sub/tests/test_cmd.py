@@ -452,7 +452,6 @@ class TestMain(unittest.TestCase):
             'resources': None,
             'usescript': False,
             'validate_command': True,
-            'native_holds': False,
             'as_tuple': False,
             'project': None
         }
@@ -667,30 +666,6 @@ class TestMain(unittest.TestCase):
             **test_args
         )
 
-    def test_array_hold_native(self, *args):
-        hold_id = '20002:aa'
-        with io.StringIO() as text_trap:
-            sys.stdout = text_trap
-
-            fsl_sub.cmdline.main(
-                [
-                    '--array_task', 'commandfile',
-                    '--array_hold', hold_id, '--native_holds', ])
-            sys.stdout = sys.__stdout__
-
-            self.assertEqual(
-                text_trap.getvalue(),
-                '123\n'
-            )
-        test_args = copy.deepcopy(self.base_args)
-        test_args['array_task'] = True
-        test_args['array_hold'] = hold_id
-        test_args['native_holds'] = True
-        args[2].assert_called_with(
-            'commandfile',
-            **test_args
-        )
-
     def test_job_hold(self, *args):
         hold_id = '20002'
         with io.StringIO() as text_trap:
@@ -707,27 +682,6 @@ class TestMain(unittest.TestCase):
             )
         test_args = copy.deepcopy(self.base_args)
         test_args['jobhold'] = [hold_id, ]
-        args[2].assert_called_with(
-            ['commandfile'],
-            **test_args
-        )
-
-    def test_job_hold_native(self, *args):
-        hold_id = '20002:aa'
-        with io.StringIO() as text_trap:
-            sys.stdout = text_trap
-
-            fsl_sub.cmdline.main(
-                ['--jobhold', hold_id, '--native_holds', 'commandfile', ])
-            sys.stdout = sys.__stdout__
-
-            self.assertEqual(
-                text_trap.getvalue(),
-                '123\n'
-            )
-        test_args = copy.deepcopy(self.base_args)
-        test_args['jobhold'] = hold_id
-        test_args['native_holds'] = True
         args[2].assert_called_with(
             ['commandfile'],
             **test_args

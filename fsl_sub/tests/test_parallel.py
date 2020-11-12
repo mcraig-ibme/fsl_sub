@@ -20,7 +20,6 @@ thread_control:
   - MKL_NUM_THREADS
 method_opts:
   shell:
-    large_job_split_pe: []
     mail_support: False
     map_ram: False
     job_priorities: False

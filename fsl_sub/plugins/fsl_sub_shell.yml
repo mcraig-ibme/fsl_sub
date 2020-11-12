@@ -1,7 +1,6 @@
 method_opts:
   shell:
     queues: False
-    large_job_split_pe: Null
     mail_support: False
     map_ram: False
     job_priorities: False

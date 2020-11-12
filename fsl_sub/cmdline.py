@@ -519,13 +519,6 @@ There are several batch queues configured on the cluster:
                 default=None,
                 help="Projects not used"
             )
-        advanced_g.add_argument(
-            '--native_holds',
-            action="store_true",
-            help="If specified then the hold/parallel hold are taken to be "
-            "cluster native hold specifiers and will not be interpreted by "
-            "fsl_sub."
-        )
         basic_g.add_argument(
             '-S', '--noramsplit',
             action='store_true',
@@ -537,11 +530,6 @@ There are several batch queues configured on the cluster:
             '--project',
             default=None,
             type=str,
-            help="Not relevant when not running in a cluster environment"
-        )
-        advanced_g.add_argument(
-            '--native_holds',
-            action="store_true",
             help="Not relevant when not running in a cluster environment"
         )
         basic_g.add_argument(
@@ -915,7 +903,7 @@ def main(args=None):
         cmd_parser.error("No command or array task file provided")
 
     for hold_spec in ['jobhold', 'array_hold']:
-        if options[hold_spec] and not options['native_holds']:
+        if options[hold_spec]:
             options[hold_spec] = options[hold_spec].split(',')
 
     if 'mailoptions' not in options:
@@ -964,7 +952,6 @@ def main(args=None):
             usescript=options['usescript'],
             validate_command=not options['novalidation'],
             requeueable=not options['not_requeueable'],
-            native_holds=options['native_holds'],
             as_tuple=False,
             project=project,
             export_vars=exports,
