@@ -440,7 +440,7 @@ def submit(
         queue = None
         split_on_ram = None
     else:
-        split_on_ram = mconfig['map_ram'] and ramsplit
+        split_on_ram = mconfig.get('map_ram', True) and ramsplit
 
         if (split_on_ram
                 and parallel_env is None
@@ -474,7 +474,7 @@ def submit(
             raise BadSubmission(
                 "Job requires {} slots but no parallel envrionment "
                 "available or requested".format(threads))
-        if threads > 1 and mconfig['thread_ram_divide'] and not split_on_ram:
+        if threads > 1 and mconfig.get('thread_ram_divide', False) and not split_on_ram:
             split_on_ram = True
 
     if coprocessor:
