@@ -10,39 +10,6 @@ from unittest.mock import patch
 
 
 class TestConfig(unittest.TestCase):
-    def test__merge_dict(self):
-        a = {'avalue': {'another': 'dict'}, 'bvalue': 1, 'cvalue': [0, 1, ]}
-        b = {'dvalue': 1}
-        c = {'cvalue': [2, 3, 4, ]}
-        d = {'avalue': {'something': 'else', 'yetanother': 'value'}}
-        e = {'avalue': {'another': 'item', 'yetanother': 'value'}}
-        with self.subTest('Add key/value'):
-            self.assertDictEqual(
-                fsl_sub.config._merge_dict(a, b),
-                {'avalue': {
-                    'another': 'dict'}, 'bvalue': 1,
-                    'cvalue': [0, 1], 'dvalue': 1}
-            )
-        with self.subTest('Replace list'):
-            self.assertDictEqual(
-                fsl_sub.config._merge_dict(a, c),
-                {'avalue': {'another': 'dict'}, 'bvalue': 1, 'cvalue': [2, 3, 4]}
-            )
-        with self.subTest('Augment dict'):
-            self.assertDictEqual(
-                fsl_sub.config._merge_dict(a, d),
-                {'avalue': {
-                    'another': 'dict', 'something': 'else',
-                    'yetanother': 'value'}, 'bvalue': 1, 'cvalue': [0, 1]}
-            )
-        with self.subTest('Replace dict key/value'):
-            self.assertDictEqual(
-                fsl_sub.config._merge_dict(a, e),
-                {'avalue': {
-                    'another': 'item', 'yetanother': 'value'},
-                    'bvalue': 1, 'cvalue': [0, 1]}
-            )
-
     @patch('fsl_sub.config.os.path.expanduser', autospec=True)
     def test_find_config_file(
             self, mock_expanduser):
@@ -123,8 +90,7 @@ class TestConfig(unittest.TestCase):
     def test_example_conf(self, mock_gpqd, mock_dcf, mock_gpe):
         base_cpopt = '''baseopt: bits
 '''
-        base_config = '''ram_units: 'G'
-modulecmd: False
+        base_config = '''modulecmd: False
 thread_control:
     - 'OMP_NUM_THREADS'
 method_opts: {}
