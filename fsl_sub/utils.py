@@ -849,6 +849,16 @@ def write_wrapper(content):
     return wrapper.name
 
 
+def merge_dict(base_dict, addition_dict):
+    for k, v in base_dict.items():
+        if k in addition_dict:
+            if type(addition_dict[k]) == dict:
+                addition_dict[k] = merge_dict(v, addition_dict[k])
+    new_dict = base_dict.copy()
+    new_dict.update(addition_dict)
+    return new_dict
+
+
 class YamlIndentDumper(yaml.SafeDumper):
     def increase_indent(self, flow=False, indentless=False):
         return super(YamlIndentDumper, self).increase_indent(flow, False)

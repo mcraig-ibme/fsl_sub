@@ -1,41 +1,20 @@
 ---
-# The following defines configuration options for co-processor queues
-# Define queues with a copro key set to the name of the appropriate option
-# set and ensure that your queue method has a way of interpreting this
 coproc_opts:
-  cuda:
-    # Which scheduler resource requests GPU facilities
-    resource: gpu
-    # PE provides multiGPU support - Son of Grid Engine doesn't support GPUs
-    # natively so often clusters will be set up with a prolog that allocates
-    # GPUs as per the number of parallel environment requested slots. If
-    # this is the case for your cluster, change this to the name of the parallel
-    # environment. Leave as false on systems that support GPU scheduling (e.g. Univa)
-    uses_pe: False
-    # Whether there are multiple coprocessor classes/types
-    classes: True
-    # This defines the short code for the types and the resource
-    # which will be requested and a documentation string for the help
-    # text
+  cuda: # A co-processor called 'cuda' - queues with this coprocessor
+    # should be given a sub-dictionary, 'copros', containing a further dictionary
+    # key 'cuda' containing entries, 'max_quantity' (most number of cards per node) and 'classes' (list)
+    # of 'class_type' keys defined below
+    uses_modules: True # Should we use Shell modules to load the environment settings for the hardware?
+    module_parent: cuda # What is the name of the parent module for this co-processor?
+    presence_test: nvidia-smi # Name of a script/binary (full path if unlikely to be in user's PATH) which confirms coprocessor is available
+    resource: gpu # Which scheduler resource requests GPU facilities
+    classes: False # Whether there are multiple coprocessor classes/types
+    include_more_capable: True # Should we also allow running on more capable hardware? Requires constraints on SLURM
     class_types:
-      G:
-        # Queue resource to request (on SLURM this may be a constraint or type)
-        resource: TitanX
-        # Documentation about this hardware
-        doc: TitanX. No-ECC, single-precision workloads
-        # Capability level for this hardware, integer value that
-        # allows differentiation between hardware models.
-        capability: 1
-      K:
-        resource: k80
-        doc: Kepler. ECC, double- or single-precision workloads
-        capability: 2
-      P:
-        resource: p100
-        doc: >
-          Pascal. ECC, double-, single- and half-precision
-          workloads
-        capability: 3
+      G: # Short code for the types of coprocessors - used on command line and in queue definition
+        resource: TitanX # Queue resource to request (on SLURM this may be a constraint or type)
+        doc: TitanX. No-ECC, single-precision workloads # Documentation about this hardware
+        capability: 1 # Capability level for this hardware, integer value that orders by features - higher = more capable
       V:
         resource: v100
         doc: >
@@ -49,16 +28,5 @@ coproc_opts:
           and Tensor - single-, half-, quarter- and eigth-precision
           workloads
         capability: 5
-    # If a class is not specified, which class should we use?
-    default_class: P
-    # Should we also allow running on more capable hardware?
-    # Requires constraints on SLURM
-    include_more_capable: True
-    # Should we use Shell modules to load the environment settings for
-    # the hardware?
-    uses_modules: True
-    # What is the name of the parent module for this co-processor?
-    module_parent: cuda
-    # Name of a script/binary (full path if unlikely to be in user's PATH) which can be
-    # run to determine if GPUs are available
-    presence_test: nvidia-smi
+    default_class: V # If a class is not specified, which class should we use?
+

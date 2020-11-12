@@ -13,7 +13,6 @@ from unittest.mock import patch
 
 YAML_CONF = '''---
 method: sge
-ram_units: G
 modulecmd: /usr/bin/modulecmd
 thread_control:
   - OMP_NUM_THREADS
@@ -180,7 +179,6 @@ default_queues:
 '''
 YAML_CONF_PROJECTS = '''---
 method: sge
-ram_units: G
 modulecmd: /usr/bin/modulecmd
 thread_control:
   - OMP_NUM_THREADS

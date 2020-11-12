@@ -417,9 +417,9 @@ There are several batch queues configured on the cluster:
         '-R', '--jobram',
         default=None,
         type=int,
-        metavar=config['ram_units'] + 'B',
+        metavar=fsl_sub.consts.RAMUNITS + 'B',
         help="Max total RAM required for job (integer in "
-        + config['ram_units'] + "B). "
+        + fsl_sub.consts.RAMUNITS + "B). "
         "This is very important if your job requires more "
         "than the queue slot memory limit as then your job can be "
         "split over multiple slots automatically - see autoslotsbyram."

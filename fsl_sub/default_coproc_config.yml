@@ -1,5 +1,6 @@
 coproc_opts:
   cuda:
-    # Name of a script/binary (full path if unlikely to be in user's PATH) which can be
-    # run to determine if GPUs are available
-    presence_test: nvidia-smi
+    presence_test: nvidia-smi # Name of a script/binary (full path if unlikely to be in user's PATH) which confirms coprocessor is available
+    uses_modules: False # Should we use Shell modules to load the environment settings for the hardware?
+    module_parent: cuda # What is the name of the parent module for this co-processor?
+

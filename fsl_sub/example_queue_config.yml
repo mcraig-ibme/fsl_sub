@@ -1,43 +1,29 @@
 ---
-# Queue definitions (Partitions in SLURM)
-queues:
-  # Queue name
-  gpu.q:
-    # Maximum job rum time (minutes)
-    time: 18000
-    # Maximum memory per job (GB)
-    max_size: 250
-    # Maximum memory per CPU core (GB)
-    slot_size: 64
-    # Maximum number of threads per job (e.g. number of CPU cores)
-    max_slots: 20
-    # Available coprocessors
-    copros:
-      # Coprocessor name (same as configuration above)
-      cuda:
-        # Number of devices available per job (e.g. number of devices on a single node)
-        max_quantity: 4
-        # List of available classes
-        classes:
+queues: # Queue definitions (Partitions in SLURM)
+  gpu.q: # Queue name
+    time: 18000 # Maximum job rum time (minutes)
+    max_size: 250 # Maximum memory per job (GB)
+    slot_size: 64 # Maximum memory per CPU core (GB)
+    max_slots: 20 # Maximum number of threads per job (e.g. number of CPU cores)
+    copros: # Available coprocessors
+      cuda: # Coprocessor name (same as configuration above)
+        max_quantity: 4 # Number of devices available per job (e.g. number of devices on a single node)
+        classes: # List of available classes as defined in the coproc_opts section 'class' keys
           - K
           - P
           - V
-    # Available parallel environments
-    parallel_envs:
+    parallel_envs: # List of available parallel environments
       - openmp
-    # Should jobs be split over multiple slots when requires more RAM than available
-    # in a single slot
-    map_ram: true
-    # Priority of queue, higher numbers win
-    priority: 1
-    # Group of queue - use this to group together variations of a queue based on
-    # hardware types, the priority is then used to decide which variant to use
-    group: 0
+    map_ram: true  # Split jobs over multiple slots when requesting more RAM than available in a single slot?
+    priority: 1 # Priority of queue, higher numbers win
+    group: 0 # Group of queue - groups variations of a queue, the 'priority' decides which variant to use
   short:
     time: 1440
     max_size: 160
     slot_size: 4
     max_slots: 16
+    patallel_envs:
+      - openmp
     map_ram: true
     priority: 1
     group: 1
@@ -46,15 +32,9 @@ queues:
     max_size: 368
     slot_size: 16
     max_slots: 24
+    patallel_envs:
+      - openmp
     map_ram: true
     priority: 1
     group: 2
     default: True
-  verylong.q:
-    time: 1000000
-    max_size: 500
-    slot_size: 12
-    max_slots: 8
-    map_ram: False
-    priority: 1
-    group: 3

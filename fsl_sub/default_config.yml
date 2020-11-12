@@ -1,28 +1,20 @@
 ---
-# Which execution plugin to use. By default this is 'shell' which uses the integrated
+method: 'shell' # Which execution plugin to use. By default this is 'shell' which uses the integrated
 # shell plugin to run tasks in the local shell session.
-method: 'shell'
-# When memory is reported or provided, what units are they in - normally should be left
-# as 'G' for GiB. Other options are, K (KiB), M (MiB), T (TiB) or P (PiB)
-ram_units: 'G'
-# If your cluster uses Shell Modules to configure software and this is installed in a non-
+modulecmd: False # If your cluster uses Shell Modules to configure software and this is installed in a non-
 # standard location, set this variable to full path to the 'modulecmd' command.
-modulecmd: False
-# List of environment variables that should copied for the job session.
+export_vars: [] # List of environment variables that should copied for the job session.
 # Your cluster manager will advise of any that should not be copied over - this is
 # important with clusters optimised for and running different compute node hardware.
 # There is a command-line option, --export, which will augment the variables provided
 # here.
-export_vars: []
-# List of environment variables that should be set to the number of requested/calculated
-# threads to control multithreading in the submitted software.
-thread_control:
+thread_control: # List of environment variables that limit multithreading in the submitted software.
   - 'OMP_NUM_THREADS'
   - 'MKL_NUM_THREADS'
   - 'MKL_DOMAIN_NUM_THREADS'
   - 'OPENBLAS_NUM_THREADS'
   - 'GOTO_NUM_THREADS'
-silence_warnings:
+silence_warnings: # When generating configurations, don't report these classes of warnings
   - 'cuda'
 method_opts: {}
 queues: {}

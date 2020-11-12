@@ -21,3 +21,5 @@ REPORTING = [
     'Suspended',
     'Starting'
 ]
+
+RAMUNITS = 'G'

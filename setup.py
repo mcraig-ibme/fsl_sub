@@ -36,7 +36,8 @@ setup(
     package_data={
         'fsl_sub': [
             'default_config.yml', 'default_coproc_config.yml',
-            'example_queue_config.yml', 'example_coproc_config.yml', ],
+            'example_queue_config.yml', 'example_coproc_config.yml',
+            'README.md', 'INSTALL.md', 'CONFIGURATION.md', ],
         'fsl_sub.plugins': ['fsl_sub_shell.yml'],
     },
     include_package_data=True,
@@ -45,7 +46,7 @@ setup(
             'fsl_sub=fsl_sub.cmdline:main',
             'fsl_sub_config=fsl_sub.cmdline:example_config',
             'fsl_sub_report=fsl_sub.cmdline:report_cmd',
-            'fsl_sub_install_plugin=fsl_sub.cmdline:install_plugin',
+            'fsl_sub_plugin=fsl_sub.cmdline:install_plugin',
             'fsl_sub_update=fsl_sub.cmdline:update',
         ]
     }

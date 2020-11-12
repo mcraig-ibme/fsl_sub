@@ -14,7 +14,8 @@ from fsl_sub.utils import (
     get_plugin_queue_defs,
     get_plugin_already_queued,
     available_plugins,
-    add_nl
+    add_nl,
+    merge_dict,
 )
 from functools import lru_cache
 
@@ -70,7 +71,7 @@ def load_default_config():
     for d_conf_f in (dc_file, dcc_file, ):
         try:
             with open(d_conf_f, 'r') as yaml_source:
-                default_config = _merge_dict(
+                default_config = merge_dict(
                     default_config, yaml.safe_load(yaml_source))
         except yaml.YAMLError as e:
             raise BadConfiguration(
@@ -89,7 +90,7 @@ def load_default_config():
             raise BadConfiguration(
                 "Unable to understand plugin {0}'s default configuration: ".format(plugin) + str(e))
 
-        default_config = _merge_dict(default_config, p_dc)
+        default_config = merge_dict(default_config, p_dc)
 
     default_config['method'] = 'shell'
     return default_config
@@ -115,7 +116,7 @@ def read_config():
         )
     except MissingConfiguration:
         config_dict = {}
-    this_config = _merge_dict(default_config, config_dict)
+    this_config = merge_dict(default_config, config_dict)
     if config_dict.get('coproc_opts', {}):
         if 'cuda' not in config_dict['coproc_opts'].keys():
             if 'cuda' not in config_dict.get('silence_warnings', []):
@@ -299,13 +300,3 @@ def queue_config(queue=None):
             raise BadConfiguration(
                 "Unable to find definition for queue " + queue
             )
-
-
-def _merge_dict(base_dict, addition_dict):
-    for k, v in base_dict.items():
-        if k in addition_dict:
-            if type(addition_dict[k]) == dict:
-                addition_dict[k] = _merge_dict(v, addition_dict[k])
-    new_dict = base_dict.copy()
-    new_dict.update(addition_dict)
-    return new_dict

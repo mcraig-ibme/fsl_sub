@@ -15,7 +15,6 @@ from fsl_sub.exceptions import (
 from fsl_sub.config import (
     method_config,
     coprocessor_config,
-    read_config,
 )
 import fsl_sub.consts
 from fsl_sub.coprocessors import (
@@ -265,7 +264,7 @@ def submit(
                 # Modify jobram if necessary...
                 # jobram = split_ram_by_slots(jobram, threads)
                 pass
-            ram_units = read_config()['ram_units']
+            ram_units = fsl_sub.consts.RAMUNITS
 
             # RAM is specified in megabytes
             try:

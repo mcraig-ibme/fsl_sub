@@ -2201,5 +2201,40 @@ class TestJobScript(unittest.TestCase):
             )
 
 
+class TestMergeDict(unittest.TestCase):
+    def test_merge_dict(self):
+        a = {'avalue': {'another': 'dict'}, 'bvalue': 1, 'cvalue': [0, 1, ]}
+        b = {'dvalue': 1}
+        c = {'cvalue': [2, 3, 4, ]}
+        d = {'avalue': {'something': 'else', 'yetanother': 'value'}}
+        e = {'avalue': {'another': 'item', 'yetanother': 'value'}}
+        with self.subTest('Add key/value'):
+            self.assertDictEqual(
+                fsl_sub.utils.merge_dict(a, b),
+                {'avalue': {
+                    'another': 'dict'}, 'bvalue': 1,
+                    'cvalue': [0, 1], 'dvalue': 1}
+            )
+        with self.subTest('Replace list'):
+            self.assertDictEqual(
+                fsl_sub.utils.merge_dict(a, c),
+                {'avalue': {'another': 'dict'}, 'bvalue': 1, 'cvalue': [2, 3, 4]}
+            )
+        with self.subTest('Augment dict'):
+            self.assertDictEqual(
+                fsl_sub.utils.merge_dict(a, d),
+                {'avalue': {
+                    'another': 'dict', 'something': 'else',
+                    'yetanother': 'value'}, 'bvalue': 1, 'cvalue': [0, 1]}
+            )
+        with self.subTest('Replace dict key/value'):
+            self.assertDictEqual(
+                fsl_sub.utils.merge_dict(a, e),
+                {'avalue': {
+                    'another': 'item', 'yetanother': 'value'},
+                    'bvalue': 1, 'cvalue': [0, 1]}
+            )
+
+
 if __name__ == '__main__':
     unittest.main()

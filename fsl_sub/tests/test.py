@@ -16,7 +16,6 @@ from fsl_sub.exceptions import BadSubmission
 
 YAML_CONF = '''---
 method: sge
-ram_units: G
 modulecmd: False
 thread_control:
   - OMP_NUM_THREADS
