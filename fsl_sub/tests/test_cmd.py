@@ -1009,14 +1009,12 @@ class TestExampleConf(unittest.TestCase):
             'shell'
         )
 
-    @unittest.mock.patch('fsl_sub.cmdline.sys.stdout', new_callable=io.StringIO)
-    def test_example_config(self, mock_stdout):
-        fsl_sub.cmdline.example_config(['shell', ])
-        self.assertTrue(
-            mock_stdout.getvalue().startswith('---\n')
-        )
+    def test_example_config(self):
+        with unittest.mock.patch('fsl_sub.cmdline.sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            fsl_sub.cmdline.example_config(['shell', ])
+        output = mock_stdout.getvalue()
         try:
-            yaml.safe_load(mock_stdout.getvalue())
+            yaml.safe_load(output)
         except yaml.YAMLError:
             self.fail("Example config not valid YAML")
 
