@@ -28,5 +28,5 @@ coproc_opts:
           and Tensor - single-, half-, quarter- and eigth-precision
           workloads
         capability: 5
-    default_class: V # If a class is not specified, which class should we use?
+    default_class: V # If classes are available and  a class is not specified, which class should we use?
 
