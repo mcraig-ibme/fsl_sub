@@ -37,7 +37,7 @@ setup(
         'fsl_sub': [
             'default_config.yml', 'default_coproc_config.yml',
             'example_queue_config.yml', 'example_coproc_config.yml',
-            'README.md', 'INSTALL.md', 'CONFIGURATION.md', ],
+            'README.md', 'INSTALL.md', 'CONFIGURATION.md', 'CHANGES.md', ],
         'fsl_sub.plugins': ['fsl_sub_shell.yml'],
     },
     include_package_data=True,
