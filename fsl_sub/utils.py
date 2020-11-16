@@ -184,6 +184,7 @@ def human_to_ram(ram, output='M', units='G', as_int=True, round_down=False):
         'G': 30,
         'M': 20,
         'K': 10,
+        'B': 0
     }
     try:
         units = units.upper()

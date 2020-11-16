@@ -33,6 +33,11 @@ class TestFlattenList(unittest.TestCase):
 
 class TestConversions(unittest.TestCase):
     def test_human_to_ram(self):
+        with self.subTest('Bytes output'):
+            self.assertEqual(
+                fsl_sub.utils.human_to_ram('1K', output='B', as_int=True),
+                1024
+            )
         with self.subTest('no units'):
             self.assertEqual(
                 fsl_sub.utils.human_to_ram(10),
