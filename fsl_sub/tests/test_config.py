@@ -231,12 +231,8 @@ method_opts:
                             ntf_dcp.flush()
                             mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
                             mock_gpe.side_effect = method_config
-                            import pdb; pdb.set_trace()
                             c_od = fsl_sub.config.example_config(method='sge')
                             e_od = yaml.load(qc_expected_output)
-                            print(qc_expected_output)
-                            yaml.dump(c_od, sys.stdout)
-                            yaml.dump(e_od, sys.stdout)
                             self.assertEqual(c_od, e_od)
                             mock_dcf.reset_mock(return_value=True, side_effect=True)
                             mock_gpe.reset_mock(return_value=True, side_effect=True)
@@ -318,7 +314,6 @@ method_opts:
             mock_ap.reset_mock()
             mock__icf.reset_mock()
             mock_gpec.reset_mock()
-
 
     @patch(
         'fsl_sub.config.load_default_config',
