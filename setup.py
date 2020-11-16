@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-with open('fsl_sub_plugin_sge/version.py', mode='r') as vf:
+with open('fsl_sub/version.py', mode='r') as vf:
     vl = vf.read().strip()
 
 PLUGIN_VERSION = vl.split(' = ')[1].strip("'")
