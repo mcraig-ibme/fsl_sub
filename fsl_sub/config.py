@@ -6,16 +6,16 @@ import os.path
 from shutil import which
 import subprocess as sp
 import warnings
-import yaml
+from ruamel.yaml import (YAML, YAMLError, )
 
 from fsl_sub.exceptions import (BadConfiguration, MissingConfiguration, )
 from fsl_sub.utils import (
-    get_plugin_example_conf,
+    get_plugin_default_conf,
     get_plugin_queue_defs,
     get_plugin_already_queued,
     available_plugins,
-    add_nl,
     merge_dict,
+    merge_commentedmap,
 )
 from functools import lru_cache
 
@@ -68,12 +68,13 @@ def load_default_config():
     dc_file = _internal_config_file("default_config.yml")
     dcc_file = _internal_config_file("default_coproc_config.yml")
     default_config = {}
+    yaml = YAML(typ='safe')
     for d_conf_f in (dc_file, dcc_file, ):
         try:
             with open(d_conf_f, 'r') as yaml_source:
-                default_config = merge_dict(
-                    default_config, yaml.safe_load(yaml_source))
-        except yaml.YAMLError as e:
+                yc = yaml.load(yaml_source)
+                default_config = merge_dict(default_config, yc)
+        except YAMLError as e:
             raise BadConfiguration(
                 "Unable to understand default configuration: " + str(e))
         except FileNotFoundError:
@@ -85,10 +86,12 @@ def load_default_config():
 
     for plugin in available_plugins():
         try:
-            p_dc = yaml.safe_load(get_plugin_example_conf(plugin))
-        except yaml.YAMLError as e:
+            plugin_yaml = get_plugin_default_conf(plugin)
+            p_dc = yaml.load(plugin_yaml)
+        except Exception as e:
             raise BadConfiguration(
-                "Unable to understand plugin {0}'s default configuration: ".format(plugin) + str(e))
+                "Unable to understand plugin "
+                "{0}'s default configuration: ".format(plugin) + str(e))
 
         default_config = merge_dict(default_config, p_dc)
 
@@ -98,16 +101,17 @@ def load_default_config():
 
 @lru_cache()
 def read_config():
+    yaml = YAML(typ='safe')
     default_config = load_default_config()
     config_file = find_config_file()
     try:
         with open(config_file, 'r') as yaml_source:
-            config_dict = yaml.safe_load(yaml_source)
+            config_dict = yaml.load(yaml_source)
     except IsADirectoryError:
         raise BadConfiguration(
             "Unable to open configuration file - "
             "looks like FSLSUB_CONF may be pointing at a directory? " + config_file)
-    except yaml.YAMLError as e:
+    except YAMLError as e:
         raise BadConfiguration(
             "Unable to understand configuration file: " + str(e))
     except (FileNotFoundError, PermissionError, ):
@@ -155,67 +159,51 @@ def _read_config_file(fname):
     return e_conf
 
 
+def _read_rt_yaml_file(filename):
+    yaml = YAML()
+    with open(filename, 'r') as fh:
+        return yaml.load(fh)
+
+
+def _dict_from_yaml_string(ystr):
+    yaml = YAML()
+    return yaml.load(ystr)
+
+
 def example_config(method=None):
     '''Merges the method default config output with the general defaults and returns
-    the example config as a string'''
+    the example config as a ruamel.yaml CommentedMap'''
     methods = ['shell', ]
+    if method is not None and method != 'shell':
+        methods.append(method)
+
     e_conf = ''
 
     # Example config files
-    dc_file = _internal_config_file("default_config.yml")
-    dcc_file = _internal_config_file("default_coproc_config.yml")
-    qc_file = _internal_config_file("example_queue_config.yml")
-    cc_file = _internal_config_file("example_coproc_config.yml")
+    cfs = {
+        'dc': _read_rt_yaml_file(_internal_config_file("default_config.yml")),
+        'dcc': _read_rt_yaml_file(_internal_config_file("default_coproc_config.yml")),
+        'qc': _read_rt_yaml_file(_internal_config_file("example_queue_config.yml")),
+        'cc': _read_rt_yaml_file(_internal_config_file("example_coproc_config.yml")),
+    }
 
-    # Load top-level config
-    e_conf = _read_config_file(dc_file)
-    e_conf = add_nl(e_conf)
-    # If a plugin method has been provided set 'method' to this
-    if method is not None and method not in methods:
-        methods.append(method)
-        for match in ("'shell'", '"shell"', 'shell'):
-            e_conf = e_conf.replace("method: {0}\n".format(match), "method: '{0}'\n".format(method))
-
-    # Remove method_opts and re-add at end of file:
-    e_conf = e_conf.replace('method_opts: {}\n', '')
-    e_conf += 'method_opts:\n'
+    e_conf = cfs['dc']
+    e_conf = merge_commentedmap(e_conf, cfs['dcc'])
 
     # Add the method opts for the methods ('shell' + value of method)
     for m in methods:
-        plugin_conf = get_plugin_example_conf(m)
-
-        for match in ("'{0}'".format(m), '"{0}"'.format(m), '{0}'.format(m)):
-            plugin_conf = plugin_conf.replace("method: {0}\n".format(match), '')
-
-        plugin_conf = plugin_conf.replace("method_opts:\n", '')
-        e_conf = add_nl(e_conf)
-        e_conf = e_conf + plugin_conf
-        e_conf = add_nl(e_conf)
-
-    dcp_conf = _read_config_file(dcc_file)
-    if 'coproc_opts:\n  cuda:\n' in e_conf:
-        dcp_conf = dcp_conf.replace('coproc_opts:\n  cuda:\n', '')
-    e_conf += dcp_conf.replace('---\n', '')
-    e_conf = add_nl(e_conf)
+        plugin_conf = get_plugin_default_conf(m)
+        e_conf = merge_commentedmap(e_conf, _dict_from_yaml_string(plugin_conf))
 
     if method is not None:
-        # Add the example co-processor config
-        ecp = _read_config_file(cc_file).replace('---\n', '')
-        if 'coproc_opts:\n  cuda:\n' in e_conf:
-            ecp = ecp.replace('coproc_opts:\n  cuda:\n', '')
-        e_conf += ecp
-        e_conf = add_nl(e_conf)
-        e_conf = e_conf.replace('coproc_opts: {}\n', '')
+        e_conf = merge_commentedmap(e_conf, cfs['cc'])
         # Try to detect queues
         queue_defs = get_plugin_queue_defs(method)
         if queue_defs:
-            e_conf += 'queues:\n'
-            e_conf += queue_defs
+            e_conf['queues'].update(_dict_from_yaml_string(queue_defs))
         else:
             # Add the example queue config
-            e_conf += _read_config_file(qc_file).replace('---\n', '')
-        e_conf = e_conf.replace('queues: {}\n', '')
-        e_conf = add_nl(e_conf)
+            e_conf = merge_commentedmap(e_conf, cfs['qc'])
     return e_conf
 
 

@@ -4,10 +4,10 @@ import copy
 import getpass
 import io
 import os
+from ruamel.yaml import (YAML, YAMLError, )
 import socket
 import sys
 import unittest
-import yaml
 import fsl_sub.cmdline
 from unittest.mock import patch
 
@@ -402,15 +402,15 @@ class TestMisc(unittest.TestCase):
 @patch(
     'fsl_sub.shell_modules.read_config',
     autospec=True,
-    return_value=yaml.safe_load(YAML_CONF))
+    return_value=YAML(typ='safe').load(YAML_CONF))
 @patch(
     'fsl_sub.cmdline.read_config',
     autospec=True,
-    return_value=yaml.safe_load(YAML_CONF))
+    return_value=YAML(typ='safe').load(YAML_CONF))
 @patch(
     'fsl_sub.config.read_config',
     autospec=True,
-    return_value=yaml.safe_load(YAML_CONF))
+    return_value=YAML(typ='safe').load(YAML_CONF))
 @patch(
     'fsl_sub.cmdline.submit',
     autospec=True,
@@ -423,6 +423,7 @@ class TestMisc(unittest.TestCase):
     autospec=True, return_value=['7.5', '8.0', ])
 class TestMain(unittest.TestCase):
     def setUp(self):
+        self.yaml = YAML(typ='safe')
         self. base_args = {
             'architecture': None,
             'array_hold': None,
@@ -823,13 +824,13 @@ class TestMain(unittest.TestCase):
         )
 
     def test_project(self, *args):
-        args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[3].return_value = self.yaml.load(YAML_CONF_PROJECTS)
+        args[4].return_value = self.yaml.load(YAML_CONF_PROJECTS)
+        args[5].return_value = self.yaml.load(YAML_CONF_PROJECTS)
         with patch(
                 'fsl_sub.projects.read_config',
                 autospec=True,
-                return_value=yaml.safe_load(YAML_CONF_PROJECTS)):
+                return_value=self.yaml.load(YAML_CONF_PROJECTS)):
             with io.StringIO() as text_trap:
                 sys.stdout = text_trap
 
@@ -849,13 +850,13 @@ class TestMain(unittest.TestCase):
             )
 
     def test_project_env(self, *args):
-        args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[3].return_value = self.yaml.load(YAML_CONF_PROJECTS)
+        args[4].return_value = self.yaml.load(YAML_CONF_PROJECTS)
+        args[5].return_value = self.yaml.load(YAML_CONF_PROJECTS)
         with patch(
                 'fsl_sub.projects.read_config',
                 autospec=True,
-                return_value=yaml.safe_load(YAML_CONF_PROJECTS)):
+                return_value=self.yaml.load(YAML_CONF_PROJECTS)):
             with patch.dict(
                     'fsl_sub.projects.os.environ',
                     {'FSLSUB_PROJECT': 'Bproject', }, clear=True):
@@ -877,13 +878,13 @@ class TestMain(unittest.TestCase):
                 )
 
     def test_comma_sep_export(self, *args):
-        args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[3].return_value = self.yaml.load(YAML_CONF_PROJECTS)
+        args[4].return_value = self.yaml.load(YAML_CONF_PROJECTS)
+        args[5].return_value = self.yaml.load(YAML_CONF_PROJECTS)
         with patch(
             'fsl_sub.projects.read_config',
                 autospec=True,
-                return_value=yaml.safe_load(YAML_CONF_PROJECTS)):
+                return_value=self.yaml.load(YAML_CONF_PROJECTS)):
             with io.StringIO() as text_trap:
                 sys.stdout = text_trap
 
@@ -902,13 +903,13 @@ class TestMain(unittest.TestCase):
             )
 
     def test_comma_sep_exports(self, *args):
-        args[3].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        args[4].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
-        args[5].return_value = yaml.safe_load(YAML_CONF_PROJECTS)
+        args[3].return_value = self.yaml.load(YAML_CONF_PROJECTS)
+        args[4].return_value = self.yaml.load(YAML_CONF_PROJECTS)
+        args[5].return_value = self.yaml.load(YAML_CONF_PROJECTS)
         with patch(
             'fsl_sub.projects.read_config',
                 autospec=True,
-                return_value=yaml.safe_load(YAML_CONF_PROJECTS)):
+                return_value=self.yaml.load(YAML_CONF_PROJECTS)):
             with io.StringIO() as text_trap:
                 sys.stdout = text_trap
 
@@ -968,8 +969,8 @@ class TestExampleConf(unittest.TestCase):
             fsl_sub.cmdline.example_config(['shell', ])
         output = mock_stdout.getvalue()
         try:
-            yaml.safe_load(output)
-        except yaml.YAMLError:
+            YAML().load(output)
+        except YAMLError:
             self.fail("Example config not valid YAML")
 
 

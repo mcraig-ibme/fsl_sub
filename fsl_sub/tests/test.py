@@ -7,8 +7,8 @@ import socket
 import sys
 import tempfile
 import unittest
-import yaml
 import fsl_sub
+from ruamel.yaml import YAML
 from unittest import skipIf
 from unittest.mock import patch
 from unittest.mock import MagicMock
@@ -289,15 +289,15 @@ class ShellPluginSubmitTests(unittest.TestCase):
 @patch(
     'fsl_sub.shell_modules.read_config',
     autospec=True,
-    return_value=yaml.safe_load(YAML_CONF))
+    return_value=YAML(typ='safe').load(YAML_CONF))
 @patch(
     'fsl_sub.read_config',
     autospec=True,
-    return_value=yaml.safe_load(YAML_CONF))
+    return_value=YAML(typ='safe').load(YAML_CONF))
 @patch(
     'fsl_sub.config.read_config',
     autospec=True,
-    return_value=yaml.safe_load(YAML_CONF))
+    return_value=YAML(typ='safe').load(YAML_CONF))
 @patch(
     'fsl_sub.load_plugins',
     autospec=True
@@ -313,7 +313,7 @@ class ShellPluginSubmitTests(unittest.TestCase):
     return_value=['a', 'b', ])
 class SubmitTests(unittest.TestCase):
     def setUp(self):
-        self.base_config = yaml.safe_load(YAML_CONF)
+        self.base_config = YAML(typ='safe').load(YAML_CONF)
         self.base_args = {
             'architecture': None,
             'array_hold': None,
@@ -631,7 +631,7 @@ class SubmitTests(unittest.TestCase):
 class GetQTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.conf_dict = yaml.safe_load(YAML_CONF)
+        cls.conf_dict = YAML(typ='safe').load(YAML_CONF)
 
     def test__slots_required(self):
         with self.subTest("Single q"):
