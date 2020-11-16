@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 with open('fsl_sub/version.py', mode='r') as vf:
     vl = vf.read().strip()
 
-PLUGIN_VERSION = vl.split(' = ')[1].strip("'")
+VERSION = vl.split(' = ')[1].strip("'")
 
 setup(
     name='fsl_sub',
