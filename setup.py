@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
-from fsl_sub.version import VERSION
+
+with open('fsl_sub_plugin_sge/version.py', mode='r') as vf:
+    vl = vf.read().strip()
+
+PLUGIN_VERSION = vl.split(' = ')[1].strip("'")
 
 setup(
     name='fsl_sub',
@@ -31,7 +35,7 @@ setup(
     packages=find_packages(),
     license='FSL License',
     install_requires=['ruamel.yaml>=0.16.7'],
-    setup_requires=['ruamel.yaml'],
+    setup_requires=['ruamel.yaml>=0.16.7'],
     python_requires='~=3.5',
     package_data={
         'fsl_sub': [
