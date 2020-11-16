@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import unittest
-import yaml
 import fsl_sub.coprocessors
 import fsl_sub.config
 
+from ruamel.yaml import YAML
 from unittest.mock import patch
 
-test_config = yaml.safe_load('''
+test_config = YAML(typ='safe').load('''
 thread_control:
   - OMP_NUM_THREADS
   - MKL_NUM_THREADS

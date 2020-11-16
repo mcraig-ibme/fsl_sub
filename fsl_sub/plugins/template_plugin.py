@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess as sp
 from collections import defaultdict
+from ruamel.yaml import YAML
 
 from fsl_sub.version import (VERSION, )
 from fsl_sub.exceptions import (
@@ -421,16 +422,16 @@ def _default_config_file():
         'fsl_sub_' + METHOD_NAME + '.yml')
 
 
-def example_conf():
-    '''Returns a string containing the example configuration for this
+def default_conf():
+    '''Returns a string containing the default configuration for this
     cluster plugin.'''
 
     try:
-        with open(_default_config_file()) as e_conf_f:
-            e_conf = e_conf_f.read()
+        with open(_default_config_file()) as d_conf_f:
+            d_conf = d_conf_f.read()
     except FileNotFoundError as e:
-        raise MissingConfiguration("Unable to find example configuration file: " + str(e))
-    return e_conf
+        raise MissingConfiguration("Unable to find default configuration file: " + str(e))
+    return d_conf
 
 
 def job_status(job_id, sub_job_id=None):
@@ -497,3 +498,48 @@ def _running_job(job_id, sub_job_id=None):
 def _finished_job(job_id, sub_job_id=None):
     '''Get information on a finished job'''
     pass
+
+
+def _get_queues():
+    '''Return list of queue names and the name of the default queue as a tuple'''
+    pass
+
+
+def build_queue_defs():
+    '''Return ruamel.yaml YAML suitable for configuring queues'''
+    logger = _get_logger()
+
+    try:
+        queue_list, default = _get_queues()
+    except BadSubmission as e:
+        logger.error('Unable to query XXX: ' + str(e))
+        return ('', [])
+    queues = CommentedMap()
+    for q in queue_list:
+        qinfo = .... # Glean some information about the queue
+        queues[qinfo['qname']] = CommentedMap()
+        qd = queues[qinfo['qname']]
+        queues.yaml_add_eol_comment("Queue name", qinfo['qname'], column=0)
+        add_comment = qd.yaml_add_eol_comment
+        for coproc_m in ('gpu', 'cuda', 'phi', ): # This looks for likely GPU queues
+            if coproc_m in q:
+                warnings.append(
+                    "'Quene name looks like it might be a queue supporting co-processors."
+                    " Cannot auto-configure.'"
+                )
+        qd['time'] = # Qtime
+        add_comment('Maximum job run time in minutes', 'time', column=0)
+        qd['max_slots'] = # Cpus per node
+        add_comment("Maximum number of threads/slots on a queue", 'max_slots', column=0)
+        qd['max_size'] = # Memory per node
+        add_comment("Maximum RAM size of a job", 'max_size', column=0)
+        qd['slot_size'] = # Maximum memory per slot
+        add_comment("Maximum memory per thread", 'slot_size')
+        # Add any warnings to the warnings list
+        # Look for GPU selectors and add to the warnings possibly useful information for
+        # configuring co-processors
+
+        for w in warnings:
+            queues.yaml_set_comment_before_after_key(qinfo['qname'], after=w)
+
+    return queues

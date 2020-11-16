@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 import unittest
 import fsl_sub.config
 import os
@@ -6,6 +7,7 @@ import shutil
 import subprocess
 import tempfile
 
+from ruamel.yaml import YAML
 from unittest.mock import patch
 
 
@@ -84,15 +86,17 @@ class TestConfig(unittest.TestCase):
         finally:
             shutil.rmtree(test_dir)
 
-    @patch('fsl_sub.config.get_plugin_example_conf')
+    @patch('fsl_sub.config.get_plugin_default_conf')
     @patch('fsl_sub.config._internal_config_file')
     @patch('fsl_sub.config.get_plugin_queue_defs', return_value='')
     def test_example_conf(self, mock_gpqd, mock_dcf, mock_gpe):
+        self.maxDiff = None
+        yaml = YAML()
         base_cpopt = '''baseopt: bits
 '''
-        base_config = '''modulecmd: False
+        base_config = '''modulecmd: false
 thread_control:
-    - 'OMP_NUM_THREADS'
+  - OMP_NUM_THREADS
 method_opts: {}
 queues: {}
 coproc_opts: {}
@@ -112,21 +116,21 @@ queues:
     runtime: 100
 '''
         method_config = (
-            '''method: 'shell'
+            '''method: shell
 method_opts:
-    shell:
-        queues: False''',
+  shell:
+    queues: false''',
             '''method: sge
 method_opts:
-    sge:
-        queues: True''', )
+  sge:
+    queues: true''', )
         merged_method_config = '''method_opts:
-    shell:
-        queues: False
-    sge:
-        queues: True'''
+  shell:
+    queues: false
+  sge:
+    queues: true'''
         expected_output = (
-            "---\nmethod: 'sge'\n"
+            "---\nmethod: sge\n"
             + base_config.replace(
                 'method_opts: {}\n', '').replace(
                     'queues: {}\n', '').replace(
@@ -151,8 +155,9 @@ method_opts:
                             ntf_dcp.flush()
                             mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
                             mock_gpe.side_effect = method_config
-                            e_conf = fsl_sub.config.example_config(method='sge')
-                            self.assertEqual(e_conf, expected_output)
+                            c_od = fsl_sub.config.example_config(method='sge')
+                            e_od = yaml.load(expected_output)
+                            self.assertEqual(c_od, e_od)
                             mock_dcf.reset_mock(return_value=True, side_effect=True)
                             mock_gpe.reset_mock(return_value=True, side_effect=True)
 
@@ -171,8 +176,9 @@ method_opts:
                             ntf_dcp.flush()
                             mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
                             mock_gpe.side_effect = method_config
-                            e_conf = fsl_sub.config.example_config(method='sge')
-                            self.assertEqual(e_conf, expected_output)
+                            c_od = fsl_sub.config.example_config(method='sge')
+                            e_od = yaml.load(expected_output)
+                            self.assertEqual(c_od, e_od)
                             mock_dcf.reset_mock(return_value=True, side_effect=True)
                             mock_gpe.reset_mock(return_value=True, side_effect=True)
 
@@ -191,8 +197,9 @@ method_opts:
                             ntf_dcp.flush()
                             mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
                             mock_gpe.side_effect = method_config
-                            e_conf = fsl_sub.config.example_config(method='sge')
-                            self.assertEqual(e_conf, expected_output)
+                            c_od = fsl_sub.config.example_config(method='sge')
+                            e_od = yaml.load(expected_output)
+                            self.assertEqual(c_od, e_od)
                             mock_dcf.reset_mock(return_value=True, side_effect=True)
                             mock_gpe.reset_mock(return_value=True, side_effect=True)
 
@@ -224,8 +231,13 @@ method_opts:
                             ntf_dcp.flush()
                             mock_dcf.side_effect = (ntf.name, ntf_dcp.name, ntf_cq.name, ntf_cp.name)
                             mock_gpe.side_effect = method_config
-                            e_conf = fsl_sub.config.example_config(method='sge')
-                            self.assertEqual(e_conf, qc_expected_output)
+                            import pdb; pdb.set_trace()
+                            c_od = fsl_sub.config.example_config(method='sge')
+                            e_od = yaml.load(qc_expected_output)
+                            print(qc_expected_output)
+                            yaml.dump(c_od, sys.stdout)
+                            yaml.dump(e_od, sys.stdout)
+                            self.assertEqual(c_od, e_od)
                             mock_dcf.reset_mock(return_value=True, side_effect=True)
                             mock_gpe.reset_mock(return_value=True, side_effect=True)
 
@@ -260,7 +272,7 @@ adict:
             m.assert_called_once_with('/etc/fsl_sub.conf', 'r')
 
     @patch('fsl_sub.config._internal_config_file', autospec=True)
-    @patch('fsl_sub.config.get_plugin_example_conf', autospec=True)
+    @patch('fsl_sub.config.get_plugin_default_conf', autospec=True)
     @patch('fsl_sub.config.available_plugins', autospec=True)
     def test_load_default_config(self, mock_ap, mock_gpec, mock__icf):
         base_conf = '''---
@@ -306,9 +318,7 @@ method_opts:
             mock_ap.reset_mock()
             mock__icf.reset_mock()
             mock_gpec.reset_mock()
-            plugins[1] = plugins[1].replace('method_opts:\n', "method: 'sge'\nmethod_opts:\n")
-            mock_gpec.side_effect = plugins
-            self.assertDictEqual(fsl_sub.config.load_default_config(), expected_config)
+
 
     @patch(
         'fsl_sub.config.load_default_config',

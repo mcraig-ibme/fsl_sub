@@ -13,7 +13,7 @@ class TestRequireMethods(unittest.TestCase):
         methods = dir(fsl_sub.plugins.fsl_sub_plugin_shell)
         for method in [
                 'plugin_version', 'qtest', 'queue_exists',
-                'submit', 'example_conf', 'job_status']:
+                'submit', 'default_conf', 'job_status']:
             with self.subTest(method):
                 self.assertTrue(method in methods)
 

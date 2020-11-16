@@ -13,9 +13,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import yaml
 from functools import lru_cache
 from math import ceil
+from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml import YAML
+
 from fsl_sub.exceptions import (
     CommandError,
     BadOS,
@@ -87,7 +89,7 @@ def available_plugin_packages():
     ]
 
 
-def get_plugin_example_conf(plugin_name):
+def get_plugin_default_conf(plugin_name):
     PLUGINS = load_plugins()
     grid_module = 'fsl_sub_plugin_' + plugin_name
 
@@ -95,10 +97,10 @@ def get_plugin_example_conf(plugin_name):
         raise CommandError("Plugin {} not found". format(plugin_name))
 
     try:
-        return PLUGINS[grid_module].example_conf()
+        return PLUGINS[grid_module].default_conf()
     except AttributeError:
         raise BadConfiguration(
-            "Plugin doesn't provide an example configuration."
+            "Plugin doesn't provide a default configuration."
         )
 
 
@@ -425,6 +427,7 @@ def conda_bin(fsldir=None):
 
 
 def conda_channel(fsldir=None):
+    yaml = YAML(typ='safe')
     try:
         if fsldir is None:
             fsldir = find_fsldir()
@@ -432,18 +435,19 @@ def conda_channel(fsldir=None):
         raise NoCondaEnv(str(e))
 
     try:
-        fsl_pyenv = open(
-            os.path.join(
-                fsldir,
-                'etc',
-                'fslconf',
-                'fslpython_environment.yml'),
-            "r")
+        with open(
+                os.path.join(
+                    fsldir,
+                    'etc',
+                    'fslconf',
+                    'fslpython_environment.yml'),
+                "r") as fsl_pyenv:
+            conda_env = yaml.load(fsl_pyenv)
+
     except Exception as e:
         raise NoCondaEnvFile(
             "Unable to access fslpython_environment.yml file: "
             + str(e))
-    conda_env = yaml.safe_load(fsl_pyenv)
     for channel in conda_env['channels']:
         if channel.endswith('fslconda/channel'):
             return channel
@@ -859,6 +863,19 @@ def merge_dict(base_dict, addition_dict):
     return new_dict
 
 
-class YamlIndentDumper(yaml.SafeDumper):
-    def increase_indent(self, flow=False, indentless=False):
-        return super(YamlIndentDumper, self).increase_indent(flow, False)
+def merge_commentedmap(d, n):
+    '''Merge ruamel.yaml round-trip dict-a-likes'''
+    if isinstance(n, CommentedMap):
+        for k in n:
+            d[k] = merge_commentedmap(d[k], n[k]) if k in d else n[k]
+            if k in n.ca._items and n.ca._items[k][2] and \
+                    n.ca._items[k][2].value.strip():
+                d.ca._items[k] = n.ca._items[k]  # copy non-empty comment
+    else:
+        d = n
+    return d
+
+
+# class YamlIndentDumper(yaml.SafeDumper):
+#     def increase_indent(self, flow=False, indentless=False):
+#         return super(YamlIndentDumper, self).increase_indent(flow, False)

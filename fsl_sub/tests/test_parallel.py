@@ -2,8 +2,8 @@
 import os
 import os.path
 import unittest
-import yaml
 import fsl_sub.parallel
+from ruamel.yaml import YAML
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 from fsl_sub.exceptions import ArgumentError
@@ -13,7 +13,7 @@ from fsl_sub.config import read_config
 class TestParallelEnvs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.config = yaml.safe_load('''
+        cls.config = YAML(typ='safe').load('''
 method: sge
 thread_control:
   - OMP_THREADS

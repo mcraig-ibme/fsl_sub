@@ -10,7 +10,7 @@ import os
 import socket
 import sys
 import traceback
-import yaml
+from ruamel.yaml import YAML
 from fsl_sub import (
     submit,
     report,
@@ -71,7 +71,6 @@ from fsl_sub.utils import (
     minutes_to_human,
     titlize_key,
     user_input,
-    YamlIndentDumper,
 )
 from fsl_sub.version import VERSION
 
@@ -651,7 +650,9 @@ def example_config(args=None):
     logger.addHandler(lhdr)
     example_parser = example_config_parser()
     options = example_parser.parse_args(args=args)
-
+    yaml = YAML()
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    yaml.compact(seq_seq=False, seq_map=False)
     yaml_config = e_conf(options.plugin)
     yaml.dump(yaml_config, sys.stdout)
 
@@ -807,7 +808,10 @@ def main(args=None):
         plugin_version=plugin_version())
     options = vars(cmd_parser.parse_args(args=args))
     if options['show_config']:
-        print(yaml.dump(config, Dumper=YamlIndentDumper, default_flow_style=False))
+        yaml = YAML()
+        yaml.indent(mapping=2, sequence=4, offset=2)
+        yaml.compact(seq_seq=False, seq_map=False)
+        yaml.dump(config, sys.stdout)
         sys.exit(0)
     if options['has_coprocessor'] is not None:
         has_copro = has_coprocessor(options['has_coprocessor'])
