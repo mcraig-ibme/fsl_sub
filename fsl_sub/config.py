@@ -200,7 +200,7 @@ def example_config(method=None):
         # Try to detect queues
         queue_defs = get_plugin_queue_defs(method)
         if queue_defs:
-            e_conf['queues'].update(_dict_from_yaml_string(queue_defs))
+            e_conf['queues'].update(queue_defs)
         else:
             # Add the example queue config
             e_conf = merge_commentedmap(e_conf, cfs['qc'])
