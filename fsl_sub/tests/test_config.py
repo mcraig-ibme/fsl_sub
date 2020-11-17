@@ -17,7 +17,8 @@ class TestConfig(unittest.TestCase):
         test_dir = tempfile.mkdtemp()
         try:
             test_file = os.path.join(test_dir, '.fsl_sub.yml')
-            open(test_file, 'w').close()
+            with open(test_file, 'w') as tf:
+                tf.write('something')
 
             with patch.dict(
                     'fsl_sub.config.os.environ',
@@ -31,7 +32,8 @@ class TestConfig(unittest.TestCase):
                     )
             os.unlink(test_file)
             test_file = os.path.join(test_dir, 'fsl_sub.yml')
-            open(test_file, 'w').close()
+            with open(test_file, 'w') as tf:
+                tf.write('something')
             with self.subTest('Environment variable'):
 
                 with patch.dict(
@@ -46,7 +48,8 @@ class TestConfig(unittest.TestCase):
             fsl_dir = os.path.join(test_dir, 'etc', 'fslconf')
             os.makedirs(fsl_dir)
             test_file = os.path.join(fsl_dir, 'fsl_sub.yml')
-            open(test_file, 'w').close()
+            with open(test_file, 'w') as tf:
+                tf.write('something')
             with patch.dict(
                     'fsl_sub.config.os.environ',
                     {'FSLDIR': test_dir, },
