@@ -54,7 +54,7 @@ def find_config_file():
                 'fsl_sub_shell.yml')))
 
     for p in search_path:
-        if os.path.exists(p):
+        if os.path.exists(p) and os.path.getsize(p) > 0:
             return p
 
     raise MissingConfiguration("Unable to find fsl_sub config")
