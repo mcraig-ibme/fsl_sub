@@ -815,6 +815,7 @@ def job_script(command, command_args, q_prefix, q_plugin, modules=None, extra_li
     job_def = ['#!' + bash, '', ]
     for cmd in command_args:
         if type(cmd) is list:
+            cmd = [str(c) for c in cmd]
             job_def.append(' '.join((q_prefix, ' '.join(cmd))))
         else:
             job_def.append(' '.join((q_prefix, str(cmd))))
