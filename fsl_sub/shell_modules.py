@@ -115,6 +115,8 @@ def loaded_modules():
         modules_string = os.environ['LOADEDMODULES']
     except KeyError:
         return []
+    if modules_string == '':
+        return []
     return modules_string.split(':')
 
 
