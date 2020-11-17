@@ -174,7 +174,9 @@ def example_config(method=None):
     '''Merges the method default config output with the general defaults and returns
     the example config as a ruamel.yaml CommentedMap'''
     methods = ['shell', ]
-    if method is not None and method != 'shell':
+    if method is None:
+        method = 'shell'
+    if method != 'shell':
         methods.append(method)
 
     e_conf = ''
@@ -205,6 +207,7 @@ def example_config(method=None):
             # Add the example queue config
             merge_in = cfs['qc']
         e_conf = merge_commentedmap(e_conf, merge_in)
+    e_conf['method'] = method
     return e_conf
 
 
