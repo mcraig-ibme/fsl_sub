@@ -144,6 +144,13 @@ def coproc_info():
     if not coprocessor_toolkits:
         coprocessor_toolkits = None
 
+    # Collapse to single copies of each type
+    if available_coprocessors:
+        available_coprocessors = sorted(list(set(available_coprocessors)))
+    if coprocessor_classes:
+        coprocessor_classes = sorted(list(set(coprocessor_classes)))
+    if coprocessor_toolkits:
+        coprocessor_toolkits = sorted(list(set(coprocessor_toolkits)))
     return {
         'available': available_coprocessors,
         'classes': coprocessor_classes,
