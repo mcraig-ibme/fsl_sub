@@ -17,9 +17,11 @@ def parallel_envs(queues=None):
     ll_envs = []
     for q in queues.values():
         try:
-            ll_envs.extend(q['parallel_envs'])
+            ll_envs.extend(q.get('parallel_envs', []))
         except KeyError:
             pass
+    if not ll_envs:
+        return None
     return list(set(ll_envs))
 
 

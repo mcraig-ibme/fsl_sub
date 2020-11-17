@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import copy
 import os
 import os.path
 import unittest
@@ -114,6 +115,14 @@ queues:
             self.assertCountEqual(
                 fsl_sub.parallel.parallel_envs(self.config['queues']),
                 ['shmem', 'make', ]
+            )
+        with self.subTest('No parallel envs in queues'):
+            test_d = copy.deepcopy(self.config)
+            del test_d['queues']['long.q']['parallel_envs']
+            del test_d['queues']['short.q']['parallel_envs']
+
+            self.assertIsNone(
+                fsl_sub.parallel.parallel_envs(test_d['queues'])
             )
 
     @patch('fsl_sub.parallel.parallel_envs')
