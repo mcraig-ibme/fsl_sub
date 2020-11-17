@@ -111,18 +111,33 @@ There are several batch queues configured on the cluster:
         q_defs.sort(key=lambda x: x[0])
         for qname, q in q_defs:
             pad = " " * 10
+            if q.get('slot_size', None) is not None:
+                qss = "{0}{1}B per slot; ".format(
+                    q['slot_size'],
+                    fsl_sub.consts.RAMUNITS)
+            else:
+                qss = ''
             epilog += (
-                "{qname}:\n{q_pad}{timelimit} max run time; {q[slot_size]}GB "
-                "per slot; {q[max_size]}GB total\n".format(
+                "{qname}:\n{q_pad}{timelimit} max run time; {qss} "
+                "{q[max_size]}{rmu}B maximum\n".format(
                     qname=qname,
                     q_pad=pad,
                     timelimit=minutes_to_human(q['time']),
                     q=q,
+                    qss=qss,
+                    rmu=fsl_sub.consts.RAMUNITS
                 ))
             if 'copros' in q:
+                cp_str = ''
+                for cp, cpdef in q['copros'].items():
+                    if cp_str != '':
+                        cp_str += '; '
+                    cp_str += "{0} ({1})".format(
+                        cp, ','.join(cpdef['classes']))
+
                 epilog += (
                     pad + "Coprocessors available: "
-                    + "; ".join(q['copros']) + '\n'
+                    + cp_str + '\n'
                 )
             if 'parallel_envs' in q:
                 epilog += (
