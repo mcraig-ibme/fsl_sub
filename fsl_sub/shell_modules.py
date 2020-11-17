@@ -6,6 +6,8 @@ import re
 import shlex
 import shutil
 import subprocess
+from functools import lru_cache
+
 from fsl_sub.exceptions import (
     LoadModuleError,
     NoModule,
@@ -116,6 +118,7 @@ def loaded_modules():
     return modules_string.split(':')
 
 
+@lru_cache()
 def get_modules(module_parent):
     '''Returns a list of available Shell Modules that setup the
     co-processor environment'''
