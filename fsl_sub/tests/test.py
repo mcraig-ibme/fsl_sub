@@ -633,6 +633,28 @@ class GetQTests(unittest.TestCase):
     def setUpClass(cls):
         cls.conf_dict = YAML(typ='safe').load(YAML_CONF)
 
+    def test_calc_slots(self):
+        self.assertEqual(
+            fsl_sub.calc_slots(64, 16, 2),
+            4
+        )
+        self.assertEqual(
+            fsl_sub.calc_slots(64, 16, 8),
+            8
+        )
+        self.assertEqual(
+            fsl_sub.calc_slots(32, None, 2),
+            2
+        )
+        self.assertEqual(
+            fsl_sub.calc_slots(None, None, 4),
+            4
+        )
+        self.assertEqual(
+            fsl_sub.calc_slots(None, None, 1),
+            1
+        )
+
     def test__slots_required(self):
         with self.subTest("Single q"):
             self.assertEqual(

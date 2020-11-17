@@ -611,7 +611,9 @@ def calc_slots(job_ram, slot_size, job_threads):
     if job_ram == 0 or job_ram is None:
         return max(1, job_threads)
     else:
-        return max(int(ceil(job_ram / slot_size)), job_threads)
+        if slot_size is not None:
+            return max(int(ceil(job_ram / slot_size)), job_threads)
+        return job_threads
 
 
 def getq_and_slots(

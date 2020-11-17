@@ -71,6 +71,7 @@ from fsl_sub.utils import (
     minutes_to_human,
     titlize_key,
     user_input,
+    yaml_repr_none,
 )
 from fsl_sub.version import VERSION
 
@@ -654,6 +655,7 @@ def example_config(args=None):
     yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.compact(seq_seq=False, seq_map=False)
     yaml_config = e_conf(options.plugin)
+    yaml.representer.add_representer(type(None), yaml_repr_none)
     yaml.dump(yaml_config, sys.stdout)
 
 
@@ -811,6 +813,7 @@ def main(args=None):
         yaml = YAML()
         yaml.indent(mapping=2, sequence=4, offset=2)
         yaml.compact(seq_seq=False, seq_map=False)
+        yaml.representer.add_representer(type(None), yaml_repr_none)
         yaml.dump(config, sys.stdout)
         sys.exit(0)
     if options['has_coprocessor'] is not None:

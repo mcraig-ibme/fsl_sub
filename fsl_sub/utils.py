@@ -877,6 +877,5 @@ def merge_commentedmap(d, n):
     return d
 
 
-# class YamlIndentDumper(yaml.SafeDumper):
-#     def increase_indent(self, flow=False, indentless=False):
-#         return super(YamlIndentDumper, self).increase_indent(flow, False)
+def yaml_repr_none(self, data):
+    return self.represent_scalar('tag:yaml.org,2002:null', 'Null')
