@@ -505,6 +505,11 @@ def _get_queues():
     pass
 
 
+def _add_warning(warnings, warning):
+    if warning not in warnings:
+        warnings.append(warning)
+
+
 def build_queue_defs():
     '''Return ruamel.yaml YAML suitable for configuring queues'''
     logger = _get_logger()
@@ -514,7 +519,9 @@ def build_queue_defs():
     except BadSubmission as e:
         logger.error('Unable to query XXX: ' + str(e))
         return ('', [])
-    queues = CommentedMap()
+    q_base = CommentedMap()
+    q_base['queues'] = CommentedMap()
+    queues = q_base['queues']
     for q in queue_list:
         qinfo = .... # Glean some information about the queue
         queues[qinfo['qname']] = CommentedMap()
@@ -523,7 +530,7 @@ def build_queue_defs():
         add_comment = qd.yaml_add_eol_comment
         for coproc_m in ('gpu', 'cuda', 'phi', ): # This looks for likely GPU queues
             if coproc_m in q:
-                warnings.append(
+                _add_warning(warnings,
                     "'Quene name looks like it might be a queue supporting co-processors."
                     " Cannot auto-configure.'"
                 )
@@ -542,4 +549,4 @@ def build_queue_defs():
         for w in warnings:
             queues.yaml_set_comment_before_after_key(qinfo['qname'], after=w)
 
-    return queues
+    return q_base

@@ -203,7 +203,9 @@ method_opts:
                             mock_gpe.reset_mock(return_value=True, side_effect=True)
 
         with self.subTest('Queue capture'):
-            q_def = '  a.q:\n    time: 1\n'
+            q_def = '''queues:
+  a.q:
+    time: 1'''
             qc_expected_output = (
                 "---\nmethod: 'sge'\n"
                 + base_config.replace(
@@ -212,10 +214,9 @@ method_opts:
                             'coproc_opts: {}\n', '')
                 + merged_method_config + '\n'
                 + coproc_config.replace('---\n', '').replace('cuda:\n', 'cuda:\n    ' + base_cpopt)
-                + 'queues:\n'
                 + q_def
             )
-            mock_gpqd.return_value = q_def
+            mock_gpqd.return_value = YAML().load(q_def)
             with tempfile.NamedTemporaryFile(mode='w') as ntf:
                 ntf.write("---\nmethod: 'shell'\n" + base_config)
                 ntf.flush()

@@ -200,10 +200,11 @@ def example_config(method=None):
         # Try to detect queues
         queue_defs = get_plugin_queue_defs(method)
         if queue_defs:
-            e_conf['queues'].update(queue_defs)
+            merge_in = queue_defs
         else:
             # Add the example queue config
-            e_conf = merge_commentedmap(e_conf, cfs['qc'])
+            merge_in = cfs['qc']
+        e_conf = merge_commentedmap(e_conf, merge_in)
     return e_conf
 
 
