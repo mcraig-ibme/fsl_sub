@@ -135,7 +135,7 @@ def get_modules(module_parent):
                 if ':' in line:
                     continue
                 if '/' in line:
-                    modules.append(line.split('/')[1])
+                    modules.append(line.split('/')[-1])
                 else:
                     modules.append(line)
         else:

@@ -219,6 +219,17 @@ class TestModuleSupport(unittest.TestCase):
                 ['bmodule', ])
         mock_system_stderr.reset_mock()
         fsl_sub.shell_modules.get_modules.cache_clear()
+        with self.subTest('Module parent with /'):
+            mock_system_stderr.reset_mock()
+            mock_system_stderr.return_value = [
+                "/usr/local/etc/ShellModules:",
+                "bmodule/submodule/version",
+            ]
+            self.assertListEqual(
+                fsl_sub.shell_modules.get_modules('bmodule/submodule'),
+                ['version', ]
+            )
+        fsl_sub.shell_modules.get_modules.cache_clear()
         with self.subTest('Test 2'):
             mock_system_stderr.side_effect = subprocess.CalledProcessError(
                 'acmd', 1
@@ -233,6 +244,7 @@ class TestModuleSupport(unittest.TestCase):
             self.assertRaises(
                 fsl_sub.shell_modules.NoModule,
                 fsl_sub.shell_modules.get_modules, 'amodule')
+
 
     @patch('fsl_sub.shell_modules.get_modules', autospec=True)
     def test_latest_module(self, mock_get_modules):
