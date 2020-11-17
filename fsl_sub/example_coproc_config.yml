@@ -15,6 +15,16 @@ coproc_opts:
         resource: TitanX # Queue resource to request (on SLURM this may be a constraint or type)
         doc: TitanX. No-ECC, single-precision workloads # Documentation about this hardware
         capability: 1 # Capability level for this hardware, integer value that orders by features - higher = more capable
+      K:
+        resource: k80
+        doc: >
+          Kepler. ECC, double-, and single-precision workloads
+        capability: 2
+      P:
+        resource: p100
+        doc: >
+          Pascal. ECC, double-, single, and half-precision workloads
+        capability: 3
       V:
         resource: v100
         doc: >
@@ -29,4 +39,3 @@ coproc_opts:
           workloads
         capability: 5
     default_class: V # If classes are available and  a class is not specified, which class should we use?
-
