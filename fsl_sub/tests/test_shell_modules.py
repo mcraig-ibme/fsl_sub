@@ -6,6 +6,9 @@ from unittest.mock import patch
 
 
 class TestModuleSupport(unittest.TestCase):
+    def setUp(self):
+        fsl_sub.shell_modules.get_modules.cache_clear()
+
     @patch('fsl_sub.shell_modules.shutil.which', autospec=True)
     def test_find_module_cmd(self, mock_which):
         mock_which.return_value = '/usr/bin/modulecmd'
@@ -199,10 +202,12 @@ class TestModuleSupport(unittest.TestCase):
             "/usr/share/Modules/modulefiles:",
             "/etc/modulefiles:",
         ]
+        fsl_sub.shell_modules.get_modules.cache_clear()
         with self.subTest('Test 1'):
             self.assertListEqual(
                 fsl_sub.shell_modules.get_modules('amodule'),
                 ['5.0', '5.5', ])
+        fsl_sub.shell_modules.get_modules.cache_clear()
         with self.subTest('Test 1b'):
             mock_system_stderr.reset_mock()
             mock_system_stderr.return_value = [
@@ -213,6 +218,7 @@ class TestModuleSupport(unittest.TestCase):
                 fsl_sub.shell_modules.get_modules('bmodule'),
                 ['bmodule', ])
         mock_system_stderr.reset_mock()
+        fsl_sub.shell_modules.get_modules.cache_clear()
         with self.subTest('Test 2'):
             mock_system_stderr.side_effect = subprocess.CalledProcessError(
                 'acmd', 1
@@ -222,6 +228,7 @@ class TestModuleSupport(unittest.TestCase):
                 fsl_sub.shell_modules.get_modules, 'amodule')
         mock_system_stderr.reset_mock()
         mock_system_stderr.return_value = ''
+        fsl_sub.shell_modules.get_modules.cache_clear()
         with self.subTest('Test 3'):
             self.assertRaises(
                 fsl_sub.shell_modules.NoModule,
@@ -234,11 +241,13 @@ class TestModuleSupport(unittest.TestCase):
             self.assertEqual(
                 fsl_sub.shell_modules.latest_module('amodule'),
                 '5.5')
+        fsl_sub.shell_modules.get_modules.cache_clear()
         with self.subTest('Test 2'):
             mock_get_modules.return_value = None
             self.assertFalse(
                 fsl_sub.shell_modules.latest_module('amodule')
             )
+        fsl_sub.shell_modules.get_modules.cache_clear()
         with self.subTest('Test 3'):
             mock_get_modules.side_effect = fsl_sub.shell_modules.NoModule(
                 'amodule')
