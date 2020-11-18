@@ -245,7 +245,6 @@ class TestModuleSupport(unittest.TestCase):
                 fsl_sub.shell_modules.NoModule,
                 fsl_sub.shell_modules.get_modules, 'amodule')
 
-
     @patch('fsl_sub.shell_modules.get_modules', autospec=True)
     def test_latest_module(self, mock_get_modules):
         with self.subTest('Test 1'):
