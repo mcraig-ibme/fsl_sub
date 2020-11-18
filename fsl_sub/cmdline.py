@@ -132,9 +132,9 @@ There are several batch queues configured on the cluster:
                 for cp, cpdef in q['copros'].items():
                     if cp_str != '':
                         cp_str += '; '
-                    cp_str += "{0} ({1})".format(
-                        cp, ','.join(cpdef['classes']))
-
+                    cp_str += cp
+                    if 'classes' in cpdef:
+                        cp_str += " ({0})".format(','.join(cpdef['classes']))
                 epilog += (
                     pad + "Coprocessors available: "
                     + cp_str + '\n'
