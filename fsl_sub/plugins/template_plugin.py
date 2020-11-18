@@ -505,9 +505,9 @@ def _get_queues():
     pass
 
 
-def _add_warning(warnings, warning):
-    if warning not in warnings:
-        warnings.append(warning)
+def _add_comment(comments, comment):
+    if comment not in comments:
+        comments.append(comment)
 
 
 def build_queue_defs():
@@ -527,26 +527,29 @@ def build_queue_defs():
         queues[qinfo['qname']] = CommentedMap()
         qd = queues[qinfo['qname']]
         queues.yaml_add_eol_comment("Queue name", qinfo['qname'], column=0)
-        add_comment = qd.yaml_add_eol_comment
+        add_key_comment = qd.yaml_add_eol_comment
         for coproc_m in ('gpu', 'cuda', 'phi', ): # This looks for likely GPU queues
             if coproc_m in q:
-                _add_warning(warnings,
+                _add_comment(comments,
                     "'Quene name looks like it might be a queue supporting co-processors."
                     " Cannot auto-configure.'"
                 )
         qd['time'] = # Qtime
-        add_comment('Maximum job run time in minutes', 'time', column=0)
+        add_key_comment('Maximum job run time in minutes', 'time', column=0)
         qd['max_slots'] = # Cpus per node
-        add_comment("Maximum number of threads/slots on a queue", 'max_slots', column=0)
+        add_key_comment("Maximum number of threads/slots on a queue", 'max_slots', column=0)
         qd['max_size'] = # Memory per node
-        add_comment("Maximum RAM size of a job", 'max_size', column=0)
+        add_key_comment("Maximum RAM size of a job", 'max_size', column=0)
         qd['slot_size'] = # Maximum memory per slot
-        add_comment("Maximum memory per thread", 'slot_size')
-        # Add any warnings to the warnings list
-        # Look for GPU selectors and add to the warnings possibly useful information for
+        add_key_comment("Maximum memory per thread", 'slot_size')
+        # Add any comments to the comments list
+        # Look for GPU selectors and add to the comments possibly useful information for
         # configuring co-processors
+        _add_comment(comments, "default: true")
+        _add_comment(comments, 'priority: 1')
+        _add_comment(comments, 'group: 1')
 
-        for w in warnings:
+        for w in comments:
             queues.yaml_set_comment_before_after_key(qinfo['qname'], after=w)
 
     return q_base
