@@ -789,13 +789,6 @@ def writelines_nl(fh, lines):
     fh.writelines(listplusnl(lines))
 
 
-def add_nl(s):
-    '''Adds a newline to the end of the string if it is lacking...'''
-    if not s.endswith('\n'):
-        s += '\n'
-    return s
-
-
 def job_script(command, command_args, q_prefix, q_plugin, modules=None, extra_lines=None, modules_paths=None):
     '''Build a job script for 'command' with arguments 'command_args'.
     q_prefix is prefix to add to queue command lines,
