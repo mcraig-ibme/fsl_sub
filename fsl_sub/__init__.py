@@ -639,11 +639,16 @@ def getq_and_slots(
         if not queue_list:
             raise BadSubmission("No queues with requested co-processor found")
     else:
-        queue_list = [
-            q for q in queue_list if (
-                'copros' not in queues[q]
-                or not queues[q]['copros'].get('exclusive', True))
-        ]
+        tq = []
+        for q in queue_list:
+            qd = queues[q]
+            if 'copros' not in qd:
+                tq.append(q)
+            else:
+                qdcp = qd['copros']
+                if not all([qdcp[c].get('exclusive', True) for c in qdcp]):
+                    tq.append(q)
+        queue_list = tq
         if not queue_list:
             raise BadSubmission("No queues found without co-processors defined that are non-exclusive")
 
