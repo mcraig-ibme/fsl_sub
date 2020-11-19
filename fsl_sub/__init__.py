@@ -629,19 +629,23 @@ def getq_and_slots(
     queue_list = list(queues.keys())
 
     if not queue_list:
-        raise BadSubmission("No matching queues found")
+        raise BadSubmission("No queues found")
 
     # Filter on coprocessor availability
     if coprocessor is not None:
         queue_list = [
             q for q in queue_list if 'copros' in queues[q]
             and coprocessor in queues[q]['copros']]
+        if not queue_list:
+            raise BadSubmission("No queues with requested co-processor found")
     else:
         queue_list = [
-            q for q in queue_list if 'copros' not in queues[q]
+            q for q in queue_list if (
+                'copros' not in queues[q]
+                or not queues[q]['copros'].get('exclusive', True))
         ]
-    if not queue_list:
-        raise BadSubmission("No matching queues found")
+        if not queue_list:
+            raise BadSubmission("No queues found without co-processors defined that are non-exclusive")
 
     # Filter on parallel environment availability
     if ll_env is not None:
@@ -649,8 +653,8 @@ def getq_and_slots(
             q for q in queue_list if 'parallel_envs' in queues[q]
             and ll_env in queues[q]['parallel_envs']
         ]
-    if not queue_list:
-        raise BadSubmission("No matching queues found")
+        if not queue_list:
+            raise BadSubmission("No queues with requested parallel environment found")
 
     # If no job time was specified then find the default queues
     # (if defined)
@@ -681,7 +685,7 @@ def getq_and_slots(
         and queues[q]['max_size'] >= job_ram
         and queues[q]['max_slots'] >= job_threads]
     if not ql:
-        raise BadSubmission("No matching queues found")
+        raise BadSubmission("No queues matching time/RAM/thread requirements found")
 
     logger.info(
         "Estimated RAM was {0} GBm, runtime was {1} minutes.\n".format(
