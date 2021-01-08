@@ -36,7 +36,6 @@ setup(
     packages=find_packages(),
     license='FSL License',
     install_requires=['ruamel.yaml>=0.16.7'],
-    setup_requires=['ruamel.yaml>=0.16.7'],
     python_requires='~=3.6',
     package_data={
         'fsl_sub': [
