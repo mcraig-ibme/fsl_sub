@@ -127,7 +127,6 @@ echo "taskid:${!FSLSUB_ARRAYTASKID_VAR}"
 echo "start:${!FSLSUB_ARRAYSTARTID_VAR}"
 echo "end:${!FSLSUB_ARRAYENDID_VAR}"
 echo "step:${!FSLSUB_ARRAYSTEPSIZE_VAR}"
-echo "count:${!FSLSUB_ARRAYCOUNT_VAR}"
 '''
             )
         with open(self.errorjob, mode='w') as jobfile:
@@ -138,7 +137,6 @@ echo "taskid:${!FSLSUB_ARRAYTASKID_VAR}" >&2
 echo "start:${!FSLSUB_ARRAYSTARTID_VAR}" >&2
 echo "end:${!FSLSUB_ARRAYENDID_VAR}" >&2
 echo "step:${!FSLSUB_ARRAYSTEPSIZE_VAR}" >&2
-echo "count:${!FSLSUB_ARRAYCOUNT_VAR}" >&2
 exit 2
 '''
             )
