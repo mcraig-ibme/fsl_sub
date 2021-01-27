@@ -119,7 +119,6 @@ class TestShell(unittest.TestCase):
         self.p_env['FSLSUB_ARRAYSTARTID_VAR'] = 'SHELL_TASK_FIRST'
         self.p_env['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
         self.p_env['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
-        self.p_env['FSLSUB_ARRAYCOUNT_VAR'] = ''
         with open(self.job, mode='w') as jobfile:
             jobfile.write(
                 '''#!/bin/bash
