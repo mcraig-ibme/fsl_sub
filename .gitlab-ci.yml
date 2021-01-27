@@ -2,16 +2,6 @@ stages:
   - test
 
 
-test:python3.5:
-  stage: test
-  image: python:3.5
-  tags:
-    - docker
-  script:
-    - pip install ruamel.yaml
-    - python -m unittest discover fsl_sub.tests -p "test_*.py"
-
-
 test:python3.6:
   stage: test
   image: python:3.6
