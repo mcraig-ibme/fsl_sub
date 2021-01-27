@@ -163,7 +163,6 @@ taskid:
 start:
 end:
 step:
-count:
 '''.format(self.job_id))
 
     def test__run_job_stderr(self):
@@ -183,7 +182,6 @@ taskid:
 start:
 end:
 step:
-count:
 '''.format(self.job_id)
         )
 
@@ -219,7 +217,6 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
@@ -257,7 +254,6 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
@@ -295,7 +291,6 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
@@ -333,7 +328,6 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
