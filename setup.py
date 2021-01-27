@@ -19,8 +19,9 @@ setup(
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Medical Science Apps.',
         'License :: Other/Proprietary License',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Natural Language :: English',
         'Environment :: Console',
         'Operating System :: MacOS :: MacOS X',
@@ -36,7 +37,7 @@ setup(
     license='FSL License',
     install_requires=['ruamel.yaml>=0.16.7'],
     setup_requires=['ruamel.yaml>=0.16.7'],
-    python_requires='~=3.5',
+    python_requires='~=3.6',
     package_data={
         'fsl_sub': [
             'default_config.yml', 'default_coproc_config.yml',
