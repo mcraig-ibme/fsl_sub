@@ -9,6 +9,7 @@ import math
 import os
 import pkgutil
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -264,7 +265,7 @@ def check_command_file(cmds):
                 if line.startswith('#'):
                     raise CommandError(
                         "Array task file contains comment line (begins #) at line " + str(lineno + 1))
-                cmd = line.split()[0]
+                cmd = shlex.split(line)[0]
                 if cmd == 'dummy':
                     # FEAT creates an array task file that contains
                     # the line 'dummy' as a previous queued task will
