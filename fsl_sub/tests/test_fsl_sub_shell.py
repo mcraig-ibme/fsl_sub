@@ -442,7 +442,11 @@ count:
             logdir, jobname + ".o" + str(mock_pid))
         logfile_stderr = os.path.join(
             logdir, jobname + ".e" + str(mock_pid))
-        ll_tests = ['mycommand_gpu arg1 arg2', 'mycommand2 arg3 arg4', ]
+        ll_tests = ['mycommand_gpu arg1 arg2',
+                    'mycommand2 arg3 arg4',
+                    '"mycommand3" arg5 arg6',
+                    '"/spacy dir/mycommand4" arg5 arg6',
+                    '/spacy\ dir/mycommand4 arg5 arg6']
 
         with tempfile.TemporaryDirectory() as tempdir:
             job_file = os.path.join(tempdir, 'myjob')
