@@ -1,5 +1,13 @@
+include:
+ - project: fsl/fsl-ci-rules
+   file:    .gitlab-ci.yml
+
+
 stages:
   - test
+  - fsl-ci-pre
+  - fsl-ci-build
+  - fsl-ci-deploy
 
 
 test:python3.6:
