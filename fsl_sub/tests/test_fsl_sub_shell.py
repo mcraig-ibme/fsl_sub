@@ -119,7 +119,6 @@ class TestShell(unittest.TestCase):
         self.p_env['FSLSUB_ARRAYSTARTID_VAR'] = 'SHELL_TASK_FIRST'
         self.p_env['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
         self.p_env['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
-        self.p_env['FSLSUB_ARRAYCOUNT_VAR'] = ''
         with open(self.job, mode='w') as jobfile:
             jobfile.write(
                 '''#!/bin/bash
@@ -128,7 +127,6 @@ echo "taskid:${!FSLSUB_ARRAYTASKID_VAR}"
 echo "start:${!FSLSUB_ARRAYSTARTID_VAR}"
 echo "end:${!FSLSUB_ARRAYENDID_VAR}"
 echo "step:${!FSLSUB_ARRAYSTEPSIZE_VAR}"
-echo "count:${!FSLSUB_ARRAYCOUNT_VAR}"
 '''
             )
         with open(self.errorjob, mode='w') as jobfile:
@@ -139,7 +137,6 @@ echo "taskid:${!FSLSUB_ARRAYTASKID_VAR}" >&2
 echo "start:${!FSLSUB_ARRAYSTARTID_VAR}" >&2
 echo "end:${!FSLSUB_ARRAYENDID_VAR}" >&2
 echo "step:${!FSLSUB_ARRAYSTEPSIZE_VAR}" >&2
-echo "count:${!FSLSUB_ARRAYCOUNT_VAR}" >&2
 exit 2
 '''
             )
@@ -166,7 +163,6 @@ taskid:
 start:
 end:
 step:
-count:
 '''.format(self.job_id))
 
     def test__run_job_stderr(self):
@@ -186,7 +182,6 @@ taskid:
 start:
 end:
 step:
-count:
 '''.format(self.job_id)
         )
 
@@ -222,7 +217,6 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
@@ -260,7 +254,6 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
@@ -298,7 +291,6 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
@@ -336,7 +328,6 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
@@ -442,7 +433,11 @@ count:
             logdir, jobname + ".o" + str(mock_pid))
         logfile_stderr = os.path.join(
             logdir, jobname + ".e" + str(mock_pid))
-        ll_tests = ['mycommand_gpu arg1 arg2', 'mycommand2 arg3 arg4', ]
+        ll_tests = ['mycommand_gpu arg1 arg2',
+                    'mycommand2 arg3 arg4',
+                    '"mycommand3" arg5 arg6',
+                    '"/spacy dir/mycommand4" arg5 arg6',
+                    '/spacy\ dir/mycommand4 arg5 arg6']
 
         with tempfile.TemporaryDirectory() as tempdir:
             job_file = os.path.join(tempdir, 'myjob')

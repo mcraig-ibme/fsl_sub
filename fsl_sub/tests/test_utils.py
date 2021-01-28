@@ -2,6 +2,8 @@
 import datetime
 import io
 import os
+import os.path as op
+import shutil
 import stat
 import subprocess
 import sys
@@ -1988,6 +1990,23 @@ class TestUtils(unittest.TestCase):
                 "Array task file contains comment line (begins #) at line 2"
             )
         os.remove(test_file.name)
+
+        with self.subTest('|| with quoted commands'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                spacydir = op.join(tmpdir, 'spacy dir')
+                ls       = shutil.which('ls')
+                commands = op.join(tmpdir, 'commands.txt')
+                os.mkdir(spacydir)
+                shutil.copy(ls, spacydir)
+                with open(commands, 'wt') as f:
+                    f.write('\n'.join(["'ls'",
+                                       '"ls"',
+                                       '"{}"'.format(ls),
+                                       '"{}/spacy dir/ls"'.format(tmpdir),
+                                       r'{}/spacy\ dir/ls'.format(tmpdir)]))
+
+                os.chmod(commands, stat.S_IRUSR)
+                fsl_sub.utils.check_command_file(commands)
 
 
 class TestFileIsImage(unittest.TestCase):
