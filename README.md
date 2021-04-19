@@ -49,7 +49,7 @@ When running with a cluster it is recommended that you provide a job run time wi
 fsl_sub -T 50 myjob
 ~~~
 
-is the equivalent of `fsl\_sub -q short myjob`, but enables you to potentially use this submission command (and any script based using this command) with any fsl\_sub enabled cluster, regardless of queue names.
+is the equivalent of `fsl_sub -q short myjob`, but enables you to potentially use this submission command (and any script based using this command) with any fsl\_sub enabled cluster, regardless of queue names.
 
 Providing the memory required is also advisable as some cluster setups enforce memory limits but provide for multi-slot reservations to allocate multiples of the RAM limit to your task. fsl\_sub can be configured to automatically make these types of submission.
 
