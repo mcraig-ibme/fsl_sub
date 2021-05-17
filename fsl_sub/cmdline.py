@@ -779,7 +779,7 @@ def report_cmd(args=None):
                         "Job state: " + fsl_sub.consts.REPORTING[
                             td[key]])
                 else:
-                    print("{}: ".format(titlize_key(td), end=''))
+                    print("{0}: ".format(titlize_key(td)), end='')
                     if key in ['utime', 'stime', ]:
                         print("{0}s".format(blank_none(task_detail)))
                     if key in ['maxmemory']:
