@@ -1994,7 +1994,7 @@ class TestUtils(unittest.TestCase):
         with self.subTest('|| with quoted commands'):
             with tempfile.TemporaryDirectory() as tmpdir:
                 spacydir = op.join(tmpdir, 'spacy dir')
-                ls       = shutil.which('ls')
+                ls = shutil.which('ls')
                 commands = op.join(tmpdir, 'commands.txt')
                 os.mkdir(spacydir)
                 shutil.copy(ls, spacydir)
