@@ -781,14 +781,14 @@ def report_cmd(args=None):
                 else:
                     print("{0}: ".format(titlize_key(td)), end='')
                     if key in ['utime', 'stime', ]:
-                        print("{0}s".format(blank_none(task_detail)))
+                        print("{0}s".format(blank_none(td)))
                     if key in ['maxmemory']:
-                        print("{0}MB".format(blank_none(task_detail)))
+                        print("{0}MB".format(blank_none(td)))
                     if key in ['sub_time', 'start_time', 'end_time']:
-                        print(task_detail[key].strftime(
+                        print(td[key].strftime(
                             '%d/%m/%Y %H:%M:%S'))
                     else:
-                        print(blank_none(task_detail))
+                        print(blank_none(td))
             print('|'.join(line))
 
 
