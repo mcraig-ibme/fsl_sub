@@ -778,8 +778,8 @@ def fix_permissions(fname, mode):
     os.chmod(fname, new_mode)
 
 
-def listplusnl(l):
-    for i in l:
+def listplusnl(li):
+    for i in li:
         yield i
         yield '\n'
 
