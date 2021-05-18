@@ -11,17 +11,12 @@ If you wish to submit tasks to a cluster you will need to install and configure 
 * fsl_sub_plugin_sge for Sun/Son of/Univa Grid Engine (Grid Engine)
 * fsl_sub_plugin_slurm for Slurm
 
-### Install backend
+## Installation
 
-If you intend to use fsl_sub to run jobs on a cluster you will need to install one of the cluster backends. You can do this with he command:
+In addition to the main fsl_sub package, to submit to a cluster queueing system you need to install one of the cluster plugins. At present, plugins are available for Grid Engine (Sun/Son of or Univa/Altair) and SLURM.
+Please see the INSTALL.md file for details on installing fsl_sub and the relevant plugin.
 
-~~~bash
-fsl_sub_plugin --install
-~~~
-
-which will search for and install plugins.
-
-For instructions on how to install fsl_sub outside of the FSL software suite, see the INSTALL.md file.
+## Configuration
 
 For instructions on how to configure fsl_sub once installed (essential if using a cluster plugin) see the CONFIGURATION.md file.
 

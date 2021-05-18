@@ -981,14 +981,8 @@ class TestExampleConf(unittest.TestCase):
 @patch(
     'fsl_sub.cmdline.conda_check_update', autospec=True
 )
-@patch(
-    'fsl_sub.cmdline.available_plugin_packages', autospec=True,
-    return_value=['fsl_sub_plugin_sge', ]
-)
 class TestUpdate(unittest.TestCase):
-    def test_update_check(
-            self, mock_pp,
-            mock_cup, mock_fsldir):
+    def test_update_check(self, mock_cup, mock_fsldir):
 
         mock_cup.return_value = {
             'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', },
@@ -1006,16 +1000,11 @@ class TestUpdate(unittest.TestCase):
 fsl_sub (1.0.0 -> 2.0.0)
 '''
             )
-        mock_cup.assert_called_with(
-            fsldir='/usr/local/fsl',
-            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
-        )
+        mock_cup.assert_called_with(fsldir='/usr/local/fsl')
 
     @patch(
         'fsl_sub.cmdline.conda_update', autospec=True)
-    def test_update_noquestion(
-            self, mock_up, mock_pp,
-            mock_cup, mock_fsldir):
+    def test_update_noquestion(self, mock_up, mock_cup, mock_fsldir):
 
         mock_cup.return_value = {
             'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', },
@@ -1037,19 +1026,14 @@ fsl_sub (1.0.0 -> 2.0.0)
 fsl_sub updated.
 '''
             )
-        mock_cup.assert_called_with(
-            fsldir='/usr/local/fsl',
-            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
-        )
+        mock_cup.assert_called_with(fsldir='/usr/local/fsl')
 
     @patch(
         'fsl_sub.cmdline.conda_update', autospec=True)
     @patch(
         'fsl_sub.cmdline.user_input', autospec=True
     )
-    def test_update_ask(
-            self, mock_input, mock_up, mock_pp,
-            mock_cup, mock_fsldir):
+    def test_update_ask(self, mock_input, mock_up, mock_cup, mock_fsldir):
 
         mock_cup.return_value = {
             'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', },
@@ -1074,10 +1058,7 @@ fsl_sub updated.
             )
         mock_input.assert_called_once_with('Install pending updates? ')
         mock_input.reset_mock()
-        mock_cup.assert_called_with(
-            fsldir='/usr/local/fsl',
-            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
-        )
+        mock_cup.assert_called_with(fsldir='/usr/local/fsl')
 
         mock_cup.reset_mock()
         mock_input.return_value = 'yes'
@@ -1095,10 +1076,7 @@ fsl_sub (1.0.0 -> 2.0.0)
 fsl_sub updated.
 '''
             )
-        mock_cup.assert_called_with(
-            fsldir='/usr/local/fsl',
-            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
-        )
+        mock_cup.assert_called_with(fsldir='/usr/local/fsl')
         mock_input.assert_called_once_with('Install pending updates? ')
         mock_input.reset_mock()
 
@@ -1118,10 +1096,7 @@ fsl_sub updated.
 fsl_sub (1.0.0 -> 2.0.0)
 '''
             )
-        mock_cup.assert_called_with(
-            fsldir='/usr/local/fsl',
-            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
-        )
+        mock_cup.assert_called_with(fsldir='/usr/local/fsl')
         self.assertEqual(
             'Aborted',
             str(cm.exception))
@@ -1147,10 +1122,7 @@ fsl_sub (1.0.0 -> 2.0.0)
         self.assertEqual(
             'Aborted',
             str(cm.exception))
-        mock_cup.assert_called_with(
-            fsldir='/usr/local/fsl',
-            packages=['fsl_sub', 'fsl_sub_plugin_sge', ]
-        )
+        mock_cup.assert_called_with(fsldir='/usr/local/fsl')
 
         mock_cup.reset_mock()
 
@@ -1163,12 +1135,12 @@ fsl_sub (1.0.0 -> 2.0.0)
     'fsl_sub.cmdline.conda_find_packages', autospec=True
 )
 @patch(
-    'fsl_sub.cmdline.available_plugin_packages', autospec=True,
-    return_value=['fsl_sub_plugin_sge', ]
+    'fsl_sub.utils.get_conda_packages', autospec=True,
+    return_value=['fsl_sub', ]
 )
 class TestInstall(unittest.TestCase):
     def test_install_plugin_list(
-            self, mock_pp,
+            self, mock_gcp,
             mock_fp, mock_fsldir):
 
         mock_fp.return_value = ['fsl_sub_plugin_sge', ]
@@ -1194,7 +1166,7 @@ fsl_sub_plugin_sge
     @patch(
         'fsl_sub.cmdline.conda_install', autospec=True)
     def test_list_and_install(
-            self, mock_ci, mock_pp,
+            self, mock_ci, mock_gcp,
             mock_fp, mock_fsldir):
 
         mock_fp.return_value = ['fsl_sub_plugin_sge', ]
@@ -1217,11 +1189,11 @@ Plugin fsl_sub_plugin_sge installed
 You can generate an example config file with:
 fsl_sub_config sge
 
-The configuration file can be copied to /usr/local/fsl/etc/fslconf calling "
-it fsl_sub.yml, or put in your home folder calling it .fsl_sub.yml. "
-A copy in your home folder will override the file in "
-/usr/local/fsl/etc/fslconf. Finally, the environment variable FSLSUB_CONF "
-can be set to point at the configuration file, this will override all"
+The configuration file can be copied to /usr/local/fsl/etc/fslconf calling
+it fsl_sub.yml, or put in your home folder calling it .fsl_sub.yml.
+A copy in your home folder will override the file in
+/usr/local/fsl/etc/fslconf. Finally, the environment variable FSLSUB_CONF
+can be set to point at the configuration file, this will override all
 other files.
 '''
                 )
@@ -1237,7 +1209,7 @@ other files.
     @patch(
         'fsl_sub.cmdline.conda_install', autospec=True)
     def test_list_and_install_badchoice(
-            self, mock_ci, mock_pp,
+            self, mock_ci, mock_gcp,
             mock_fp, mock_fsldir):
 
         mock_fp.return_value = ['fsl_sub_plugin_sge', ]
@@ -1271,7 +1243,7 @@ other files.
     @patch(
         'fsl_sub.cmdline.conda_install', autospec=True)
     def test_install_direct(
-            self, mock_ci, mock_pp,
+            self, mock_ci, mock_gcp,
             mock_fp, mock_fsldir):
 
         mock_fp.return_value = ['fsl_sub_plugin_sge', ]
@@ -1291,11 +1263,11 @@ other files.
 You can generate an example config file with:
 fsl_sub_config sge
 
-The configuration file can be copied to /usr/local/fsl/etc/fslconf calling "
-it fsl_sub.yml, or put in your home folder calling it .fsl_sub.yml. "
-A copy in your home folder will override the file in "
-/usr/local/fsl/etc/fslconf. Finally, the environment variable FSLSUB_CONF "
-can be set to point at the configuration file, this will override all"
+The configuration file can be copied to /usr/local/fsl/etc/fslconf calling
+it fsl_sub.yml, or put in your home folder calling it .fsl_sub.yml.
+A copy in your home folder will override the file in
+/usr/local/fsl/etc/fslconf. Finally, the environment variable FSLSUB_CONF
+can be set to point at the configuration file, this will override all
 other files.
 '''
             )
@@ -1310,7 +1282,7 @@ other files.
     @patch(
         'fsl_sub.cmdline.conda_install', autospec=True)
     def test_install_direct_bad(
-            self, mock_ci, mock_pp,
+            self, mock_ci, mock_gcp,
             mock_fp, mock_fsldir):
 
         mock_fp.return_value = ['fsl_sub_plugin_sge', ]
@@ -1333,12 +1305,3 @@ other files.
             'fsl_sub_plugin_*',
             fsldir='/usr/local/fsl',
         )
-
-# Once main tests are written they will need:
-
-
-# @patch(
-#     'fsl_sub.cmdline.load_plugins',
-#     autospec=True,
-#     return_value=FakePlugin()
-#     )
