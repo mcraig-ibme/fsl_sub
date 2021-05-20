@@ -105,7 +105,7 @@ Cluster plugins require additional configuration options which are described in 
 For standalone installs the above example will be used, allowing fsl\_sub to detect the presence of CUDA hardware but not use shell modules to configure CUDA libraries. If you have shell modules setup for different CUDA library versions then you can change these options as described below:
 
 | Key | Values (**default/recommended**) | Description |
-|---
+| -- | -- | -- |
 | presence\_test | _script/binary path_ | The name of a program that can be used to confirm that the co-processor is available, for example _nvidia-smi_ for CUDA devices. Program needs to return non-zero exit status if there are no available co-processors.
 | uses\_modules | **True**/False | Is the coprocessor's software configured using a shell module?
 | module\_parent | _String_ | If shell modules are used for configuration, what is the name of the parent module? e.g. _cuda_ if you're modules would be loaded with `module load cuda/10.2`
