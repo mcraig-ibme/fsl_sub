@@ -1,7 +1,7 @@
 #!/usr/bin/env fslpython
 
 # fsl_sub python module
-# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+# Copyright (c) 2018-2021, University of Oxford (Duncan Mortimer)
 
 import datetime
 import errno
