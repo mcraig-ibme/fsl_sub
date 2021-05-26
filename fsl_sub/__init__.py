@@ -294,7 +294,7 @@ def submit(
         )
 
     logger.debug("Configuring plugin " + config['method'])
-    # Reset grid_module incase we've switched to the Shell plugin
+    # Reset grid_module in case we've switched to the Shell plugin
     grid_module = 'fsl_sub_plugin_' + config['method']
     try:
         queue_submit = PLUGINS[grid_module].submit
