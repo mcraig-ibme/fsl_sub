@@ -8,6 +8,7 @@ import logging
 import math
 import os
 import pkgutil
+import platform
 import re
 import shlex
 import shutil
@@ -40,8 +41,16 @@ from shutil import which
 
 
 def bash_cmd():
-    '''Where is bash?'''
-    bash = which('bash')
+    '''Where is a 'sh' shell? Bash on Linux or ZSH on modern macOS'''
+
+    if 'FSLSUB_SHELL' in os.environ:
+        return os.environ['FSLSUB_SHELL']
+
+    if (platform.system() == 'Darwin'
+            and int(platform.uname()[2].split('.')[0]) > 18):
+        bash = which('zsh')
+    else:
+        bash = which('bash')
     if bash is None:
         raise BadOS("Unable to find BASH")
     return bash
@@ -882,3 +891,12 @@ def merge_commentedmap(d, n):
 
 def yaml_repr_none(self, data):
     return self.represent_scalar('tag:yaml.org,2002:null', 'Null')
+
+
+def build_job_name(command):
+    '''Return a name for the job'''
+
+    if isinstance(command, list):
+        command = command[0]
+    # Remove quotes, split on any ';', take the last item, remove surrounding spaces and split on space
+    return os.path.basename(command.strip('"').strip("'").split(';')[-1].strip().split()[0])

@@ -124,6 +124,10 @@ If the memory is also specified in the fsl_sub arguments then the value provided
 
 Where your sofware needs to use a co-processor, most commonly CUDA GPU cards, fsl\_sub offers the `--coprocessor` options. To run CUDA software you would typically add `--coprocessor=cuda` to your fsl\_sub commandline. Assuming the queue configration has been setup correctly there is no other configuration necessary as the correct queue/partition will be selected automatically. If your system has multiple versions of CUDA installed and selectable using _shell modules_ (and everything is configured correctly) you can select the cuda version using `--coprocessor_toolkit` option. Where multiple hardware versions are available then your system may have been configured to allow you to select specific card generations with `--coprocessor_class`, with `--coprocessor_class_strict` allowing you to force fsl\_sub to only select the class of card you request (as opposed to this class and all superior devices).
 
+### Shell Choice (Especially on Heterogeneous Clusters)
+
+Where the submitted command is a shell command line, e.g. "command; command; command", fsl_sub needs to run this via a shell. This defaults to BASH on Linux hosts and macOS prior to 10.15 and zsh on macOS from 10.15 onwards. This can be overridden using the environment variable FSLSUB_SHELL, set to the path of your preferred Bourne shell compatible binary. This is particularly useful if your submission host differs from your execution host (e.g. macOS vs Linux), or the shell binary is in a different location on the execution host (e.g. /bin/bash locally, /usr/local/bin/bash remotely).
+
 ### Specifying Accounting Project
 
 On some clusters you may be required to submit jobs to different projects to ensure compute time is billed accordingly, or to gain access to restricted resources. You can specify a project with the `--project` option. If fsl\_sub is being called from within a software package such that you have no ability to specify this option then you can select a project by setting the environment variable `FSLSUB_PROJECT`, e.g.

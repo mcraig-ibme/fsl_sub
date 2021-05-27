@@ -35,6 +35,7 @@ from fsl_sub.projects import (
 )
 from fsl_sub.utils import (
     load_plugins,
+    build_job_name,
     check_command,
     check_command_file,
     get_plugin_qdel,
@@ -186,7 +187,7 @@ def submit(
                 a string/list containing the command to run.
 
     Optional:
-    job_name - Symbolic name for task (defaults to first component of command)
+    name - Symbolic name for task (defaults to first component of command)
     array_task - is the command is an array task (defaults to False)
     jobhold - id(s) of jobs to hold for (string or list)
     array_hold - complex hold string, integer or list
@@ -221,6 +222,7 @@ def submit(
             ignored if job is copying complete environment
     keep_jobscript - whether to generate and keep a script defining the parameters
             used to run your task
+    validate_command - whether to validate the command or not.
     '''
     logger = logging.getLogger(__name__)
     try:
@@ -308,9 +310,21 @@ def submit(
             + " ({0})".format(str(e))
         )
 
-    if isinstance(command, str):
-        # command is a basic string
-        command = shlex.split(command)
+    if isinstance(command, str) or len(command) == 1:
+        # command is a basic string or single element list
+        logger.debug("Simple string or single element list passed")
+        if isinstance(command, list):
+            command = command[0]
+        if ';' not in command:
+            logger.debug("String being shlex split")
+            command = shlex.split(command)
+        else:
+            # Command is a shell one-liner, we can't reliably split this
+            logger.debug("String contains ';' we cannot split it")
+            command = [command]
+            logger.debug("Disabling validation")
+            validate_command = False
+        logger.debug(command)
     elif not isinstance(command, list):
         raise BadSubmission("Command should be a list or string")
 
@@ -390,8 +404,6 @@ def submit(
     elif array_specifier is None:
         job_type = 'array file'
         validate_type = 'array'
-        if name is None:
-            name = os.path.basename(command[0])
     else:
         job_type = 'array aware command'
         validate_type = 'command'
@@ -429,10 +441,8 @@ def submit(
                 "Unknown validation type: " + validate_type)
 
     if name is None:
-        c_name = command[0]
-        if '/' in c_name:
-            c_name = os.path.basename(c_name)
-        task_name = c_name
+        task_name = build_job_name(command)
+        logger.debug("No name passed - setting to " + task_name)
     else:
         task_name = name
 

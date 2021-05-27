@@ -1,5 +1,5 @@
 # fsl_sub python module
-# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+# Copyright (c) 2018-2021, University of Oxford (Duncan Mortimer)
 
 # fsl_sub plugin for running directly on this computer
 import datetime
@@ -18,6 +18,7 @@ from fsl_sub.config import (
 from fsl_sub.exceptions import (BadSubmission, MissingConfiguration, UnrecognisedModule, )
 from fsl_sub.shell_modules import (loaded_modules, load_module, )
 from fsl_sub.utils import (
+    bash_cmd,
     parse_array_specifier,
     writelines_nl,
     control_threads,
@@ -27,7 +28,7 @@ from collections import defaultdict
 
 
 def plugin_version():
-    return '2.0.0'
+    return '2.0.1'
 
 
 def qtest():
@@ -114,6 +115,11 @@ def submit(
         raise BadSubmission(
             "Internal error: command argument must be a list"
         )
+
+    # Look for passing one-line complex shell commands
+    complex = True if ';' in ''.join(command) else False
+    if complex:
+        command = [bash_cmd(), '-c', ''.join(command), ]
 
     logger.debug("Looking for parent job id(s)")
     try:
@@ -214,7 +220,11 @@ def submit(
                 with open(command[0], 'r') as ll_tasks:
                     command_lines = ll_tasks.readlines()
                 for cline in command_lines:
-                    jobs.append(shlex.split(cline))
+                    if ';' not in cline:
+                        jobs.append(shlex.split(cline))
+                    else:
+                        jobs.append(
+                            [bash_cmd(), '-c', cline.strip()])
                     job_log.append(cline)
             except Exception as e:
                 raise BadSubmission(

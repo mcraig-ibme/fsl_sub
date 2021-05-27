@@ -4,6 +4,7 @@ import io
 import json
 import os
 import os.path as op
+import platform
 import shutil
 import stat
 import subprocess
@@ -12,6 +13,7 @@ import tempfile
 import unittest
 from unittest.mock import patch, mock_open
 from fsl_sub.exceptions import (
+    BadOS,
     CommandError,
     UpdateError,
     NotAFslDir,
@@ -1446,6 +1448,57 @@ class TestFixPerms(unittest.TestCase):
                     0o644)
 
 
+class TestBashCmd(unittest.TestCase):
+    @patch('fsl_sub.utils.platform.system', return_value='Linux')
+    @patch('fsl_sub.utils.which', return_value='/bin/bash')
+    def test_linux(self, mock_which, mock_sp):
+        self.assertEqual(
+            '/bin/bash',
+            fsl_sub.utils.bash_cmd()
+        )
+
+    @patch('fsl_sub.utils.platform.system', return_value='Linux')
+    @patch('fsl_sub.utils.which', return_value=None)
+    def test_linuxNoBash(self, mock_which, mock_sp):
+        self.assertRaises(
+            BadOS,
+            fsl_sub.utils.bash_cmd
+        )
+
+    @patch('fsl_sub.utils.platform.system', return_value='Darwin')
+    @patch(
+        'fsl_sub.utils.platform.uname',
+        return_value=platform.uname_result(
+            system='Darwin', node='hostname.domain',
+            release='18.7.0',
+            version='Darwin Kernel Version 18.7.0: Mon Mar  8 22:11:48 PST 2021; root:xnu-4903.278.65~1/RELEASE_X86_64',
+            machine='x86_64')
+    )
+    @patch('fsl_sub.utils.which', return_value='/bin/bash')
+    def test_darwin_pre_catalina(self, mock_which, mock_pu, mock_sp):
+        self.assertEqual(
+            '/bin/bash',
+            fsl_sub.utils.bash_cmd()
+        )
+
+    @patch('fsl_sub.utils.platform.system', return_value='Darwin')
+    @patch(
+        'fsl_sub.utils.platform.uname',
+        return_value=platform.uname_result(
+            system='Darwin', node='hostname.domain',
+            release='19.7.0',
+            version='Darwin Kernel Version 19.7.0: Mon Mar  8 22:11:48 PST 2021; root:xnu-4903.278.65~1/RELEASE_X86_64',
+            machine='x86_64')
+    )
+    @patch('fsl_sub.utils.which', return_value='/bin/zsh')
+    def test_darwin_catalina(self, mock_which, mock_up, mock_sp):
+        self.assertEqual(
+            '/bin/zsh',
+            fsl_sub.utils.bash_cmd()
+        )
+        mock_which.assert_called_with('zsh')
+
+
 class TestJobScript(unittest.TestCase):
     def setUp(self):
         self.now = datetime.datetime.now()
@@ -1645,6 +1698,35 @@ class TestGetCondaPackages(unittest.TestCase):
             fsl_sub.utils.get_conda_packages(conda_env="/usr/local/fsl/fslpython/envs/fslpython"),
             ['fsl_sub', 'fsl_sub_plugin_sge', ]
         )
+
+
+class TestBuildJobName(unittest.TestCase):
+    def test_build_job_name(self):
+        with self.subTest("single command simple"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name('/usr/bin/echo hello'),
+                'echo'
+            )
+        with self.subTest("command as list"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name(['/usr/bin/echo', 'hello']),
+                'echo'
+            )
+        with self.subTest("single command complex"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name('ENVAR=1; /usr/bin/echo $ENVVAR'),
+                'echo'
+            )
+        with self.subTest("command as list complex"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name(['ENVAR=1; /usr/bin/echo $ENVVAR']),
+                'echo'
+            )
+        with self.subTest("command as list complex 2"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name(['ENVAR=1; /usr/bin/echo', '$ENVVAR']),
+                'echo'
+            )
 
 
 if __name__ == '__main__':
