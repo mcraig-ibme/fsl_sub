@@ -1467,31 +1467,45 @@ class TestBashCmd(unittest.TestCase):
 
     @patch('fsl_sub.utils.platform.system', return_value='Darwin')
     @patch(
-        'fsl_sub.utils.platform.uname',
-        return_value=platform.uname_result(
-            system='Darwin', node='hostname.domain',
-            release='18.7.0',
-            version='Darwin Kernel Version 18.7.0: Mon Mar  8 22:11:48 PST 2021; root:xnu-4903.278.65~1/RELEASE_X86_64',
-            machine='x86_64')
+        'fsl_sub.utils.platform.uname'
     )
     @patch('fsl_sub.utils.which', return_value='/bin/bash')
     def test_darwin_pre_catalina(self, mock_which, mock_pu, mock_sp):
+        if sys.version_info.major == 3 and sys.version_info.minor < 9:
+            mock_pu.return_value = platform.uname_result(
+                system='Darwin', node='hostname.domain',
+                release='18.7.0',
+                version='Darwin Kernel Version 18.7.0:',
+                machine='x86_64',
+                processor='i386')
+        else:
+            mock_pu.return_value = platform.uname_result(
+                system='Darwin', node='hostname.domain',
+                release='18.7.0',
+                version='Darwin Kernel Version 18.7.0:',
+                machine='x86_64')
         self.assertEqual(
             '/bin/bash',
             fsl_sub.utils.bash_cmd()
         )
 
     @patch('fsl_sub.utils.platform.system', return_value='Darwin')
-    @patch(
-        'fsl_sub.utils.platform.uname',
-        return_value=platform.uname_result(
-            system='Darwin', node='hostname.domain',
-            release='19.7.0',
-            version='Darwin Kernel Version 19.7.0: Mon Mar  8 22:11:48 PST 2021; root:xnu-4903.278.65~1/RELEASE_X86_64',
-            machine='x86_64')
-    )
+    @patch('fsl_sub.utils.platform.uname')
     @patch('fsl_sub.utils.which', return_value='/bin/zsh')
-    def test_darwin_catalina(self, mock_which, mock_up, mock_sp):
+    def test_darwin_catalina(self, mock_which, mock_pu, mock_sp):
+        if sys.version_info.major == 3 and sys.version_info.minor < 9:
+            mock_pu.return_value = platform.uname_result(
+                system='Darwin', node='hostname.domain',
+                release='19.7.0',
+                version='Darwin Kernel Version 19.7.0:',
+                machine='x86_64',
+                processor='i386')
+        else:
+            mock_pu.return_value = platform.uname_result(
+                system='Darwin', node='hostname.domain',
+                release='19.7.0',
+                version='Darwin Kernel Version 19.7.0: ',
+                machine='x86_64')
         self.assertEqual(
             '/bin/zsh',
             fsl_sub.utils.bash_cmd()
