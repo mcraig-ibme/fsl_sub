@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import os
 import shlex
+import subprocess
 import tempfile
 import unittest
 import fsl_sub.plugins.fsl_sub_plugin_shell
 import fsl_sub.exceptions
-from unittest.mock import patch
+from unittest.mock import (patch, ANY, )
+from fsl_sub.utils import bash_cmd
 
 
 class TestRequireMethods(unittest.TestCase):
@@ -128,11 +130,59 @@ class TestShellReal(unittest.TestCase):
         )
 
     def test_complex_job(self):
-        job = ["sleep 1; echo 'Hello'"]
+        with self.subTest("Two commands"):
+            job = ["sleep 0.1; echo 'Hello'"]
+            jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+                job,
+                job_name='echo',
+                logdir=self.outdir.name
+            )
+            stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+            with open(stdout, 'r') as jobout:
+                joboutput = jobout.read()
+
+            self.assertEqual(
+                joboutput,
+                'Hello\n'
+            )
+        with self.subTest("Three commands"):
+            job = ["sleep 0.1; echo 'Hello'; echo 'Goodbye'"]
+            jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+                job,
+                job_name='echo',
+                logdir=self.outdir.name
+            )
+            stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+            with open(stdout, 'r') as jobout:
+                joboutput = jobout.read()
+
+            self.assertEqual(
+                joboutput,
+                'Hello\nGoodbye\n'
+            )
+        with self.subTest("Piped commands"):
+            job = ["echo 'Hello' | echo 'Goodbye'"]
+            jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+                job,
+                job_name='echo',
+                logdir=self.outdir.name
+            )
+            stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+            with open(stdout, 'r') as jobout:
+                joboutput = jobout.read()
+
+            self.assertEqual(
+                joboutput,
+                'Goodbye\n'
+            )
+
+    def test_set_environment(self):
+        job = [bash_cmd(), '-c', "echo $FSLSUBTEST_ENVVAR", ]
         jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
             job,
             job_name='echo',
-            logdir=self.outdir.name
+            logdir=self.outdir.name,
+            export_vars=['FSLSUBTEST_ENVVAR=1234', ]
         )
         stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
         with open(stdout, 'r') as jobout:
@@ -140,7 +190,24 @@ class TestShellReal(unittest.TestCase):
 
         self.assertEqual(
             joboutput,
-            'Hello\n'
+            '1234\n'
+        )
+
+    def test_set_complexenvironment(self):
+        job = [bash_cmd(), '-c', "echo $FSLSUBTEST_ENVVAR", ]
+        jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+            job,
+            job_name='echo',
+            logdir=self.outdir.name,
+            export_vars=['FSLSUBTEST_ENVVAR="abcd=5678"', ]
+        )
+        stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+        with open(stdout, 'r') as jobout:
+            joboutput = jobout.read()
+
+        self.assertEqual(
+            joboutput,
+            '"abcd=5678"\n'
         )
 
 
@@ -413,6 +480,46 @@ step:{4}
                 logfile_stdout,
                 logfile_stderr
             )
+
+    @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid', autospec=True)
+    @patch('fsl_sub.plugins.fsl_sub_plugin_shell.sp.run', autospec=True)
+    def test_quoted_arg_submit(self, mock_sp_run, mock_getpid, mock_bash):
+        mock_pid = 12345
+        mock_getpid.return_value = mock_pid
+        with tempfile.TemporaryDirectory() as tempdir:
+            logdir = tempdir
+            jobname = "myjob"
+
+            args = ['myjob', '-arg1', '-arg2', '-arg3', "fprintf(1,'Hello World\n');"]
+            runner = [mock_bash.return_value, '-c', ]
+            mock_sp_run.return_value = subprocess.CompletedProcess(runner + args, 0, '', '')
+
+            test_environ = {'AVAR': 'AVAL', }
+            result_environ = dict(test_environ)
+            result_environ['FSLSUB_JOBID_VAR'] = 'JOB_ID'
+            result_environ['FSLSUB_ARRAYTASKID_VAR'] = 'SHELL_TASK_ID'
+            result_environ['FSLSUB_ARRAYSTARTID_VAR'] = 'SHELL_TASK_FIRST'
+            result_environ['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
+            result_environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
+            result_environ['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
+            result_environ['FSLSUB_PARALLEL'] = '1'
+            result_environ['JOB_ID'] = str(mock_pid)
+            with patch.dict(
+                    'fsl_sub.plugins.fsl_sub_plugin_shell.os.environ',
+                    test_environ,
+                    clear=True):
+                fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+                    command=args,
+                    job_name=jobname,
+                    queue="my.q",
+                    logdir=logdir)
+                mock_sp_run.assert_called_once_with(
+                    runner + [" ".join(args)],
+                    env=result_environ,
+                    stdout=ANY,
+                    stderr=ANY,
+                    universal_newlines=True
+                )
 
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid')
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel')

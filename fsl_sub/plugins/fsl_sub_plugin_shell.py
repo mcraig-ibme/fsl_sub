@@ -99,6 +99,7 @@ def submit(
         keep_jobscript=None,
         coprocessor=None,
         coprocessor_toolkit=None,
+        export_vars=None,
         **kwargs):
     '''Submits the job'''
     logger = _get_logger()
@@ -115,11 +116,14 @@ def submit(
         raise BadSubmission(
             "Internal error: command argument must be a list"
         )
+    if export_vars is None:
+        export_vars = []
 
     # Look for passing one-line complex shell commands
-    complex = True if ';' in ''.join(command) else False
-    if complex:
-        command = [bash_cmd(), '-c', ''.join(command), ]
+    if (';' in ' '.join(command) or '|' in ' '.join(command)):
+        command = [bash_cmd(), '-c', ' '.join(command), ]
+
+    set_vars = dict(var.split('=', 1) for var in export_vars if '=' in var)
 
     logger.debug("Looking for parent job id(s)")
     try:
@@ -156,6 +160,7 @@ def submit(
     stderr = "{0}.{1}{2}".format(logfile_base, 'e', log_jid)
 
     child_env = dict(os.environ)
+    child_env.update(set_vars)
     child_env['FSLSUB_JOBID_VAR'] = 'JOB_ID'
     child_env['FSLSUB_ARRAYTASKID_VAR'] = 'SHELL_TASK_ID'
     child_env['FSLSUB_ARRAYSTARTID_VAR'] = 'SHELL_TASK_FIRST'
@@ -279,8 +284,8 @@ def _run_job(job, job_id, child_env, stdout_file, stderr_file):
 
     if output.returncode != 0:
         with open(stderr_file, mode='r') as stderr:
-            raise BadSubmission(
-                stderr.read())
+            err_msg = stderr.read()
+            raise BadSubmission(err_msg)
 
 
 def _end_job_number(njobs, start, stride):

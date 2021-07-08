@@ -1,5 +1,14 @@
 # Change List
 
+## 2.5.7
+
+- Add support for setting environment variables for the 'submitted' job only
+- Fix handling of complex shell commands
+
+## 2.5.6
+
+- Fixes tests on older python versions
+
 ## 2.5.5
 
 - Fixes to plugin installer/updater
