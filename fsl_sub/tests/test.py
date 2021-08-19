@@ -785,6 +785,61 @@ class GetQTests(unittest.TestCase):
                     self.conf_dict['queues'],
                     job_time=None)
             )
+        with self.subTest("No || env queues queues"):
+            tq = {
+                'gp_q':
+                    {
+                        'time': 100,
+                        'max_slots': 1,
+                        'max_size': 1,
+                        'slot_size': 1,
+                    },
+            }
+            with self.assertRaises(BadSubmission) as eo:
+                fsl_sub.getq_and_slots(tq, ll_env='openmp')
+            self.assertEqual(str(eo.exception), "No queues with requested parallel environment found")
+        with self.subTest("Exclusive copro queues"):
+            tq = {
+                'gp_q':
+                    {
+                        'copros': {'cuda': {'exclusive': True, 'max_quantity': 1, }, },
+                        'time': 100,
+                        'max_slots': 1,
+                        'max_size': 1,
+                        'slot_size': 1,
+                    },
+            }
+            with self.assertRaises(BadSubmission) as eo:
+                fsl_sub.getq_and_slots(tq)
+            self.assertEqual(str(eo.exception), "No queues found without co-processors defined that are non-exclusive")
+        with self.subTest("non-Exclusive copro queues"):
+            tq = {
+                'gp_q':
+                    {
+                        'copros': {'cuda': {'exclusive': False, 'max_quantity': 1, }, },
+                        'time': 100,
+                        'max_slots': 1,
+                        'max_size': 1,
+                        'slot_size': 1,
+                    },
+            }
+            self.assertTupleEqual(
+                fsl_sub.getq_and_slots(tq, coprocessor='cuda'),
+                ('gp_q', 1, )
+            )
+            with self.subTest("No copro queues"):
+                tq = {
+                    'gp_q':
+                        {
+                            'time': 100,
+                            'max_slots': 1,
+                            'max_size': 1,
+                            'slot_size': 1,
+                        },
+                }
+                with self.assertRaises(BadSubmission) as eo:
+                    fsl_sub.getq_and_slots(tq, coprocessor='cuda')
+                self.assertEqual(str(eo.exception), "No queues with requested co-processor found")
 
 
 if __name__ == '__main__':

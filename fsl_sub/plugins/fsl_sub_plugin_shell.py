@@ -1,5 +1,5 @@
 # fsl_sub python module
-# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+# Copyright (c) 2018-2021, University of Oxford (Duncan Mortimer)
 
 # fsl_sub plugin for running directly on this computer
 import datetime
@@ -18,6 +18,7 @@ from fsl_sub.config import (
 from fsl_sub.exceptions import (BadSubmission, MissingConfiguration, UnrecognisedModule, )
 from fsl_sub.shell_modules import (loaded_modules, load_module, )
 from fsl_sub.utils import (
+    bash_cmd,
     parse_array_specifier,
     writelines_nl,
     control_threads,
@@ -27,7 +28,7 @@ from collections import defaultdict
 
 
 def plugin_version():
-    return '2.0.0'
+    return '2.0.1'
 
 
 def qtest():
@@ -98,6 +99,7 @@ def submit(
         keep_jobscript=None,
         coprocessor=None,
         coprocessor_toolkit=None,
+        export_vars=None,
         **kwargs):
     '''Submits the job'''
     logger = _get_logger()
@@ -114,6 +116,14 @@ def submit(
         raise BadSubmission(
             "Internal error: command argument must be a list"
         )
+    if export_vars is None:
+        export_vars = []
+
+    # Look for passing one-line complex shell commands
+    if (';' in ' '.join(command) or '|' in ' '.join(command)):
+        command = [bash_cmd(), '-c', ' '.join(command), ]
+
+    set_vars = dict(var.split('=', 1) for var in export_vars if '=' in var)
 
     logger.debug("Looking for parent job id(s)")
     try:
@@ -150,6 +160,7 @@ def submit(
     stderr = "{0}.{1}{2}".format(logfile_base, 'e', log_jid)
 
     child_env = dict(os.environ)
+    child_env.update(set_vars)
     child_env['FSLSUB_JOBID_VAR'] = 'JOB_ID'
     child_env['FSLSUB_ARRAYTASKID_VAR'] = 'SHELL_TASK_ID'
     child_env['FSLSUB_ARRAYSTARTID_VAR'] = 'SHELL_TASK_FIRST'
@@ -214,7 +225,11 @@ def submit(
                 with open(command[0], 'r') as ll_tasks:
                     command_lines = ll_tasks.readlines()
                 for cline in command_lines:
-                    jobs.append(shlex.split(cline))
+                    if ';' not in cline:
+                        jobs.append(shlex.split(cline))
+                    else:
+                        jobs.append(
+                            [bash_cmd(), '-c', cline.strip()])
                     job_log.append(cline)
             except Exception as e:
                 raise BadSubmission(
@@ -269,8 +284,8 @@ def _run_job(job, job_id, child_env, stdout_file, stderr_file):
 
     if output.returncode != 0:
         with open(stderr_file, mode='r') as stderr:
-            raise BadSubmission(
-                stderr.read())
+            err_msg = stderr.read()
+            raise BadSubmission(err_msg)
 
 
 def _end_job_number(njobs, start, stride):

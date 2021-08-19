@@ -11,17 +11,12 @@ If you wish to submit tasks to a cluster you will need to install and configure 
 * fsl_sub_plugin_sge for Sun/Son of/Univa Grid Engine (Grid Engine)
 * fsl_sub_plugin_slurm for Slurm
 
-### Install backend
+## Installation
 
-If you intend to use fsl_sub to run jobs on a cluster you will need to install one of the cluster backends. You can do this with he command:
+In addition to the main fsl_sub package, to submit to a cluster queueing system you need to install one of the cluster plugins. At present, plugins are available for Grid Engine (Sun/Son of or Univa/Altair) and SLURM.
+Please see the INSTALL.md file for details on installing fsl_sub and the relevant plugin.
 
-~~~bash
-fsl_sub_plugin --install
-~~~
-
-which will search for and install plugins.
-
-For instructions on how to install fsl_sub outside of the FSL software suite, see the INSTALL.md file.
+## Configuration
 
 For instructions on how to configure fsl_sub once installed (essential if using a cluster plugin) see the CONFIGURATION.md file.
 
@@ -49,7 +44,7 @@ When running with a cluster it is recommended that you provide a job run time wi
 fsl_sub -T 50 myjob
 ~~~
 
-is the equivalent of `fsl\_sub -q short myjob`, but enables you to potentially use this submission command (and any script based using this command) with any fsl\_sub enabled cluster, regardless of queue names.
+is the equivalent of `fsl_sub -q short myjob`, but enables you to potentially use this submission command (and any script based using this command) with any fsl\_sub enabled cluster, regardless of queue names.
 
 Providing the memory required is also advisable as some cluster setups enforce memory limits but provide for multi-slot reservations to allocate multiples of the RAM limit to your task. fsl\_sub can be configured to automatically make these types of submission.
 
@@ -128,6 +123,10 @@ If the memory is also specified in the fsl_sub arguments then the value provided
 ### Co-Processor Tasks
 
 Where your sofware needs to use a co-processor, most commonly CUDA GPU cards, fsl\_sub offers the `--coprocessor` options. To run CUDA software you would typically add `--coprocessor=cuda` to your fsl\_sub commandline. Assuming the queue configration has been setup correctly there is no other configuration necessary as the correct queue/partition will be selected automatically. If your system has multiple versions of CUDA installed and selectable using _shell modules_ (and everything is configured correctly) you can select the cuda version using `--coprocessor_toolkit` option. Where multiple hardware versions are available then your system may have been configured to allow you to select specific card generations with `--coprocessor_class`, with `--coprocessor_class_strict` allowing you to force fsl\_sub to only select the class of card you request (as opposed to this class and all superior devices).
+
+### Shell Choice (Especially on Heterogeneous Clusters)
+
+Where the submitted command is a shell command line, e.g. "command; command; command", fsl_sub needs to run this via a shell. This defaults to BASH on Linux hosts and macOS prior to 10.15 and zsh on macOS from 10.15 onwards. This can be overridden using the environment variable FSLSUB_SHELL, set to the path of your preferred Bourne shell compatible binary. This is particularly useful if your submission host differs from your execution host (e.g. macOS vs Linux), or the shell binary is in a different location on the execution host (e.g. /bin/bash locally, /usr/local/bin/bash remotely).
 
 ### Specifying Accounting Project
 

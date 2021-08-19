@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 import datetime
 import io
+import json
 import os
+import os.path as op
+import platform
+import shutil
 import stat
 import subprocess
 import sys
@@ -9,15 +13,14 @@ import tempfile
 import unittest
 from unittest.mock import patch, mock_open
 from fsl_sub.exceptions import (
+    BadOS,
     CommandError,
     UpdateError,
     NotAFslDir,
     NoCondaEnv,
-    NoChannelFound,
     NoCondaEnvFile,
     NoFsl,
     PackageError,
-    InstallError,
 )
 import fsl_sub.utils
 
@@ -423,16 +426,14 @@ class TestConda_stdout_error(unittest.TestCase):
         with io.StringIO() as text_trap:
             sys.stdout = text_trap
             self.assertEqual(
-                fsl_sub.utils.conda_stdout_error('''
+                fsl_sub.utils.conda_stdout_error(
+                    '''
     {
-        'message': "output"
+        "message": "output"
     }
     '''),
-                '''
-    {
-        'message': "output"
-    }
-    ''')
+                "output"
+            )
             sys.stdout = sys.__stdout__
 
     def test_conda_stdout_error_invalidjson2(self):
@@ -459,15 +460,30 @@ class TestConda_stdout_error(unittest.TestCase):
 @patch(
     'fsl_sub.utils.os.path.exists', autospec=True
 )
+@patch(
+    'fsl_sub.utils.os.access', autospec=True
+)
+@patch(
+    'fsl_sub.utils.shutil.which', autospec=True
+)
 class TestConda_bin(unittest.TestCase):
-    def test_exists(self, mock_exists, mock_ffsld):
+    def test_exists_fsldir(self, mock_which, mock_access, mock_exists, mock_fsl_env):
         mock_exists.return_value = True
+        mock_access.return_value = True
         self.assertEqual(
             fsl_sub.utils.conda_bin(),
-            '/usr/local/fsl/fslpython/envs/fslpython/bin/conda'
+            '/usr/local/fsl/fslpython/envs/fslpython/../../bin/conda'
         )
 
-    def test_notpresent(self, mock_exists, mock_ff):
+    def test_exists_nofsldir(self, mock_which, mock_access, mock_exists, mock_fsl_env):
+        mock_exists.return_value = True
+        mock_access.return_value = True
+        self.assertEqual(
+            fsl_sub.utils.conda_bin(),
+            '/usr/local/fsl/fslpython/envs/fslpython/../../bin/conda'
+        )
+
+    def test_notpresent(self, mock_which, mock_access, mock_exists, mock_fsl_env):
         mock_exists.return_value = False
         self.assertRaises(
             NoCondaEnv,
@@ -476,23 +492,10 @@ class TestConda_bin(unittest.TestCase):
 
 
 @patch(
-    'fsl_sub.utils.find_fsldir', autospec=True,
-    return_value='/usr/local/fsl'
+    'fsl_sub.utils.conda_pkg_dirs_writeable', autospec=True
 )
 @patch(
-    'fsl_sub.utils.subprocess.run', autospec=True
-)
-@patch(
-    'fsl_sub.utils.conda_bin', autospec=True,
-    return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
-)
-@patch(
-    'fsl_sub.utils.conda_fsl_env', auto_space=True,
-    return_value="/usr/local/fsl/fslpython/envs/fslpython"
-)
-@patch(
-    'fsl_sub.utils.conda_channel', auto_space=True,
-    return_value="fsl"
+    'fsl_sub.utils.conda_json', autospec=True
 )
 class TestCondaFindPackages(unittest.TestCase):
     def setUp(self):
@@ -543,22 +546,12 @@ class TestCondaFindPackages(unittest.TestCase):
   ]
 }
 '''
+        self.json = json.loads(self.example_search)
 
     def test_conda_find_packages(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'search',
-                '--json',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout=self.example_search
-        )
+            self, mock_conda_json, mock_writeable):
+        mock_conda_json.return_value = self.json
+        mock_writeable.return_value = True
         self.assertEqual(
             fsl_sub.utils.conda_find_packages(
                 'fsl_sub',
@@ -566,201 +559,31 @@ class TestCondaFindPackages(unittest.TestCase):
             ['fsl_sub', ]
         )
 
-    def test_conda_find_packages_nofsldir(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'search',
-                '--json',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout=self.example_search
-        )
-        self.assertEqual(
-            fsl_sub.utils.conda_find_packages('fsl_sub'),
-            ['fsl_sub', ]
-        )
-
-    def test_conda_find_packages_nofsldir_exception(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_fsl.side_effect = NotAFslDir('/usr/local/fsl')
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'search',
-                '--json',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout=self.example_search
-        )
-        self.assertRaises(
-            NoCondaEnv,
-            fsl_sub.utils.conda_find_packages,
-            'fsl_sub'
-        )
-
-    def test_conda_find_packages_sp_exception(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'search',
-                '--json',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            output='''no such file or directory'''
-        )
+    def test_conda_find_packages_no_write(
+            self, mock_conda_json, mock_writeable):
+        mock_conda_json.return_value = self.json
+        mock_writeable.return_value = False
         with self.assertRaises(PackageError) as context:
             fsl_sub.utils.conda_find_packages('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to search for packages! '
-            '(no such file or directory)'
-        )
-
-    def test_conda_find_packages_sp_exception2(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'search',
-                '--json',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            output='''a warning
-
-{
-    "message": "Failed to find package"
-}
-'''
-        )
-        with self.assertRaises(PackageError) as context:
-            fsl_sub.utils.conda_find_packages('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to search for packages! '
-            '''(a warning
-
-{
-    "message": "Failed to find package"
-}
-)'''
-        )
-
-    def test_conda_find_packages_sp_exception3(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'search',
-                '--json',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            stderr='''no such file or directory'''
-        )
-        with self.assertRaises(PackageError) as context:
-            fsl_sub.utils.conda_find_packages('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to search for packages! '
-            '(no such file or directory)'
-        )
-
-    def test_conda_find_packages_sp_exception4(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'search',
-                '--json',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            output='''
-{
-    "message": "Failed to find package"
-}
-'''
-        )
-        with self.assertRaises(PackageError) as context:
-            fsl_sub.utils.conda_find_packages('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to search for packages! '
-            '''(Failed to find package)'''
-        )
-
-    def test_conda_find_packages_sp_exception5(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'search',
-                '--json',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout='''
-{
-    'message': "Failed to find package"
-}
-'''
-        )
-        with self.assertRaises(PackageError) as context:
-            fsl_sub.utils.conda_find_packages('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to search for packages! '
-            '''(Expecting property name enclosed '''
-            '''in double quotes: line 3 column 5 (char 7))'''
-        )
+            self.assertEqual(
+                str(context.exception),
+                "No permission to change Conda environment folder, re-try with 'sudo'"
+            )
 
 
 @patch(
-    'fsl_sub.utils.find_fsldir', autospec=True,
-    return_value='/usr/local/fsl'
+    'fsl_sub.utils.get_conda_packages', autospec=True,
+    return_value=['fsl_sub', 'fsl_sub_plugin_sge', ]
 )
 @patch(
-    'fsl_sub.utils.subprocess.run', autospec=True
+    'fsl_sub.utils.conda_pkg_dirs_writeable', autospec=True
 )
 @patch(
-    'fsl_sub.utils.conda_bin', autospec=True,
-    return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
+    'fsl_sub.utils.conda_fsl_env', autospec=True,
+    return_value='/usr/local/fsl/fslpython/env/fslpython'
 )
 @patch(
-    'fsl_sub.utils.conda_fsl_env', auto_space=True,
-    return_value="/usr/local/fsl/fslpython/envs/fslpython"
-)
-@patch(
-    'fsl_sub.utils.conda_channel', auto_space=True,
-    return_value="fsl"
+    'fsl_sub.utils.conda_json', autospec=True
 )
 class TestCondaUpdate(unittest.TestCase):
     def setUp(self):
@@ -808,236 +631,137 @@ class TestCondaUpdate(unittest.TestCase):
   "success": true
 }
 '''
+        self.json = json.loads(self.example_update)
 
-    def test_conda_update(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'update',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython'
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout=self.example_update
-        )
+    def test_conda_update(self, mock_json, mock_env, mock_writeable, mock_packages):
+        mock_json.return_value = self.json
+        mock_env.return_value = self.json['prefix']
+        mock_writeable.return_value = True
         self.assertEqual(
             fsl_sub.utils.conda_update(
-                'fsl_sub',
                 fsldir='/usr/local/fsl'),
             {'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', }, }
         )
 
-    def test_conda_update_noupdates(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'update',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython'
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout='''
-{
-    "message": "All requested packages already installed."
-}
-'''
-        )
+    def test_conda_update_noupdates(self, mock_json, mock_env, mock_writeable, mock_packages):
+        mock_json.return_value = {"message": "All requested packages already installed.", }
+        mock_env.return_value = self.json['prefix']
+        mock_writeable.return_value = True
         self.assertIsNone(
             fsl_sub.utils.conda_update(
-                'fsl_sub',
                 fsldir='/usr/local/fsl')
         )
 
-    def test_conda_update_all(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'update',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython'
-                '-c',
-                'fsl',
-                '--all'
-            ],
-            0,
-            stdout=self.example_update
-        )
+    def test_conda_update_all(self, mock_json, mock_env, mock_writeable, mock_packages):
+        mock_json.return_value = self.json
+        mock_env.return_value = self.json['prefix']
+        mock_writeable.return_value = True
         self.assertEqual(
             fsl_sub.utils.conda_update(
                 fsldir='/usr/local/fsl'),
             {'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', }, }
         )
 
-    def test_conda_update_all_nofsldir(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'update',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython'
-                '-c',
-                'fsl',
-                '--all'
-            ],
-            0,
-            stdout=self.example_update
-        )
+    def test_conda_update_all_nofsldir(self, mock_json, mock_env, mock_writeable, mock_packages):
+        mock_json.return_value = self.json
+        mock_env.return_value = self.json['prefix']
+        mock_writeable.return_value = True
         self.assertEqual(
             fsl_sub.utils.conda_update(),
             {'fsl_sub': {'version': '2.0.0', 'old_version': '1.0.0', }, }
         )
 
-    def test_conda_update_sp_exception(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'update',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
-                '-c',
-                'fsl',
-                '--all'
-            ],
-            output='''no such file or directory'''
-        )
+    def test_conda_update_sp_exception(self, mock_json, mock_env, mock_writeable, mock_packages):
+        mock_json.return_value = self.json
+        mock_env.side_effect = NoCondaEnv("no such file or directory")
+        mock_writeable.return_value = True
         with self.assertRaises(UpdateError) as context:
             fsl_sub.utils.conda_update()
-        self.assertEqual(
-            str(context.exception),
-            'Unable to update! '
-            '(no such file or directory)'
-        )
+            self.assertEqual(
+                str(context.exception),
+                'Unable to update! (no such file or directory)'
+            )
 
-    def test_conda_update_sp_exception2(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
+    def test_conda_update_pkg_no_write(self, mock_json, mock_env, mock_writeable, mock_packages):
+        mock_json.return_value = self.json
+        mock_env.return_value = "/usr/local/bin/env"
+        mock_writeable.return_value = False
+        with self.assertRaises(UpdateError) as context:
+            fsl_sub.utils.conda_update()
+            self.assertEqual(
+                str(context.exception),
+                "No permission to change Conda environment folder, re-try with 'sudo'"
+            )
+
+
+@patch(
+    'fsl_sub.utils.subprocess.run', autospec=True
+)
+@patch(
+    'fsl_sub.utils.conda_bin', autospec=True
+)
+@patch(
+    'fsl_sub.utils.conda_channels', autospec=True)
+class TestCondaJson(unittest.TestCase):
+    def test_no_channel(self, mock_channel, mock_bin, mock_spr):
+        mock_channel.return_value = []
+        mock_bin.return_value = '/usr/local/bin/conda'
+        mock_spr.return_value = subprocess.CompletedProcess(
             [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'update',
+                '/usr/local/bin/conda',
+                'search',
                 '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
-                '-c',
-                'fsl',
-                '--all'
+                'fsl_sub'
             ],
-            output='''a warning
-
+            0,
+            stdout='''
 {
-    "message": "Failed to find package"
+    "message": "Found package"
 }
 '''
         )
-        with self.assertRaises(UpdateError) as context:
-            fsl_sub.utils.conda_update()
         self.assertEqual(
-            str(context.exception),
-            'Unable to update! '
-            '''(a warning
-
-{
-    "message": "Failed to find package"
-}
-)'''
+            {'message': "Found package", },
+            fsl_sub.utils.conda_json('search', 'fsl_sub')
         )
 
-    def test_conda_update_exception3(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
+    def test_channel(self, mock_channel, mock_bin, mock_spr):
+        mock_channel.return_value = 'fsl'
+        mock_bin.return_value = '/usr/local/bin/conda'
+        mock_spr.return_value = subprocess.CompletedProcess(
             [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'update',
+                '/usr/local/bin/conda',
+                'search',
                 '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
                 '-c',
                 'fsl',
-                'fsl_sub'
+                'fsl_sub',
             ],
-            stderr='''no such file or directory'''
-        )
-        with self.assertRaises(UpdateError) as context:
-            fsl_sub.utils.conda_update('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to update! '
-            '(no such file or directory)'
-        )
-
-    def test_conda_update_sp_exception4(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'update',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            output='''
+            0,
+            stdout='''
 {
-    "message": "Failed to find package"
+    "message": "Found package"
 }
 '''
         )
-        with self.assertRaises(UpdateError) as context:
-            fsl_sub.utils.conda_update('fsl_sub')
         self.assertEqual(
-            str(context.exception),
-            'Unable to update! '
-            '''(Failed to find package)'''
+            {'message': "Found package", },
+            fsl_sub.utils.conda_json('search', 'fsl_sub')
         )
 
-    def test_conda_update_sp_exception5(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
+    def test_missing_channel_file(self, mock_channel, mock_bin, mock_spr):
+        mock_channel.side_effect = NoCondaEnvFile("my error")
+        mock_bin.return_value = '/usr/local/bin/conda'
+        with self.assertRaises(PackageError) as pe:
+            fsl_sub.utils.conda_json('search', 'fsl_sub')
+            self.assertEqual(
+                "FSL lacks Python distribution: my error. "
+                "If running standalone unset all FSL environment variables.",
+                str(pe.exception))
+
+    def test_conda_json_exception(self, mock_channel, mock_bin, mock_spr):
+        mock_channel.return_value = "fsl"
+        mock_bin.return_value = '/usr/local/bin/conda'
         mock_spr.return_value = subprocess.CompletedProcess(
             [
                 '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
@@ -1058,184 +782,20 @@ class TestCondaUpdate(unittest.TestCase):
 }
 '''
         )
-        with self.assertRaises(UpdateError) as context:
-            fsl_sub.utils.conda_update('fsl_sub')
+        with self.assertRaises(PackageError) as context:
+            fsl_sub.utils.conda_json('search', 'fsl_sub')
         self.assertEqual(
             str(context.exception),
-            'Unable to check for updates '
-            '''(Expecting property name enclosed '''
-            '''in double quotes: line 3 column 5 (char 7))'''
+            'Expecting property name enclosed in double quotes: line 3 column 5 (char 7)'
         )
 
-
-@patch(
-    'fsl_sub.utils.find_fsldir', autospec=True,
-    return_value='/usr/local/fsl'
-)
-@patch(
-    'fsl_sub.utils.subprocess.run', autospec=True
-)
-@patch(
-    'fsl_sub.utils.conda_bin', autospec=True,
-    return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
-)
-@patch(
-    'fsl_sub.utils.conda_fsl_env', auto_space=True,
-    return_value="/usr/local/fsl/fslpython/envs/fslpython"
-)
-@patch(
-    'fsl_sub.utils.conda_channel', auto_space=True,
-    return_value="fsl"
-)
-class TestCondaInstall(unittest.TestCase):
-    def setUp(self):
-        self.example_install = '''{
-  "actions": {
-    "FETCH": [
-      {
-        "base_url": "https://my.repo.com/conda-fsl",
-        "build_number": 1,
-        "build_string": "1",
-        "channel": "fsl",
-        "dist_name": "fsl_sub-2.0.0-1",
-        "name": "fsl_sub",
-        "platform": "noarch",
-        "version": "2.0.0"
-      }
-    ],
-    "LINK": [
-      {
-        "base_url": null,
-        "build_number": 1,
-        "build_string": "1",
-        "channel": "fsl",
-        "dist_name": "fsl_sub-2.0.0-1",
-        "name": "fsl_sub",
-        "platform": null,
-        "version": "2.0.0"
-      }
-    ],
-    "PREFIX": "/usr/local/fsl/fslpython/envs/fslpython"
-  },
-  "prefix": "/usr/local/fsl/fslpython/envs/fslpython",
-  "success": true
-}
-'''
-
-    def test_conda_install(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython'
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout=self.example_install
-        )
-        self.assertEqual(
-            fsl_sub.utils.conda_install(
-                'fsl_sub',
-                fsldir='/usr/local/fsl'),
-            {'fsl_sub': {'version': '2.0.0', }, }
-        )
-
-    def test_conda_install_list(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython'
-                '-c',
-                'fsl',
-                'fsl_sub',
-                'fsl_sub_plugin_sge'
-            ],
-            0,
-            stdout=self.example_install
-        )
-        self.assertEqual(
-            fsl_sub.utils.conda_install(
-                ['fsl_sub', 'fsl_sub_plugin_sge', ],
-                fsldir='/usr/local/fsl'),
-            {'fsl_sub': {'version': '2.0.0', }, }
-        )
-
-    def test_conda_install_alreadythere(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython'
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout='''
-{
-    "message": "All requested packages already installed."
-}
-'''
-        )
-        self.assertIsNone(
-            fsl_sub.utils.conda_install(
-                'fsl_sub',
-                fsldir='/usr/local/fsl')
-        )
-
-    def test_conda_update_all_nofsldir(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython'
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout=self.example_install
-        )
-        self.assertEqual(
-            fsl_sub.utils.conda_install('fsl_sub'),
-            {'fsl_sub': {'version': '2.0.0', }, }
-        )
-
-    def test_conda_install_sp_exception(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
+    def test_conda_missing_package(self, mock_channel, mock_bin, mock_spr):
+        mock_channel.return_value = "fsl"
+        mock_bin.return_value = '/usr/local/bin/conda'
         mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
+            cmd=[
                 '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
+                'search',
                 '--json',
                 '-q',
                 '-y',
@@ -1245,177 +805,19 @@ class TestCondaInstall(unittest.TestCase):
                 'fsl',
                 'fsl_sub'
             ],
-            output='''no such file or directory'''
-        )
-        with self.assertRaises(InstallError) as context:
-            fsl_sub.utils.conda_install('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to install! '
-            '(no such file or directory)'
-        )
-
-    def test_conda_install_sp_exception2(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            output='''a warning
-
-{
-    "message": "Failed to find package",
-    "success": false
-}
-'''
-        )
-        with self.assertRaises(InstallError) as context:
-            fsl_sub.utils.conda_install('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to install! '
-            '''(a warning
-
-{
-    "message": "Failed to find package",
-    "success": false
-}
-)'''
-        )
-
-    def test_conda_install_exception3(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            stderr='''no such file or directory'''
-        )
-        with self.assertRaises(InstallError) as context:
-            fsl_sub.utils.conda_install('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to install! '
-            '(no such file or directory)'
-        )
-
-    def test_conda_install_sp_exception4(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            1,
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
+            returncode=1,
+            stderr=None,
             output='''
 {
-    "message": "Failed to find package",
-    "success": false
+    "message": "Failed to find package"
 }
 '''
         )
-        with self.assertRaises(InstallError) as context:
-            fsl_sub.utils.conda_install('fsl_sub')
+        with self.assertRaises(PackageError) as context:
+            fsl_sub.utils.conda_json('search', 'fsl_sub')
         self.assertEqual(
             str(context.exception),
-            'Unable to install! '
-            '''(Failed to find package)'''
-        )
-
-    def test_conda_install_sp_exception5(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout='''
-{
-    'message': "Failed to find package",
-    "success": true
-}
-'''
-        )
-        with self.assertRaises(InstallError) as context:
-            fsl_sub.utils.conda_install('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to install '
-            '''(Expecting property name enclosed '''
-            '''in double quotes: line 3 column 5 (char 7))'''
-        )
-
-    def test_conda_install_sp_exception6(
-            self, mock_ch, mock_env,
-            mock_bin, mock_spr, mock_fsl):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'install',
-                '--json',
-                '-q',
-                '-y',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
-                '-c',
-                'fsl',
-                'fsl_sub'
-            ],
-            0,
-            stdout='''
-{
-    "message": "Failed to find package",
-    "success": false
-}
-'''
-        )
-        with self.assertRaises(InstallError) as context:
-            fsl_sub.utils.conda_install('fsl_sub')
-        self.assertEqual(
-            str(context.exception),
-            'Unable to install '
-            '''(Failed to find package)'''
+            'Failed to find package'
         )
 
 
@@ -1431,11 +833,11 @@ class TestCondaInstall(unittest.TestCase):
     return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
 )
 @patch(
-    'fsl_sub.utils.conda_fsl_env', auto_space=True,
+    'fsl_sub.utils.conda_fsl_env', autospec=True,
     return_value="/usr/local/fsl/fslpython/envs/fslpython"
 )
 class TestCondaChannel(unittest.TestCase):
-    def test_conda_channel(
+    def test_conda_channels(
             self, mock_env,
             mock_cbin, mock_spr, mock_fsldir):
         m_open = mock_open(read_data='''name: fslpython
@@ -1448,28 +850,15 @@ dependencies:
  ''')
         with patch('fsl_sub.utils.open', m_open):
             self.assertEqual(
-                fsl_sub.utils.conda_channel(fsldir='/opt/fsl'),
-                'https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/channel'
+                fsl_sub.utils.conda_channels(fsldir='/opt/fsl'),
+                [
+                    'https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/channel',
+                    'defaults',
+                    'conda-forge',
+                ]
             )
 
-    def test_conda_channel_missing(
-            self, mock_env,
-            mock_cbin, mock_spr, mock_fsldir):
-        m_open = mock_open(read_data='''name: fslpython
-channels:
- - defaults
- - conda-forge
-dependencies:
- - python=3.5.2
- ''')
-        with patch('fsl_sub.utils.open', m_open):
-            self.assertRaises(
-                NoChannelFound,
-                fsl_sub.utils.conda_channel,
-                fsldir='/opt/fsl'
-            )
-
-    def test_conda_channel_filemissing(
+    def test_conda_channels_filemissing(
             self, mock_env,
             mock_cbin, mock_spr, mock_fsldir):
         m_open = mock_open(read_data='')
@@ -1477,140 +866,95 @@ dependencies:
             m_open.side_effect = IOError()
             self.assertRaises(
                 NoCondaEnvFile,
-                fsl_sub.utils.conda_channel,
+                fsl_sub.utils.conda_channels,
                 fsldir='/opt/fsl',
             )
 
 
 @patch(
-    'fsl_sub.utils.find_fsldir', autospec=True,
-    return_value='/usr/local/fsl'
+    'fsl_sub.utils.conda_pkg_dirs_writeable', autospec=True
 )
 @patch(
-    'fsl_sub.utils.subprocess.run', autospec=True
+    'fsl_sub.utils.conda_json', autospec=True
 )
 @patch(
-    'fsl_sub.utils.conda_bin', autospec=True,
-    return_value="/usr/local/fsl/fslpython/envs/fslpython/bin/conda"
-)
-@patch(
-    'fsl_sub.utils.conda_channel', auto_space=True,
-    return_value="fsl"
-)
-@patch(
-    'fsl_sub.utils.conda_fsl_env', auto_space=True,
+    'fsl_sub.utils.conda_fsl_env', autospec=True,
     return_value="/usr/local/fsl/fslpython/envs/fslpython"
 )
+@patch(
+    'fsl_sub.utils.get_conda_packages', autospec=True,
+    return_value=['fsl_sub', ]
+)
 class TestConda(unittest.TestCase):
-    def test_conda_check_update_conda_binfails(
-        self, mock_env, mock_cchannel, mock_cbin, mock_spr, mock_fsldir
-    ):
-        mock_spr.side_effect = subprocess.CalledProcessError(
-            cmd='conda',
-            returncode=1,
-            output='',
-            stderr='-bash: conda: command not found'
-        )
-        self.assertRaises(
-            UpdateError,
-            fsl_sub.utils.conda_check_update)
-
     def test_conda_check_update_conda_noupdate(
-            self, mock_env, mock_cchannel, mock_cbin, mock_spr, mock_fsldir):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [],
-            0,
-            '''{
-  "message": "All requested packages already installed.",
-  "success": true
-}''',
-            '')
+            self, mock_gcp, mock_env, mock_json, mock_writeable):
+        mock_json.return_value = {
+            "message": "All requested packages already installed.",
+            "success": True, }
+        mock_writeable.return_value = True
         self.assertIsNone(
-            fsl_sub.utils.conda_check_update(packages='fsl_sub')
-        )
-        mock_spr.assert_called_with(
-            [
-                '/usr/local/fsl/fslpython/envs/fslpython/bin/conda',
-                'update',
-                '--json',
-                '-q',
-                '-p',
-                '/usr/local/fsl/fslpython/envs/fslpython',
-                '-c',
-                'fsl',
-                '--dry-run',
-                'fsl_sub',
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-            universal_newlines=True
+            fsl_sub.utils.conda_check_update()
         )
 
     def test_conda_check_update_conda_updates(
-            self, mock_env, mock_cchannel, mock_cbin, mock_spr, mock_fsldir):
-        mock_spr.return_value = subprocess.CompletedProcess(
-            [],
-            0,
-            '''{
-  "actions": {
-    "FETCH": [
-      {
-        "base_url": "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda",
-        "build_number": 2,
-        "build_string": "blah_2",
-        "channel": "defaults",
-        "dist_name": "fsl_sub-2.0.0-blah_2",
-        "name": "fsl_sub",
-        "platform": "osx-64",
-        "version": "2.0.0"
-      }
-    ],
-    "LINK": [
-      {
-        "base_url": null,
-        "build_number": 0,
-        "build_string": "0",
-        "channel": "fsl",
-        "dist_name": "fsl_sub-2.0.0",
-        "name": "fsl_sub",
-        "platform": null,
-        "version": "2.0.0"
-      }
-    ],
-    "PREFIX": "/path/to/env",
-    "UNLINK": [
-      {
-        "base_url": null,
-        "build_number": 1,
-        "build_string": "1",
-        "channel": "fsl",
-        "dist_name": "fsl_sub-1.0.0",
-        "name": "fsl_sub",
-        "platform": null,
-        "version": "1.0.0"
-      }
-    ]
-  },
-  "prefix": "/path/to/env",
-  "success": true
-}
-''',
-            '')
+            self, mock_gcp, mock_env, mock_json, mock_writeable):
+        updates = {
+            "actions": {
+                "FETCH": [
+                    {
+                        "base_url": "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda",
+                        "build_number": 2,
+                        "build_string": "blah_2",
+                        "channel": "defaults",
+                        "dist_name": "fsl_sub-2.0.0-blah_2",
+                        "name": "fsl_sub",
+                        "platform": "osx-64",
+                        "version": "2.0.0"
+                    }
+                ],
+                "LINK": [
+                    {
+                        "base_url": None,
+                        "build_number": 0,
+                        "build_string": "0",
+                        "channel": "fsl",
+                        "dist_name": "fsl_sub-2.0.0",
+                        "name": "fsl_sub",
+                        "platform": None,
+                        "version": "2.0.0"
+                    }
+                ],
+                "PREFIX": "/path/to/env",
+                "UNLINK": [
+                    {
+                        "base_url": None,
+                        "build_number": 1,
+                        "build_string": "1",
+                        "channel": "fsl",
+                        "dist_name": "fsl_sub-1.0.0",
+                        "name": "fsl_sub",
+                        "platform": None,
+                        "version": "1.0.0"
+                    }
+                ]
+            },
+            "prefix": "/path/to/env",
+            "success": True
+        }
+        mock_json.return_value = updates
+        mock_writeable.return_value = True
+        update_dict = {
+            'fsl_sub': {
+                'version': '2.0.0',
+                'old_version': '1.0.0',
+            }
+        }
+        self.assertEqual(fsl_sub.utils.conda_check_update(), update_dict)
 
 
 class TestPlugins(unittest.TestCase):
     def setUp(self):
         fsl_sub.utils.load_plugins.cache_clear()
-
-    @patch(
-        'fsl_sub.utils.available_plugins', autospec=True,
-        return_value=['a', 'b', ])
-    def test_available_plugin_packages(self, mock_ap):
-        self.assertListEqual(
-            fsl_sub.utils.available_plugin_packages(),
-            ['fsl_sub_plugin_a', 'fsl_sub_plugin_b', ]
-        )
 
     @patch('fsl_sub.utils.pkgutil.iter_modules', autospec=True)
     @patch('fsl_sub.utils.importlib.import_module', autospec=True)
@@ -1989,6 +1333,23 @@ class TestUtils(unittest.TestCase):
             )
         os.remove(test_file.name)
 
+        with self.subTest('|| with quoted commands'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                spacydir = op.join(tmpdir, 'spacy dir')
+                ls = shutil.which('ls')
+                commands = op.join(tmpdir, 'commands.txt')
+                os.mkdir(spacydir)
+                shutil.copy(ls, spacydir)
+                with open(commands, 'wt') as f:
+                    f.write('\n'.join(["'ls'",
+                                       '"ls"',
+                                       '"{}"'.format(ls),
+                                       '"{}/spacy dir/ls"'.format(tmpdir),
+                                       r'{}/spacy\ dir/ls'.format(tmpdir)]))
+
+                os.chmod(commands, stat.S_IRUSR)
+                fsl_sub.utils.check_command_file(commands)
+
 
 class TestFileIsImage(unittest.TestCase):
     @patch('fsl_sub.utils.os.path.isfile', autospec=True)
@@ -2085,6 +1446,71 @@ class TestFixPerms(unittest.TestCase):
                 self.assertEqual(
                     perms.st_mode & 0o777,
                     0o644)
+
+
+class TestBashCmd(unittest.TestCase):
+    @patch('fsl_sub.utils.platform.system', return_value='Linux')
+    @patch('fsl_sub.utils.which', return_value='/bin/bash')
+    def test_linux(self, mock_which, mock_sp):
+        self.assertEqual(
+            '/bin/bash',
+            fsl_sub.utils.bash_cmd()
+        )
+
+    @patch('fsl_sub.utils.platform.system', return_value='Linux')
+    @patch('fsl_sub.utils.which', return_value=None)
+    def test_linuxNoBash(self, mock_which, mock_sp):
+        self.assertRaises(
+            BadOS,
+            fsl_sub.utils.bash_cmd
+        )
+
+    @patch('fsl_sub.utils.platform.system', return_value='Darwin')
+    @patch(
+        'fsl_sub.utils.platform.uname'
+    )
+    @patch('fsl_sub.utils.which', return_value='/bin/bash')
+    def test_darwin_pre_catalina(self, mock_which, mock_pu, mock_sp):
+        if sys.version_info.major == 3 and sys.version_info.minor < 9:
+            mock_pu.return_value = platform.uname_result(
+                system='Darwin', node='hostname.domain',
+                release='18.7.0',
+                version='Darwin Kernel Version 18.7.0:',
+                machine='x86_64',
+                processor='i386')
+        else:
+            mock_pu.return_value = platform.uname_result(
+                system='Darwin', node='hostname.domain',
+                release='18.7.0',
+                version='Darwin Kernel Version 18.7.0:',
+                machine='x86_64')
+        self.assertEqual(
+            '/bin/bash',
+            fsl_sub.utils.bash_cmd()
+        )
+
+    @patch('fsl_sub.utils.platform.system', return_value='Darwin')
+    @patch('fsl_sub.utils.platform.uname')
+    @patch('fsl_sub.utils.which', return_value='/bin/zsh')
+    def test_darwin_catalina(self, mock_which, mock_pu, mock_sp):
+        if sys.version_info.major == 3 and sys.version_info.minor < 9:
+            mock_pu.return_value = platform.uname_result(
+                system='Darwin', node='hostname.domain',
+                release='19.7.0',
+                version='Darwin Kernel Version 19.7.0:',
+                machine='x86_64',
+                processor='i386')
+        else:
+            mock_pu.return_value = platform.uname_result(
+                system='Darwin', node='hostname.domain',
+                release='19.7.0',
+                version='Darwin Kernel Version 19.7.0: ',
+                machine='x86_64')
+        self.assertEqual(
+            '/bin/zsh',
+            fsl_sub.utils.bash_cmd()
+        )
+        mock_which.assert_called_with('zsh')
 
 
 class TestJobScript(unittest.TestCase):
@@ -2238,6 +1664,82 @@ class TestMergeDict(unittest.TestCase):
                 {'avalue': {
                     'another': 'item', 'yetanother': 'value'},
                     'bvalue': 1, 'cvalue': [0, 1]}
+            )
+
+
+@patch('fsl_sub.utils.conda_json', autospec=True)
+class TestGetCondaPackages(unittest.TestCase):
+    def test_get_conda_packages_one(self, mock_conda_json):
+        mock_conda_json.return_value = [
+            {'name': 'fsl_sub', },
+        ]
+
+        self.assertListEqual(
+            fsl_sub.utils.get_conda_packages(conda_env="/usr/local/fsl/fslpython/envs/fslpython"),
+            ['fsl_sub', ]
+        )
+
+    def test_get_conda_packages_one_with_others(self, mock_conda_json):
+        mock_conda_json.return_value = [
+            {'name': 'fsl_sub', },
+            {'name': 'feat'}
+        ]
+
+        self.assertListEqual(
+            fsl_sub.utils.get_conda_packages(conda_env="/usr/local/fsl/fslpython/envs/fslpython"),
+            ['fsl_sub', ]
+        )
+
+    def test_get_conda_packages_two(self, mock_conda_json):
+        mock_conda_json.return_value = [
+            {'name': 'fsl_sub', },
+            {'name': 'fsl_sub_plugin_sge', },
+        ]
+
+        self.assertListEqual(
+            fsl_sub.utils.get_conda_packages(conda_env="/usr/local/fsl/fslpython/envs/fslpython"),
+            ['fsl_sub', 'fsl_sub_plugin_sge', ]
+        )
+
+    def test_get_conda_packages_two_with_others(self, mock_conda_json):
+        mock_conda_json.return_value = [
+            {'name': 'fsl_sub', },
+            {'name': 'fsl_sub_plugin_sge', },
+            {'name': 'feat'}
+        ]
+
+        self.assertListEqual(
+            fsl_sub.utils.get_conda_packages(conda_env="/usr/local/fsl/fslpython/envs/fslpython"),
+            ['fsl_sub', 'fsl_sub_plugin_sge', ]
+        )
+
+
+class TestBuildJobName(unittest.TestCase):
+    def test_build_job_name(self):
+        with self.subTest("single command simple"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name('/usr/bin/echo hello'),
+                'echo'
+            )
+        with self.subTest("command as list"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name(['/usr/bin/echo', 'hello']),
+                'echo'
+            )
+        with self.subTest("single command complex"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name('ENVAR=1; /usr/bin/echo $ENVVAR'),
+                'echo'
+            )
+        with self.subTest("command as list complex"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name(['ENVAR=1; /usr/bin/echo $ENVVAR']),
+                'echo'
+            )
+        with self.subTest("command as list complex 2"):
+            self.assertEqual(
+                fsl_sub.utils.build_job_name(['ENVAR=1; /usr/bin/echo', '$ENVVAR']),
+                'echo'
             )
 
 

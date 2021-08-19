@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # fsl_sub python module
-# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+# Copyright (c) 2018-2021 University of Oxford (Duncan Mortimer)
 
 import argparse
 import getpass
@@ -40,6 +40,7 @@ from fsl_sub.exceptions import (
     InstallError,
     NoFsl,
     NoModule,
+    NotAFslDir,
     PackageError,
     UpdateError,
     CONFIG_ERROR,
@@ -59,7 +60,6 @@ from fsl_sub.projects import (
 )
 from fsl_sub.utils import (
     available_plugins,
-    available_plugin_packages,
     blank_none,
     conda_check_update,
     conda_find_packages,
@@ -132,9 +132,9 @@ There are several batch queues configured on the cluster:
                 for cp, cpdef in q['copros'].items():
                     if cp_str != '':
                         cp_str += '; '
-                    cp_str += "{0} ({1})".format(
-                        cp, ','.join(cpdef['classes']))
-
+                    cp_str += cp
+                    if 'classes' in cpdef:
+                        cp_str += " ({0})".format(','.join(cpdef['classes']))
                 epilog += (
                     pad + "Coprocessors available: "
                     + cp_str + '\n'
@@ -779,16 +779,16 @@ def report_cmd(args=None):
                         "Job state: " + fsl_sub.consts.REPORTING[
                             td[key]])
                 else:
-                    print("{}: ".format(titlize_key(td), end=''))
+                    print("{0}: ".format(titlize_key(td)), end='')
                     if key in ['utime', 'stime', ]:
-                        print("{0}s".format(blank_none(task_detail)))
+                        print("{0}s".format(blank_none(td)))
                     if key in ['maxmemory']:
-                        print("{0}MB".format(blank_none(task_detail)))
+                        print("{0}MB".format(blank_none(td)))
                     if key in ['sub_time', 'start_time', 'end_time']:
-                        print(task_detail[key].strftime(
+                        print(td[key].strftime(
                             '%d/%m/%Y %H:%M:%S'))
                     else:
-                        print(blank_none(task_detail))
+                        print(blank_none(td))
             print('|'.join(line))
 
 
@@ -1025,21 +1025,23 @@ def update(args=None):
     logger.addHandler(lhdr)
     options = update_parser().parse_args(args=args)
 
-    fsldir = find_fsldir()
-
-    # Enumerate plugins
-    plugins = available_plugin_packages()
-    packages = ['fsl_sub', ] + plugins
+    try:
+        fsldir = find_fsldir()
+    except NotAFslDir:
+        sys.exit("FSL not found - use conda update/pip install --upgrade to update when installed outside of FSL")
     # Check for updates
     try:
-        updates = conda_check_update(
-            fsldir=fsldir, packages=packages)
+        updates = conda_check_update(fsldir=fsldir)
+        if updates is None:
+            print("No updates available")
+            sys.exit(0)
+
         print("Available updates:")
         for u, v in updates.items():
             print("{0} ({1} -> {2})".format(
                 u, v['old_version'], v['version']
             ))
-    except UpdateError as e:
+    except Exception as e:
         sys.exit(
             "Unable to check for updates! ({0})".format(
                 str(e)))
@@ -1050,9 +1052,7 @@ def update(args=None):
             if answer.strip().lower() not in ['y', 'yes', ]:
                 sys.exit('Aborted')
         try:
-            updated = conda_update(
-                fsldir=fsldir, packages=packages
-            )
+            updated = conda_update(fsldir=fsldir)
             print("{0} updated.".format(", ".join(updated)))
         except UpdateError as e:
             sys.exit(
@@ -1100,8 +1100,8 @@ def install_plugin(args=None):
     try:
         fsl_sub_plugins = conda_find_packages(
             'fsl_sub_plugin_*', fsldir=fsldir)
-    except PackageError:
-        sys.exit("Unable to search for plugins - was this installed with FSL?")
+    except PackageError as e:
+        sys.exit(str(e))
     if options.list or options.install is None:
         print('Available plugins:')
         for index, plugin in enumerate(fsl_sub_plugins):
@@ -1135,11 +1135,11 @@ def install_plugin(args=None):
         """You can generate an example config file with:
 fsl_sub_config {plugin}
 
-The configuration file can be copied to {fsldir_etc_fslconf} calling "
-it fsl_sub.yml, or put in your home folder calling it .fsl_sub.yml. "
-A copy in your home folder will override the file in "
-{fsldir_etc_fslconf}. Finally, the environment variable FSLSUB_CONF "
-can be set to point at the configuration file, this will override all"
+The configuration file can be copied to {fsldir_etc_fslconf} calling
+it fsl_sub.yml, or put in your home folder calling it .fsl_sub.yml.
+A copy in your home folder will override the file in
+{fsldir_etc_fslconf}. Finally, the environment variable FSLSUB_CONF
+can be set to point at the configuration file, this will override all
 other files.""".format(
             plugin=conda_pkg.replace('fsl_sub_plugin_', ''),
             fsldir_etc_fslconf=os.path.join(fsldir, 'etc', 'fslconf'))

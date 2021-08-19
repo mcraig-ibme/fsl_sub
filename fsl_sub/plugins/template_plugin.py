@@ -23,10 +23,10 @@ from fsl_sub.coprocessors import (
 )
 from fsl_sub.shell_modules import loaded_modules
 from fsl_sub.utils import (
+    bash_cmd,
     split_ram_by_slots,
     human_to_ram,
     parse_array_specifier,
-    bash_cmd,
     fix_permissions,
     flatten_list,
     write_wrapper,

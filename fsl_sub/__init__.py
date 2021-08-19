@@ -1,7 +1,7 @@
 #!/usr/bin/env fslpython
 
 # fsl_sub python module
-# Copyright (c) 2018, University of Oxford (Duncan Mortimer)
+# Copyright (c) 2018-2021, University of Oxford (Duncan Mortimer)
 
 import datetime
 import errno
@@ -35,6 +35,7 @@ from fsl_sub.projects import (
 )
 from fsl_sub.utils import (
     load_plugins,
+    build_job_name,
     check_command,
     check_command_file,
     get_plugin_qdel,
@@ -186,7 +187,7 @@ def submit(
                 a string/list containing the command to run.
 
     Optional:
-    job_name - Symbolic name for task (defaults to first component of command)
+    name - Symbolic name for task (defaults to first component of command)
     array_task - is the command is an array task (defaults to False)
     jobhold - id(s) of jobs to hold for (string or list)
     array_hold - complex hold string, integer or list
@@ -221,6 +222,7 @@ def submit(
             ignored if job is copying complete environment
     keep_jobscript - whether to generate and keep a script defining the parameters
             used to run your task
+    validate_command - whether to validate the command or not.
     '''
     logger = logging.getLogger(__name__)
     try:
@@ -294,7 +296,7 @@ def submit(
         )
 
     logger.debug("Configuring plugin " + config['method'])
-    # Reset grid_module incase we've switched to the Shell plugin
+    # Reset grid_module in case we've switched to the Shell plugin
     grid_module = 'fsl_sub_plugin_' + config['method']
     try:
         queue_submit = PLUGINS[grid_module].submit
@@ -308,9 +310,21 @@ def submit(
             + " ({0})".format(str(e))
         )
 
-    if isinstance(command, str):
-        # command is a basic string
-        command = shlex.split(command)
+    if isinstance(command, str) or len(command) == 1:
+        # command is a basic string or single element list
+        logger.debug("Simple string or single element list passed")
+        if isinstance(command, list):
+            command = command[0]
+        if ';' not in command:
+            logger.debug("String being shlex split")
+            command = shlex.split(command)
+        else:
+            # Command is a shell one-liner, we can't reliably split this
+            logger.debug("String contains ';' we cannot split it")
+            command = [command]
+            logger.debug("Disabling validation")
+            validate_command = False
+        logger.debug(command)
     elif not isinstance(command, list):
         raise BadSubmission("Command should be a list or string")
 
@@ -390,8 +404,6 @@ def submit(
     elif array_specifier is None:
         job_type = 'array file'
         validate_type = 'array'
-        if name is None:
-            name = os.path.basename(command[0])
     else:
         job_type = 'array aware command'
         validate_type = 'command'
@@ -429,10 +441,8 @@ def submit(
                 "Unknown validation type: " + validate_type)
 
     if name is None:
-        c_name = command[0]
-        if '/' in c_name:
-            c_name = os.path.basename(c_name)
-        task_name = c_name
+        task_name = build_job_name(command)
+        logger.debug("No name passed - setting to " + task_name)
     else:
         task_name = name
 
@@ -629,19 +639,28 @@ def getq_and_slots(
     queue_list = list(queues.keys())
 
     if not queue_list:
-        raise BadSubmission("No matching queues found")
+        raise BadSubmission("No queues found")
 
     # Filter on coprocessor availability
     if coprocessor is not None:
         queue_list = [
             q for q in queue_list if 'copros' in queues[q]
             and coprocessor in queues[q]['copros']]
+        if not queue_list:
+            raise BadSubmission("No queues with requested co-processor found")
     else:
-        queue_list = [
-            q for q in queue_list if 'copros' not in queues[q]
-        ]
-    if not queue_list:
-        raise BadSubmission("No matching queues found")
+        tq = []
+        for q in queue_list:
+            qd = queues[q]
+            if 'copros' not in qd:
+                tq.append(q)
+            else:
+                qdcp = qd['copros']
+                if not all([qdcp[c].get('exclusive', True) for c in qdcp]):
+                    tq.append(q)
+        queue_list = tq
+        if not queue_list:
+            raise BadSubmission("No queues found without co-processors defined that are non-exclusive")
 
     # Filter on parallel environment availability
     if ll_env is not None:
@@ -649,8 +668,8 @@ def getq_and_slots(
             q for q in queue_list if 'parallel_envs' in queues[q]
             and ll_env in queues[q]['parallel_envs']
         ]
-    if not queue_list:
-        raise BadSubmission("No matching queues found")
+        if not queue_list:
+            raise BadSubmission("No queues with requested parallel environment found")
 
     # If no job time was specified then find the default queues
     # (if defined)
@@ -681,7 +700,7 @@ def getq_and_slots(
         and queues[q]['max_size'] >= job_ram
         and queues[q]['max_slots'] >= job_threads]
     if not ql:
-        raise BadSubmission("No matching queues found")
+        raise BadSubmission("No queues matching time/RAM/thread requirements found")
 
     logger.info(
         "Estimated RAM was {0} GBm, runtime was {1} minutes.\n".format(

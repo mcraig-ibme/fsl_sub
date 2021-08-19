@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import os
 import shlex
+import subprocess
 import tempfile
 import unittest
 import fsl_sub.plugins.fsl_sub_plugin_shell
 import fsl_sub.exceptions
-from unittest.mock import patch
+from unittest.mock import (patch, ANY, )
+from fsl_sub.utils import bash_cmd
 
 
 class TestRequireMethods(unittest.TestCase):
@@ -104,6 +106,112 @@ class TestUtils(unittest.TestCase):
                 self.assertFalse(fsl_sub.plugins.fsl_sub_plugin_shell._disable_parallel('mycommand_specialb'))
 
 
+class TestShellReal(unittest.TestCase):
+    def setUp(self):
+        self.outdir = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.outdir.cleanup()
+
+    def test_simple_job(self):
+        job = ["echo", "Hello"]
+        jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+            job,
+            job_name='echo',
+            logdir=self.outdir.name
+        )
+        stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+        with open(stdout, 'r') as jobout:
+            joboutput = jobout.read()
+
+        self.assertEqual(
+            joboutput,
+            'Hello\n'
+        )
+
+    def test_complex_job(self):
+        with self.subTest("Two commands"):
+            job = ["sleep 0.1; echo 'Hello'"]
+            jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+                job,
+                job_name='echo',
+                logdir=self.outdir.name
+            )
+            stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+            with open(stdout, 'r') as jobout:
+                joboutput = jobout.read()
+
+            self.assertEqual(
+                joboutput,
+                'Hello\n'
+            )
+        with self.subTest("Three commands"):
+            job = ["sleep 0.1; echo 'Hello'; echo 'Goodbye'"]
+            jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+                job,
+                job_name='echo',
+                logdir=self.outdir.name
+            )
+            stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+            with open(stdout, 'r') as jobout:
+                joboutput = jobout.read()
+
+            self.assertEqual(
+                joboutput,
+                'Hello\nGoodbye\n'
+            )
+        with self.subTest("Piped commands"):
+            job = ["echo 'Hello' | echo 'Goodbye'"]
+            jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+                job,
+                job_name='echo',
+                logdir=self.outdir.name
+            )
+            stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+            with open(stdout, 'r') as jobout:
+                joboutput = jobout.read()
+
+            self.assertEqual(
+                joboutput,
+                'Goodbye\n'
+            )
+
+    def test_set_environment(self):
+        job = [bash_cmd(), '-c', "echo $FSLSUBTEST_ENVVAR", ]
+        jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+            job,
+            job_name='echo',
+            logdir=self.outdir.name,
+            export_vars=['FSLSUBTEST_ENVVAR=1234', ]
+        )
+        stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+        with open(stdout, 'r') as jobout:
+            joboutput = jobout.read()
+
+        self.assertEqual(
+            joboutput,
+            '1234\n'
+        )
+
+    def test_set_complexenvironment(self):
+        job = [bash_cmd(), '-c', "echo $FSLSUBTEST_ENVVAR", ]
+        jid = fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+            job,
+            job_name='echo',
+            logdir=self.outdir.name,
+            export_vars=['FSLSUBTEST_ENVVAR="abcd=5678"', ]
+        )
+        stdout = os.path.join(self.outdir.name, 'echo.o' + str(jid))
+        with open(stdout, 'r') as jobout:
+            joboutput = jobout.read()
+
+        self.assertEqual(
+            joboutput,
+            '"abcd=5678"\n'
+        )
+
+
+@patch('fsl_sub.plugins.fsl_sub_plugin_shell.bash_cmd', return_value="/bin/bash")
 class TestShell(unittest.TestCase):
     def setUp(self):
         self.pid = os.getpid()
@@ -114,34 +222,32 @@ class TestShell(unittest.TestCase):
         self.stderr = os.path.join(self.outdir.name, 'stderr')
         self.job_id = 111
         self.p_env = {}
+        self.bash = '/bin/bash'
         self.p_env['FSLSUB_JOBID_VAR'] = 'JOB_ID'
         self.p_env['FSLSUB_ARRAYTASKID_VAR'] = 'SHELL_TASK_ID'
         self.p_env['FSLSUB_ARRAYSTARTID_VAR'] = 'SHELL_TASK_FIRST'
         self.p_env['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
         self.p_env['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
-        self.p_env['FSLSUB_ARRAYCOUNT_VAR'] = ''
         with open(self.job, mode='w') as jobfile:
             jobfile.write(
-                '''#!/bin/bash
-echo "jobid:${!FSLSUB_JOBID_VAR}"
-echo "taskid:${!FSLSUB_ARRAYTASKID_VAR}"
-echo "start:${!FSLSUB_ARRAYSTARTID_VAR}"
-echo "end:${!FSLSUB_ARRAYENDID_VAR}"
-echo "step:${!FSLSUB_ARRAYSTEPSIZE_VAR}"
-echo "count:${!FSLSUB_ARRAYCOUNT_VAR}"
-'''
+                '''#!{0}
+echo "jobid:${{!FSLSUB_JOBID_VAR}}"
+echo "taskid:${{!FSLSUB_ARRAYTASKID_VAR}}"
+echo "start:${{!FSLSUB_ARRAYSTARTID_VAR}}"
+echo "end:${{!FSLSUB_ARRAYENDID_VAR}}"
+echo "step:${{!FSLSUB_ARRAYSTEPSIZE_VAR}}"
+'''.format(self.bash)
             )
         with open(self.errorjob, mode='w') as jobfile:
             jobfile.write(
-                '''#!/bin/bash
-echo "jobid:${!FSLSUB_JOBID_VAR}" >&2
-echo "taskid:${!FSLSUB_ARRAYTASKID_VAR}" >&2
-echo "start:${!FSLSUB_ARRAYSTARTID_VAR}" >&2
-echo "end:${!FSLSUB_ARRAYENDID_VAR}" >&2
-echo "step:${!FSLSUB_ARRAYSTEPSIZE_VAR}" >&2
-echo "count:${!FSLSUB_ARRAYCOUNT_VAR}" >&2
+                '''#!{0}
+echo "jobid:${{!FSLSUB_JOBID_VAR}}" >&2
+echo "taskid:${{!FSLSUB_ARRAYTASKID_VAR}}" >&2
+echo "start:${{!FSLSUB_ARRAYSTARTID_VAR}}" >&2
+echo "end:${{!FSLSUB_ARRAYENDID_VAR}}" >&2
+echo "step:${{!FSLSUB_ARRAYSTEPSIZE_VAR}}" >&2
 exit 2
-'''
+'''.format(self.bash)
             )
         os.chmod(self.job, 0o755)
         os.chmod(self.errorjob, 0o755)
@@ -149,7 +255,7 @@ exit 2
     def tearDown(self):
         self.outdir.cleanup()
 
-    def test__run_job(self):
+    def test__run_job(self, mock_bash):
         job = [self.job]
 
         fsl_sub.plugins.fsl_sub_plugin_shell._run_job(
@@ -166,10 +272,9 @@ taskid:
 start:
 end:
 step:
-count:
 '''.format(self.job_id))
 
-    def test__run_job_stderr(self):
+    def test__run_job_stderr(self, mock_bash):
         job = [self.errorjob]
 
         with self.assertRaises(fsl_sub.exceptions.BadSubmission) as bs:
@@ -186,14 +291,13 @@ taskid:
 start:
 end:
 step:
-count:
 '''.format(self.job_id)
         )
 
     @patch(
         'fsl_sub.plugins.fsl_sub_plugin_shell._get_cores',
         autospec=True)
-    def test__run_parallel_all(self, mock_gc):
+    def test__run_parallel_all(self, mock_gc, mock_bash):
         jobs = [self.job, self.job, self.job, ]
 
         mock_gc.return_value = 4
@@ -222,14 +326,13 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
     @patch(
         'fsl_sub.plugins.fsl_sub_plugin_shell._get_cores',
         autospec=True)
-    def test__run_parallel_cpulimited(self, mock_gc):
+    def test__run_parallel_cpulimited(self, mock_gc, mock_bash):
         mock_gc.return_value = 2
 
         jobs = [self.job, self.job, self.job, ]
@@ -260,14 +363,13 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
     @patch(
         'fsl_sub.plugins.fsl_sub_plugin_shell._get_cores',
         autospec=True)
-    def test__run_parallel_threadlimited(self, mock_gc):
+    def test__run_parallel_threadlimited(self, mock_gc, mock_bash):
         mock_gc.return_value = 4
         jobs = [self.job, self.job, self.job, ]
 
@@ -298,14 +400,13 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
     @patch(
         'fsl_sub.plugins.fsl_sub_plugin_shell._get_cores',
         autospec=True)
-    def test__run_parallel_spec(self, mock_gc):
+    def test__run_parallel_spec(self, mock_gc, mock_bash):
         mock_gc.return_value = 4
         jobs = [self.job, self.job, self.job, ]
 
@@ -336,13 +437,12 @@ taskid:{1}
 start:{2}
 end:{3}
 step:{4}
-count:
 '''.format(self.job_id, subjob, 1, 3, 1))
             self.assertEqual(joberror, '')
 
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid', autospec=True)
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell._run_job', autospec=True)
-    def test_submit(self, mock__run_job, mock_getpid):
+    def test_submit(self, mock__run_job, mock_getpid, mock_bash):
         mock_pid = 12345
         mock_getpid.return_value = mock_pid
         logdir = "/tmp/logdir"
@@ -381,9 +481,49 @@ count:
                 logfile_stderr
             )
 
+    @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid', autospec=True)
+    @patch('fsl_sub.plugins.fsl_sub_plugin_shell.sp.run', autospec=True)
+    def test_quoted_arg_submit(self, mock_sp_run, mock_getpid, mock_bash):
+        mock_pid = 12345
+        mock_getpid.return_value = mock_pid
+        with tempfile.TemporaryDirectory() as tempdir:
+            logdir = tempdir
+            jobname = "myjob"
+
+            args = ['myjob', '-arg1', '-arg2', '-arg3', "fprintf(1,'Hello World\n');"]
+            runner = [mock_bash.return_value, '-c', ]
+            mock_sp_run.return_value = subprocess.CompletedProcess(runner + args, 0, '', '')
+
+            test_environ = {'AVAR': 'AVAL', }
+            result_environ = dict(test_environ)
+            result_environ['FSLSUB_JOBID_VAR'] = 'JOB_ID'
+            result_environ['FSLSUB_ARRAYTASKID_VAR'] = 'SHELL_TASK_ID'
+            result_environ['FSLSUB_ARRAYSTARTID_VAR'] = 'SHELL_TASK_FIRST'
+            result_environ['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
+            result_environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
+            result_environ['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
+            result_environ['FSLSUB_PARALLEL'] = '1'
+            result_environ['JOB_ID'] = str(mock_pid)
+            with patch.dict(
+                    'fsl_sub.plugins.fsl_sub_plugin_shell.os.environ',
+                    test_environ,
+                    clear=True):
+                fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+                    command=args,
+                    job_name=jobname,
+                    queue="my.q",
+                    logdir=logdir)
+                mock_sp_run.assert_called_once_with(
+                    runner + [" ".join(args)],
+                    env=result_environ,
+                    stdout=ANY,
+                    stderr=ANY,
+                    universal_newlines=True
+                )
+
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid')
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel')
-    def test_parallel_submit(self, mock__run_parallel, mock_getpid):
+    def test_parallel_submit(self, mock__run_parallel, mock_getpid, mock_bash):
         mock_pid = 12345
         mock_getpid.return_value = mock_pid
         logdir = "/tmp/logdir"
@@ -429,11 +569,7 @@ count:
 
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid')
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel')
-    @patch(
-        'fsl_sub.plugins.fsl_sub_plugin_shell.method_config',
-        autospec=True,
-        return_value={'parallel_disable_matches': '*_gpu'})
-    def test_parallel_submit_jname_disable(self, mock_mconf, mock__run_parallel, mock_getpid):
+    def test_parallel_submit_bash_singlelines(self, mock__run_parallel, mock_getpid, mock_bash):
         mock_pid = 12345
         mock_getpid.return_value = mock_pid
         logdir = "/tmp/logdir"
@@ -442,7 +578,61 @@ count:
             logdir, jobname + ".o" + str(mock_pid))
         logfile_stderr = os.path.join(
             logdir, jobname + ".e" + str(mock_pid))
-        ll_tests = ['mycommand_gpu arg1 arg2', 'mycommand2 arg3 arg4', ]
+        ll_tests = ['MYENVVAR=1234; sleep 1; mycommand arg1 arg2', 'MYENVVAR=5678; sleep 3; mycommand2 arg3 arg4', ]
+        ll_out = [[mock_bash.return_value, '-c', a] for a in ll_tests]
+        with tempfile.TemporaryDirectory() as tempdir:
+            job_file = os.path.join(tempdir, 'myjob')
+            with open(job_file, mode='w') as jf:
+                jf.writelines([a + '\n' for a in ll_tests])
+
+            test_environ = {'AVAR': 'AVAL', }
+            result_environ = dict(test_environ)
+            result_environ['FSLSUB_JOBID_VAR'] = 'JOB_ID'
+            result_environ['FSLSUB_ARRAYTASKID_VAR'] = 'SHELL_TASK_ID'
+            result_environ['FSLSUB_ARRAYSTARTID_VAR'] = 'SHELL_TASK_FIRST'
+            result_environ['FSLSUB_ARRAYENDID_VAR'] = 'SHELL_TASK_LAST'
+            result_environ['FSLSUB_ARRAYSTEPSIZE_VAR'] = 'SHELL_TASK_STEPSIZE'
+            result_environ['FSLSUB_ARRAYCOUNT_VAR'] = 'SHELL_ARRAYCOUNT'
+            result_environ['FSLSUB_PARALLEL'] = '1'
+            # result_environ['JOB_ID'] = str(mock_pid) - mocked so doesn't get set
+            with patch.dict(
+                    'fsl_sub.plugins.fsl_sub_plugin_shell.os.environ',
+                    test_environ,
+                    clear=True):
+                fsl_sub.plugins.fsl_sub_plugin_shell.submit(
+                    command=[job_file],
+                    job_name=jobname,
+                    queue="my.q",
+                    array_task=True,
+                    logdir=logdir)
+                mock__run_parallel.assert_called_once_with(
+                    ll_out,
+                    mock_pid,
+                    result_environ,
+                    logfile_stdout,
+                    logfile_stderr
+                )
+
+    @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid')
+    @patch('fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel')
+    @patch(
+        'fsl_sub.plugins.fsl_sub_plugin_shell.method_config',
+        autospec=True,
+        return_value={'parallel_disable_matches': '*_gpu'})
+    def test_parallel_submit_jname_disable(self, mock_mconf, mock__run_parallel, mock_getpid, mock_bash):
+        mock_pid = 12345
+        mock_getpid.return_value = mock_pid
+        logdir = "/tmp/logdir"
+        jobname = "myjob"
+        logfile_stdout = os.path.join(
+            logdir, jobname + ".o" + str(mock_pid))
+        logfile_stderr = os.path.join(
+            logdir, jobname + ".e" + str(mock_pid))
+        ll_tests = ['mycommand_gpu arg1 arg2',
+                    'mycommand2 arg3 arg4',
+                    '"mycommand3" arg5 arg6',
+                    '"/spacy dir/mycommand4" arg5 arg6',
+                    '/spacy\\ dir/mycommand4 arg5 arg6']
 
         with tempfile.TemporaryDirectory() as tempdir:
             job_file = os.path.join(tempdir, 'myjob')
@@ -480,7 +670,7 @@ count:
 
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell.os.getpid')
     @patch('fsl_sub.plugins.fsl_sub_plugin_shell._run_parallel')
-    def test_parallel_submit_spec(self, mock__run_parallel, mock_getpid):
+    def test_parallel_submit_spec(self, mock__run_parallel, mock_getpid, mock_bash):
         mock_pid = 12345
         mock_getpid.return_value = mock_pid
         logdir = "/tmp/logdir"
@@ -533,7 +723,7 @@ count:
         'fsl_sub.plugins.fsl_sub_plugin_shell.method_config',
         autospec=True,
         return_value={'parallel_disable_matches': '*_gpu'})
-    def test_parallel_submit_spec_jname_disable(self, mock_mconf, mock__run_parallel, mock_getpid):
+    def test_parallel_submit_spec_jname_disable(self, mock_mconf, mock__run_parallel, mock_getpid, mock_bash):
         mock_pid = 12345
         mock_getpid.return_value = mock_pid
         logdir = "/tmp/logdir"
