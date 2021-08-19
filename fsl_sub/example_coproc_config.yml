@@ -1,5 +1,5 @@
 ---
-coproc_opts:
+coproc_opts: # Example 'cuda' coprocessor - this will need modifying
   cuda: # A co-processor called 'cuda' - queues with this coprocessor
     # should be given a sub-dictionary, 'copros', containing a further dictionary
     # key 'cuda' containing entries, 'max_quantity' (most number of cards per node) and 'classes' (list)
