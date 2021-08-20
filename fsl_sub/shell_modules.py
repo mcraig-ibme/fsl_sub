@@ -130,16 +130,26 @@ def get_modules(module_parent):
             "module -t avail " + shlex.quote(module_parent),
             shell=True)
         if available_modules:
+            # Module output is tabulated
+            lmods = []
             for line in available_modules:
                 line = line.strip()
-                if not line:
+                lmods.extend(line.split())
+            for item in lmods:
+                if not item:
                     continue
-                if ':' in line:
+                if ':' in item:
                     continue
-                if '/' in line:
-                    modules.append(line.split('/')[-1])
-                else:
-                    modules.append(line)
+                if '/' in item:
+                    if '/' in module_parent:
+                        if item.startswith(module_parent + '/'):
+                            modules.append(item.split('/')[-1])
+                    else:
+                        fields = item.split('/')
+                        if fields[0] == module_parent:
+                            modules.append(fields[-1])
+                elif item.startswith(module_parent):
+                    modules.append(item)
         else:
             raise NoModule(module_parent)
     except subprocess.CalledProcessError:

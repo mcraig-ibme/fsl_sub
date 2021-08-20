@@ -229,6 +229,67 @@ class TestModuleSupport(unittest.TestCase):
                 fsl_sub.shell_modules.get_modules('bmodule/submodule'),
                 ['version', ]
             )
+        mock_system_stderr.reset_mock()
+        mock_system_stderr.return_value = ''
+        fsl_sub.shell_modules.get_modules.cache_clear()
+        with self.subTest('Test long lines'):
+            mock_system_stderr.return_value = [
+                '''------------------------------------------'''
+                + '''--------------------------------------------- '''
+                + '''/apps/system/easybuild/modules/all'''
+                + ''' ---------------------------------------------'''
+                + '''-------------------------------------------''',
+                '''   Amodule/1.2.3                              '''
+                + '''                         Amodule/2.14         '''
+                + '''                          Amodule/7.3.0''',
+                '''   Amodule/2.1.5                              '''
+                + '''                         Amodule/2.13.03      '''
+                + '''                          Amodule/2.13.1''']
+            self.assertListEqual(
+                fsl_sub.shell_modules.get_modules('Amodule'),
+                ['1.2.3', '2.1.5', '2.13.03', '2.13.1', '2.14', '7.3.0', ]
+            )
+        mock_system_stderr.reset_mock()
+        mock_system_stderr.return_value = ''
+        fsl_sub.shell_modules.get_modules.cache_clear()
+
+        with self.subTest('Test module parent within name'):
+            mock_system_stderr.return_value = [
+                'Amodule/1.2.3',
+                'Bmodule/3.2.1',
+                'Cmodule-Amodule-Bmodule/2.3.4',
+                'Cmodule-Amodule/3.4.5']
+            self.assertListEqual(
+                fsl_sub.shell_modules.get_modules('Amodule'),
+                ['1.2.3']
+            )
+        mock_system_stderr.reset_mock()
+        mock_system_stderr.return_value = ''
+        fsl_sub.shell_modules.get_modules.cache_clear()
+        with self.subTest('Test module parent within name 2'):
+            mock_system_stderr.return_value = [
+                'Amodule/1.2.3',
+                'AmoduleA/3.2.1', ]
+            self.assertListEqual(
+                fsl_sub.shell_modules.get_modules('Amodule'),
+                ['1.2.3']
+            )
+        mock_system_stderr.reset_mock()
+        mock_system_stderr.return_value = ''
+        fsl_sub.shell_modules.get_modules.cache_clear()
+        with self.subTest('Test module parent within name 3'):
+            mock_system_stderr.return_value = [
+                'Amodule/1.2.3',
+                'Amodule-3.2.1',
+                'Amodule/submodule/4.3.2',
+                'Amodulesubmodule/5.4.3',
+            ]
+            self.assertListEqual(
+                fsl_sub.shell_modules.get_modules('Amodule'),
+                ['1.2.3', '4.3.2', 'Amodule-3.2.1', ]
+            )
+        mock_system_stderr.reset_mock()
+        mock_system_stderr.return_value = ''
         fsl_sub.shell_modules.get_modules.cache_clear()
         with self.subTest('Test 2'):
             mock_system_stderr.side_effect = subprocess.CalledProcessError(

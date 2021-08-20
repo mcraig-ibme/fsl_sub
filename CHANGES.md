@@ -1,5 +1,9 @@
 # Change List
 
+## 2.5.8
+
+- Fixes for co-processor module detection on systems with many modules/complex module names
+
 ## 2.5.7
 
 - Add support for setting environment variables for the 'submitted' job only
